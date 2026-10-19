@@ -23,11 +23,24 @@ jobs:
           test "$(wc -c < "$APK")" -gt 1000000
           test "$(wc -c < "$APK")" -lt 150000000
           unzip -tq "$APK"
-          ROOT_SDK="$ANDROID_HOME"
-          test -d "$ROOT_SDK/build-tools"
-          AAPT="$(find "$ROOT_SDK/build-tools" -type f -name aapt | sort -V | tail -1)"
-          APKSIGNER="$(find "$ROOT_SDK/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          # GitHub's Ubuntu runner may have no Android SDK build-tools,
+          # unlike Codemagic. Install trusted distro tools if none exist.
+          ROOT_SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          AAPT=""
+          APKSIGNER=""
+          if [ -d "$ROOT_SDK/build-tools" ]; then
+            AAPT="$(find "$ROOT_SDK/build-tools" -type f -name aapt | sort -V | tail -1)"
+            APKSIGNER="$(find "$ROOT_SDK/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          fi
+          if [ ! -x "$AAPT" ] || [ ! -x "$APKSIGNER" ]; then
+            echo "No Android SDK build tools preinstalled; preparing package/signature verifiers."
+            sudo apt-get update -qq >/dev/null
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq aapt apksigner >/dev/null
+            AAPT="$(command -v aapt)"
+            APKSIGNER="$(command -v apksigner)"
+          fi
           test -x "$AAPT" && test -x "$APKSIGNER"
+          echo "APK_TOOLS_READY"
           "$APKSIGNER" verify --verbose --print-certs "$APK" > sign.txt
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' sign.txt
           SIGNER="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' sign.txt | tr 'A-F' 'a-f' | head -1)"

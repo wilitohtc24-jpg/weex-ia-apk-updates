@@ -41,10 +41,24 @@ jobs:
           fi
           test -x "$AAPT" && test -x "$APKSIGNER"
           echo "APK_TOOLS_READY"
-          "$APKSIGNER" verify --verbose --print-certs "$APK" > sign.txt
-          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' sign.txt
+          if ! "$APKSIGNER" verify --verbose --print-certs "$APK" > sign.txt 2>&1; then
+            echo "APK_SIGNATURE_VERIFIER_REJECTED"
+            tail -n 30 sign.txt
+            exit 1
+          fi
+          echo "APK_SIGNATURE_REPORT_BEGIN"
+          tail -n 30 sign.txt
+          echo "APK_SIGNATURE_REPORT_END"
+          if ! grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' sign.txt; then
+            echo "APK_V2_SIGNING_VERIFICATION_FAILED"
+            exit 1
+          fi
           SIGNER="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' sign.txt | tr 'A-F' 'a-f' | head -1)"
-          test "$SIGNER" = "5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"
+          if [ "$SIGNER" != "5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6" ]; then
+            echo "APK_CANONICAL_SIGNER_MISMATCH"
+            exit 1
+          fi
+          echo "APK_SIGNER_AND_V2_VERIFIED"
           BADGING="$("$AAPT" dump badging "$APK")"
           PACKAGE="$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)"
           VERSION="$(printf '%s\n' "$BADGING" | sed -n "s/^package:.* versionCode='\([0-9]*\)'.*/\1/p" | head -1)"

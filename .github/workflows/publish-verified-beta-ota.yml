@@ -61,7 +61,7 @@ jobs:
           from pathlib import Path
           rel=json.loads(Path("verified-beta/source-release.json").read_text())
           run=json.loads(Path("verified-beta/source-run.json").read_text())
-          assert rel.get("draft") is True and rel.get("tag_name")==os.environ["SOURCE_RELEASE_TAG"]
+          assert rel.get("draft") is False and rel.get("prerelease") is True and rel.get("tag_name")==os.environ["SOURCE_RELEASE_TAG"]
           assert rel.get("target_commitish")==os.environ["SOURCE_SHA"]
           assert run.get("head_sha")==os.environ["SOURCE_SHA"]
           assert run.get("head_branch")==os.environ["SOURCE_BRANCH"]

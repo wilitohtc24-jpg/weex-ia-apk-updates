@@ -168,7 +168,11 @@ jobs:
             --title "WEEX IA Trader BETA de prueba - v$VERSION_CODE" \
             --notes-file verified-beta/release-notes.txt \
             --draft --prerelease=false --latest=false
-          gh api "repos/$TARGET_REPOSITORY/releases/tags/$tag" > verified-beta/draft.json
+          # GitHub REST "release by tag" may hide drafts (404), even to
+          # their author. Resolve the newly-created release ID via the CLI.
+          draft_id="$(gh release view "$tag" --repo "$TARGET_REPOSITORY" --json databaseId --jq .databaseId)"
+          test "$draft_id" -gt 0
+          gh api "repos/$TARGET_REPOSITORY/releases/$draft_id" > verified-beta/draft.json
           python3 - <<'PY'
           from pathlib import Path
           import json,os

@@ -51,6 +51,9 @@ jobs:
             exit 1
           fi
           mkdir -p verified-beta
+          echo "Validando acceso de lectura al repositorio privado…"
+          gh api "repos/$SOURCE_REPOSITORY" --jq .full_name
+          echo "Validando acceso a la APK privada (release draft)…"
           gh api "repos/$SOURCE_REPOSITORY/releases/$SOURCE_RELEASE_ID" > verified-beta/source-release.json
           gh api "repos/$SOURCE_REPOSITORY/actions/runs/$SOURCE_WORKFLOW_RUN" > verified-beta/source-run.json
           python3 - <<'PY'

@@ -1,0 +1,100 @@
+name: Promote verified WEEX v29176085 BETA OTA - final draft step
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/promote-pinned-weex-beta-29176085.yml
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: weex-v29176085-pinned-beta-finalize
+  cancel-in-progress: false
+jobs:
+  publish-exact-existing-draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      REPOSITORY: wilitohtc24-jpg/weex-ia-apk-updates
+      RELEASE_ID: "438806806"
+      VERSION_CODE: "29176085"
+      APK_SHA256: 1ab0350d64502cce9510de2a2eda7c262e49a2bdeb1dc10a72dea469b3913831
+      APK_BYTES: "63207895"
+      VERIFIED_STAGING_RUN: "42573978137"
+    steps:
+      - name: Prove original signed APK staged and verified; no binaries change
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$REPOSITORY"
+          test "$GITHUB_REF" = "refs/heads/main"
+          gh api "repos/$REPOSITORY/actions/runs/$VERIFIED_STAGING_RUN/jobs?filter=latest" > staging-jobs.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open("staging-jobs.json"))
+          jobs=r.get("jobs",[])
+          assert jobs
+          steps=jobs[0]["steps"]
+          for name in (
+             "Check manual beta publication and PRIVATE source read permission",
+             "Retrieve exact signed private APK, manifest and signature report",
+             "Verify immutable SHA, version, signer and source identity",
+          ):
+             assert len([s for s in steps if s.get("name")==name and s.get("conclusion")=="success"])==1, name
+          print("ORIGINAL_SIGNED_APK_BINARY_AND_HASH_VERIFIED_BY_PRIOR_WORKFLOW")
+          PY
+          gh api "repos/$REPOSITORY/releases/$RELEASE_ID" > staged.json
+          python3 - <<'PY'
+          import json,os
+          x=json.load(open("staged.json"))
+          assert x["id"]==int(os.environ["RELEASE_ID"])
+          assert x["tag_name"]=="v"+os.environ["VERSION_CODE"]
+          assert x["draft"] is True
+          assert x["prerelease"] is False
+          assert "BETA" in x.get("name","")
+          assert "WEEX_OTA_RELEASE_APPROVED_V1" in x.get("body","")
+          assert "WEEX_OTA_PUBLIC_TEST_BETA_V1" in x.get("body","")
+          assert os.environ["APK_SHA256"] in x.get("body","")
+          assert len(x["assets"])==1
+          a=x["assets"][0]
+          assert a["name"]=="WEEX-IA-Trader-release.apk"
+          assert a.get("state")=="uploaded"
+          assert a["digest"]=="sha256:"+os.environ["APK_SHA256"]
+          assert a["size"]==int(os.environ["APK_BYTES"])
+          assert a["browser_download_url"].startswith(
+            "https://github.com/"+os.environ["REPOSITORY"]+"/releases/download/")
+          print("EXACT_PUBLIC_BETA_DRAFT_ID_SHA_SIZE_AND_NOTES_VERIFIED")
+          PY
+      - name: Publish exact existing signed BETA draft through GitHub OTA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method PATCH "repos/$REPOSITORY/releases/$RELEASE_ID" \
+            -F draft=false -F prerelease=false -f make_latest=true \
+            --jq '{id,tag_name,draft,prerelease,html_url}'
+          gh api "repos/$REPOSITORY/releases/latest" > latest.json
+          python3 - <<'PY'
+          import json,os
+          x=json.load(open("latest.json"))
+          assert x["id"]==int(os.environ["RELEASE_ID"])
+          assert x["tag_name"]=="v"+os.environ["VERSION_CODE"]
+          assert x.get("draft") is False and x.get("prerelease") is False
+          assert x.get("published_at")
+          assert "BETA" in x.get("name","")
+          assert "WEEX_OTA_PUBLIC_TEST_BETA_V1" in x.get("body","")
+          assert "WEEX_OTA_RELEASE_APPROVED_V1" in x.get("body","")
+          assert os.environ["APK_SHA256"] in x.get("body","")
+          assert len(x["assets"])==1
+          a=x["assets"][0]
+          assert a.get("digest")=="sha256:"+os.environ["APK_SHA256"]
+          assert a.get("size")==int(os.environ["APK_BYTES"])
+          assert a.get("browser_download_url")==(
+            "https://github.com/"+os.environ["REPOSITORY"]+
+            "/releases/download/v"+os.environ["VERSION_CODE"]+
+            "/WEEX-IA-Trader-release.apk")
+          print("PUBLIC_BETA_OTA_LATEST_RELEASE_VERIFIED")
+          PY

@@ -44,7 +44,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "$TARGET_REPOSITORY"
-          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main"
+          case "$GITHUB_EVENT_NAME" in push|workflow_dispatch) ;; *) exit 1 ;; esac
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::Missing WEEX_SOURCE_RELEASE_READ_TOKEN (read-only access to source repo). No OTA published."
             exit 1

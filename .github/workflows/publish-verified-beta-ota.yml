@@ -5,6 +5,11 @@
 name: Public WEEX beta OTA - signed exact APK (manual only)
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-verified-beta-ota.yml
   workflow_dispatch:
 
 permissions:

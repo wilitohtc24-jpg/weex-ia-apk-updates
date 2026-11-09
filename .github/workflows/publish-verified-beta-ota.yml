@@ -1,0 +1,213 @@
+# Manual, deliberately pinned one-APK BETA delivery.
+# Existing installed clients query releases/latest and reject prerelease/draft.
+# Therefore this is a publicly visible GitHub release with "BETA / prueba"
+# plainly stated in the title and body, but NOT a stable-app acceptance.
+name: Public WEEX beta OTA - signed exact APK (manual only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weex-public-beta-ota-promotion
+  cancel-in-progress: false
+
+jobs:
+  publish-verified-beta:
+    name: Verify original APK, then offer beta through existing updater
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_REPOSITORY: wilitohtc24-jpg/weex-auto-trader-android
+      TARGET_REPOSITORY: wilitohtc24-jpg/weex-ia-apk-updates
+      SOURCE_RELEASE_ID: "438775799"
+      SOURCE_RELEASE_TAG: weex-economic-next-private-42566517340
+      SOURCE_WORKFLOW_RUN: "42566517340"
+      SOURCE_SHA: 2ed9690f310919a51fc38d2578debcc662268ae8
+      SOURCE_BRANCH: repair/real-economic-veto-rotate-20261108
+      VERSION_CODE: "29176085"
+      EXPECTED_APK_SHA256: 1ab0350d64502cce9510de2a2eda7c262e49a2bdeb1dc10a72dea469b3913831
+      EXPECTED_APK_BYTES: "63207895"
+      ORIGINAL_SIGNER_SHA256: 5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6
+    steps:
+      - name: Check manual beta publication and PRIVATE source read permission
+        env:
+          GH_TOKEN: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$TARGET_REPOSITORY"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Missing WEEX_SOURCE_RELEASE_READ_TOKEN (read-only access to source repo). No OTA published."
+            exit 1
+          fi
+          mkdir -p verified-beta
+          gh api "repos/$SOURCE_REPOSITORY/releases/$SOURCE_RELEASE_ID" > verified-beta/source-release.json
+          gh api "repos/$SOURCE_REPOSITORY/actions/runs/$SOURCE_WORKFLOW_RUN" > verified-beta/source-run.json
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          rel=json.loads(Path("verified-beta/source-release.json").read_text())
+          run=json.loads(Path("verified-beta/source-run.json").read_text())
+          assert rel.get("draft") is True and rel.get("tag_name")==os.environ["SOURCE_RELEASE_TAG"]
+          assert rel.get("target_commitish")==os.environ["SOURCE_SHA"]
+          assert run.get("head_sha")==os.environ["SOURCE_SHA"]
+          assert run.get("head_branch")==os.environ["SOURCE_BRANCH"]
+          assert run.get("conclusion")=="success" and run.get("status")=="completed"
+          assert int(run.get("run_attempt",0))>=2
+          assets={a["name"]:a for a in rel.get("assets",[])}
+          expected={
+            "WEEX-IA-Trader-release.apk","release.json",
+            "signing-certificate.txt","apk-sha256.txt"
+          }
+          assert expected.issubset(assets)
+          assert assets["WEEX-IA-Trader-release.apk"].get("size")==int(os.environ["EXPECTED_APK_BYTES"])
+          assert assets["WEEX-IA-Trader-release.apk"].get("digest")=="sha256:"+os.environ["EXPECTED_APK_SHA256"]
+          for name in expected:
+            a=assets[name]
+            assert a.get("state")=="uploaded" and a.get("id")
+            Path("verified-beta/"+name+".asset-id").write_text(str(a["id"]))
+          print("SOURCE_DRAFT_AND_SIGNED_CI_VERIFIED - no public release yet")
+          PY
+
+      - name: Retrieve exact signed private APK, manifest and signature report
+        env:
+          GH_TOKEN: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in WEEX-IA-Trader-release.apk release.json signing-certificate.txt apk-sha256.txt; do
+            asset_id="$(cat "verified-beta/$name.asset-id")"
+            gh api -H "Accept: application/octet-stream" \
+              "repos/$SOURCE_REPOSITORY/releases/assets/$asset_id" \
+              > "verified-beta/$name"
+            test -s "verified-beta/$name"
+          done
+          echo "SIGNED_APK_ASSETS_RETRIEVED - not published"
+
+      - name: Verify immutable SHA, version, signer and source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json,os,re
+          root=Path("verified-beta")
+          apk=root/"WEEX-IA-Trader-release.apk"
+          meta=json.loads((root/"release.json").read_text())
+          expected=os.environ["EXPECTED_APK_SHA256"]
+          assert apk.stat().st_size==int(os.environ["EXPECTED_APK_BYTES"])
+          with apk.open("rb") as f:
+            digest=hashlib.file_digest(f,"sha256").hexdigest()
+          assert digest==expected
+          assert meta.get("sha256")==expected
+          assert meta.get("sizeBytes")==apk.stat().st_size
+          assert meta.get("versionCode")==int(os.environ["VERSION_CODE"])
+          assert meta.get("sourceCommit")==os.environ["SOURCE_SHA"]
+          assert meta.get("sourceBranch")==os.environ["SOURCE_BRANCH"]
+          assert meta.get("packageName")=="com.wilito.weexautotrader"
+          assert meta.get("signerSha256")==os.environ["ORIGINAL_SIGNER_SHA256"]
+          assert expected in (root/"apk-sha256.txt").read_text()
+          assert os.environ["ORIGINAL_SIGNER_SHA256"] in (root/"signing-certificate.txt").read_text().lower()
+          print("EXACT_PRIVATE_SIGNED_BINARY_MANIFEST_HASH_VERIFIED")
+          PY
+          APK_SIGNER="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1)"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$APK_SIGNER" && test -x "$AAPT"
+          "$APK_SIGNER" verify --print-certs verified-beta/WEEX-IA-Trader-release.apk > verified-beta/actual-apk-signer.txt
+          grep -qi "$ORIGINAL_SIGNER_SHA256" verified-beta/actual-apk-signer.txt
+          "$AAPT" dump badging verified-beta/WEEX-IA-Trader-release.apk > verified-beta/actual-apk-package.txt
+          grep -q "package: name='com.wilito.weexautotrader' versionCode='$VERSION_CODE'" verified-beta/actual-apk-package.txt
+          echo "BETA_BINARY_SIGNATURE_PACKAGE_VERSION_VERIFIED"
+
+      - name: Publish opt-in BETA through legacy GitHub OTA catalog
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$TARGET_REPOSITORY"
+          tag="v$VERSION_CODE"
+          # The installed client only understands a non-draft, non-prerelease
+          # latest release. BETA is explicitly in the UI title and notes;
+          # transport approval != functional acceptance.
+          if gh api "repos/$TARGET_REPOSITORY/releases/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::Version tag exists; refusing overwrite"
+            exit 1
+          fi
+          latest="$(gh api "repos/$TARGET_REPOSITORY/releases/latest" --jq .tag_name)"
+          latest_code="${latest#v}"
+          test "$latest_code" -lt "$VERSION_CODE"
+          cat > verified-beta/release-notes.txt <<EOF
+          WEEX_OTA_RELEASE_APPROVED_V1
+          WEEX_OTA_PUBLIC_TEST_BETA_V1
+
+          VERSIÓN BETA DE PRUEBA, NO APROBADA COMO ESTABLE.
+          La publicación del archivo OTA está autorizada; su funcionamiento
+          en teléfonos aún debe probarse por usuarios en SIM y REAL.
+
+          No es una garantía de rentabilidad, ejecución REAL ni ausencia de fallos.
+          Instalar es voluntario. Probar SIM primero; revisar saldo, paradas,
+          órdenes pendientes, historial y escaneo antes de usar capital real.
+
+          VersionCode: $VERSION_CODE
+          SHA-256: $EXPECTED_APK_SHA256
+          Firma Android canónica sin cambios; actualización sobre la misma app.
+          Compilación fuente verificada: $SOURCE_SHA
+          PR de beta: https://github.com/$SOURCE_REPOSITORY/pull/99
+          Informe de errores: https://github.com/$SOURCE_REPOSITORY/issues
+          La beta NO implica la aceptación final de los 91 requisitos.
+          EOF
+          gh release create "$tag" \
+            "verified-beta/WEEX-IA-Trader-release.apk#WEEX-IA-Trader-release.apk" \
+            --repo "$TARGET_REPOSITORY" \
+            --target main \
+            --title "WEEX IA Trader BETA de prueba - v$VERSION_CODE" \
+            --notes-file verified-beta/release-notes.txt \
+            --draft --prerelease=false --latest=false
+          gh api "repos/$TARGET_REPOSITORY/releases/tags/$tag" > verified-beta/draft.json
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,os
+          x=json.loads(Path("verified-beta/draft.json").read_text())
+          assert x.get("tag_name")=="v"+os.environ["VERSION_CODE"]
+          assert x.get("draft") is True
+          assert x.get("prerelease") is False
+          assert "WEEX_OTA_PUBLIC_TEST_BETA_V1" in x.get("body","")
+          assert "WEEX_OTA_RELEASE_APPROVED_V1" in x.get("body","")
+          assets=x.get("assets",[])
+          assert len(assets)==1
+          a=assets[0]
+          assert a.get("name")=="WEEX-IA-Trader-release.apk"
+          assert a.get("state")=="uploaded"
+          assert a.get("size")==int(os.environ["EXPECTED_APK_BYTES"])
+          assert a.get("digest")=="sha256:"+os.environ["EXPECTED_APK_SHA256"]
+          assert a.get("browser_download_url")==(
+            "https://github.com/"+os.environ["TARGET_REPOSITORY"]+
+            "/releases/download/v"+os.environ["VERSION_CODE"]+
+            "/WEEX-IA-Trader-release.apk")
+          print("BETA_DRAFT_ASSET_VERIFIED - ready for public offering")
+          PY
+          gh release edit "$tag" --repo "$TARGET_REPOSITORY" \
+            --draft=false --prerelease=false --latest
+          gh api "repos/$TARGET_REPOSITORY/releases/latest" > verified-beta/published.json
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,os
+          x=json.loads(Path("verified-beta/published.json").read_text())
+          assert x.get("tag_name")=="v"+os.environ["VERSION_CODE"]
+          assert x.get("draft") is False and x.get("prerelease") is False
+          assert x.get("published_at")
+          assert "BETA" in x.get("name","")
+          assert "WEEX_OTA_PUBLIC_TEST_BETA_V1" in x.get("body","")
+          assert "WEEX_OTA_RELEASE_APPROVED_V1" in x.get("body","")
+          assert os.environ["EXPECTED_APK_SHA256"] in x.get("body","")
+          a=x["assets"][0]
+          assert len(x["assets"])==1
+          assert a.get("digest")=="sha256:"+os.environ["EXPECTED_APK_SHA256"]
+          print("PUBLIC_TEST_BETA_OTA_VISIBLE_VIA_LEGACY_UPDATER")
+          PY
+          echo "Public OTA offered voluntarily: https://github.com/$TARGET_REPOSITORY/releases/download/$tag/WEEX-IA-Trader-release.apk"

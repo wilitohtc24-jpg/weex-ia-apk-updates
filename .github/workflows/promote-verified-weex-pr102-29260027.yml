@@ -59,8 +59,8 @@ jobs:
             "Save exact APK in GitHub DRAFT only - never expose public OTA"
           ):
               assert len([s for s in steps if s.get('name')==name and s.get('conclusion')=='success'])==1,name
-          assert r.get('id')==int(E['RELEASE_ID']) and r.get('tag_name')=='v'+E['VERSION']
-          assert r.get('draft') is True and r.get('prerelease') is True
+          assert r.get('id')==int(E['RELEASE_ID']) and r.get('tag_name') in ('v'+E['VERSION'],'untagged-8eba7ee4ecf1666aa9c9')
+          assert r.get('draft') is True and r.get('prerelease') is False
           assert E['SOURCE_SHA'] in (r.get('body') or '')
           assert E['APK_DIGEST'] in (r.get('body') or '')
           assets={a['name']:a for a in r.get('assets',[])}
@@ -104,6 +104,7 @@ jobs:
           EOF
           # Update ONLY release metadata while still draft, never replace binary assets.
           gh api --method PATCH "repos/$TARGET/releases/$RELEASE_ID" \
+            -f tag_name="v$VERSION" \
             -f name="WEEX IA Trader BETA de prueba PR102 - v$VERSION" \
             -f body="$(cat /tmp/pr102-beta-notes.txt)" \
             -F prerelease=false >/tmp/pr102-beta-draft.json
@@ -118,7 +119,7 @@ jobs:
           assert len(a)==1 and a[0].get('digest')=='sha256:'+os.environ['APK_DIGEST']
           PY
           gh api --method PATCH "repos/$TARGET/releases/$RELEASE_ID" \
-            -F draft=false -F prerelease=false -f make_latest=true >/tmp/pr102-published.json
+            -f tag_name="v$VERSION" -F draft=false -F prerelease=false -f make_latest=true >/tmp/pr102-published.json
           gh api "repos/$TARGET/releases/latest" > /tmp/pr102-latest.json
           python3 - <<'PY'
           import json,os

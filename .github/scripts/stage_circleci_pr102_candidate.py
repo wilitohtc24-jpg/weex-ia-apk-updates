@@ -29,9 +29,28 @@ if not C or not G:fail("API_CREDENTIAL_MISSING")
 if get("https://api.github.com/repos/"+REPO+"/commits/"+SHA,G,True).get("sha")!=SHA:
     fail("PRIVATE_SOURCE_SHA_MISMATCH")
 job=get("https://circleci.com/api/v2/jobs/"+JOB,C)
-if job.get("status")!="success":fail("EXACT_CIRCLECI_JOB_NOT_GREEN")
-slug,num=job.get("project_slug"),job.get("number") or job.get("job_number")
-if not isinstance(slug,str) or not re.fullmatch(r"[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+",slug) or not isinstance(num,int):
+if job.get("id")!=JOB or job.get("name")!="pr102_private_candidate" or job.get("status")!="success":
+    fail("EXACT_CIRCLECI_JOB_ID_NAME_OR_STATUS_MISMATCH")
+# The UUID job endpoint returns project_id, NOT project_slug. CircleCI's
+# workflow jobs endpoint provides the project_slug required by the artifacts API.
+workflow_id=job.get("workflow_id")
+if not isinstance(workflow_id,str) or not re.fullmatch(r"[0-9a-fA-F-]{36}",workflow_id):
+    fail("CIRCLECI_WORKFLOW_ID_MISSING")
+matching=[];workflow_page=None
+while True:
+    workflow_url="https://circleci.com/api/v2/workflow/"+workflow_id+"/job"
+    if workflow_page:workflow_url+="?page-token="+urllib.parse.quote(workflow_page,safe="")
+    workflow_jobs=get(workflow_url,C)
+    matching.extend(x for x in workflow_jobs.get("items",[]) if x.get("id")==JOB)
+    if len(matching)>1:fail("CIRCLECI_DUPLICATE_EXACT_JOB")
+    workflow_page=workflow_jobs.get("next_page_token")
+    if not workflow_page:break
+if len(matching)!=1:fail("CIRCLECI_EXACT_WORKFLOW_JOB_NOT_FOUND")
+workflow_job=matching[0]
+if workflow_job.get("status")!="success" or workflow_job.get("name")!="pr102_private_candidate":
+    fail("CIRCLECI_WORKFLOW_JOB_MISMATCH")
+slug,num=workflow_job.get("project_slug"),workflow_job.get("job_number")
+if num!=job.get("job_number") or not isinstance(slug,str) or not re.fullmatch(r"[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+",slug) or not isinstance(num,int):
     fail("CIRCLECI_PROJECT_OR_NUMBER_MISSING")
 all_items=[];page=None
 while True:

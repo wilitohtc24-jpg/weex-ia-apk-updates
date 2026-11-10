@@ -37,3 +37,4 @@ jobs:
 # Retry 2026-11-10: support final materializer shadow-mode guard.
 # Replay with strict REAL no-candidate gate requiring mechanically proven outer continue.
 # PR106 safety replay: preserve authenticated empty-account return and SHADOW stop management.
+# PR106 regression: real-to-sim empty-return must match original exact protected cycle.

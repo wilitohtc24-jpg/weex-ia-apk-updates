@@ -35,3 +35,4 @@ jobs:
           echo "PR106_PRESIGN_SOURCE_ONLY_PASS_NO_APK_NO_OTA"
 # Replay after restoring CircleCI's original manual-APK safety filters; QA source-only.
 # Retry 2026-11-10: support final materializer shadow-mode guard.
+# Replay with strict REAL no-candidate gate requiring mechanically proven outer continue.

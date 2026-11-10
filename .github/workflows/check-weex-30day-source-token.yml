@@ -31,3 +31,29 @@ jobs:
           gh api repos/wilitohtc24-jpg/weex-auto-trader-android/actions/runs/42566517340 --jq '.id' >/dev/null
           echo "WEEX_SOURCE_RELEASE_READ_TOKEN_ACTIVE: private repo, release and Actions access OK"
           echo "READ_ONLY_PROBE_NO_APK_UPLOAD_NO_OTA"
+      - name: Check whether authenticated CircleCI artifact read access exists
+        env:
+          CIRCLE_PERSONAL_TOKEN: ${{ secrets.CIRCLECI_API_TOKEN || secrets.CIRCLE_TOKEN || secrets.CIRCLECI_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${CIRCLE_PERSONAL_TOKEN:-}" ]; then
+            echo "::notice::CIRCLECI_ARTIFACT_ACCESS_BLOCKED_NO_PERSONAL_API_TOKEN_IN_PUBLIC_OTA_REPO"
+            echo "GitHub 30-day source token is valid, but it is NOT a CircleCI token."
+            exit 0
+          fi
+          CODE="$(curl -sS --max-time 20 -o /tmp/weex-circleci-job-status.json -w "%{http_code}" -H "Circle-Token: $CIRCLE_PERSONAL_TOKEN" \
+            "https://circleci.com/api/v2/jobs/d466261a-bb7d-46fc-b419-d602f42d2efb" || true)"
+          if [ "$CODE" = 200 ]; then
+            python3 - <<'PY'
+          import json
+          with open('/tmp/weex-circleci-job-status.json','r',encoding='utf8') as f:
+              data=json.load(f)
+          print("CIRCLECI_ARTIFACT_JOB_ACCESS_VERIFIED",bool(data.get('number') or data.get('job_number')))
+          print("CIRCLECI_ARTIFACT_JOB_NUMBER",data.get('number') or data.get('job_number') or 'unknown')
+          print("CIRCLECI_ARTIFACT_PROJECT_SLUG",data.get('project_slug') or 'unknown')
+          PY
+          else
+            echo "::notice::CIRCLECI_ARTIFACT_JOB_ACCESS_HTTP_$CODE"
+          fi
+          echo "CIRCLECI_READONLY_ACCESS_CHECK_COMPLETE_NO_APK_NO_OTA"

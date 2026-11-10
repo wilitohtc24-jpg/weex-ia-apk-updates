@@ -1,4 +1,5 @@
 # Full presign source replay for PR106 on a throwaway checkout.
+# Diagnostic retry: print structural anchors only if a legacy materializer changed the REAL branch.
 # No Gradle packaging, signing, artifact upload, OTA or exchange API calls.
 name: WEEX PR106 ART VerifyError full source materializer replay (NO APK)
 on:

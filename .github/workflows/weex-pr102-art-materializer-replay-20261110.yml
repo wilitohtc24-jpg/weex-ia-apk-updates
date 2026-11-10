@@ -36,3 +36,4 @@ jobs:
 # Replay after restoring CircleCI's original manual-APK safety filters; QA source-only.
 # Retry 2026-11-10: support final materializer shadow-mode guard.
 # Replay with strict REAL no-candidate gate requiring mechanically proven outer continue.
+# PR106 safety replay: preserve authenticated empty-account return and SHADOW stop management.

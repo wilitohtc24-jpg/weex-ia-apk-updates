@@ -42,9 +42,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Prepare Android's verification tools only
+      - name: Use Android SDK already installed on hosted runner (no APK build)
         if: steps.access.outputs.ready == 'true'
-        uses: android-actions/setup-android@v3
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$SDK" && test -d "$SDK"
+          command -v sdkmanager >/dev/null
+          echo "ANDROID_SDK_PRESENT_NO_LEGACY_TOOLS_INSTALL"
 
       - name: Install apksigner and aapt without building APK
         if: steps.access.outputs.ready == 'true'

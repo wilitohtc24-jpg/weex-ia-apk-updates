@@ -158,6 +158,31 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Create standalone emulator verification script (no app launch or REAL requests)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/weex-pr106-art-instrumentation-runner.sh <<'ART_TEST'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          adb install -r source/app/build/outputs/apk/debug/app-debug.apk
+          adb install -r source/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb logcat -c
+          adb shell am instrument -w -r -e class com.wilito.weexautotrader.ArtDexVerifyTest com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr106-art-instrumentation.txt
+          if ! grep -q 'OK (1 test)' /tmp/weex-pr106-art-instrumentation.txt; then
+            echo "::error::ART_VERIFYERROR_CLASSLOAD_TEST_FAILED"
+            grep -E 'INSTRUMENTATION_STATUS:|java.lang.VerifyError|FAILURES|shortMsg|test=' /tmp/weex-pr106-art-instrumentation.txt | tail -35 || true
+            exit 1
+          fi
+          if adb logcat -d -b main -b crash | grep -E 'FATAL EXCEPTION|VerifyError.*TraderService' > /tmp/weex-pr106-art-crash-matches.txt; then
+            echo "::error::ANDROID_ART_CRASH_OR_VERIFYERROR_DETECTED"
+            head -15 /tmp/weex-pr106-art-crash-matches.txt
+            exit 1
+          fi
+          echo PR106_ANDROID_ART_WORKER_CONTINUATION_VERIFIED_ON_EMULATOR_NO_REAL_ORDERS_NO_OTA
+          ART_TEST
+          bash -n /tmp/weex-pr106-art-instrumentation-runner.sh
+          chmod 700 /tmp/weex-pr106-art-instrumentation-runner.sh
       - name: Verify generated DEX on actual Android ART emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -168,20 +193,4 @@ jobs:
           ram-size: 4096M
           emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           disable-animations: true
-          script: |
-            set -euo pipefail
-            adb install -r source/app/build/outputs/apk/debug/app-debug.apk
-            adb install -r source/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb logcat -c
-            adb shell am instrument -w -r -e class com.wilito.weexautotrader.ArtDexVerifyTest com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr106-art-instrumentation.txt
-            if ! grep -q 'OK (1 test)' /tmp/weex-pr106-art-instrumentation.txt; then
-              echo "::error::ART_VERIFYERROR_CLASSLOAD_TEST_FAILED"
-              grep -E 'INSTRUMENTATION_STATUS:|java.lang.VerifyError|FAILURES|shortMsg|test=' /tmp/weex-pr106-art-instrumentation.txt | tail -35 || true
-              exit 1
-            fi
-            if adb logcat -d -b main -b crash | grep -E 'FATAL EXCEPTION|VerifyError.*TraderService' > /tmp/weex-pr106-art-crash-matches.txt; then
-              echo "::error::ANDROID_ART_CRASH_OR_VERIFYERROR_DETECTED"
-              head -15 /tmp/weex-pr106-art-crash-matches.txt
-              exit 1
-            fi
-            echo PR106_ANDROID_ART_WORKER_CONTINUATION_VERIFIED_ON_EMULATOR_NO_REAL_ORDERS_NO_OTA
+          script: bash /tmp/weex-pr106-art-instrumentation-runner.sh

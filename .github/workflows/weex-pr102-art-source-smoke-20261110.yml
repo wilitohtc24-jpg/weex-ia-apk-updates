@@ -52,10 +52,11 @@ jobs:
           PY
           python3 ci/patch_trader_art_verifyerror_split_v1.py
           python3 ci/verify_trader_art_verifyerror_split_v1.py
-          if python3 ci/patch_trader_art_verifyerror_split_v1.py >/tmp/pr102-reapply.log 2>&1; then
-            echo "::error::Duplicate patch unexpectedly accepted"
-            exit 1
-          fi
+          cp app/src/main/java/com/wilito/weexautotrader/TraderService.kt /tmp/pr106-before-reapply.kt
+          python3 ci/patch_trader_art_verifyerror_split_v1.py
+          cmp /tmp/pr106-before-reapply.kt app/src/main/java/com/wilito/weexautotrader/TraderService.kt
+          python3 ci/verify_trader_art_verifyerror_split_v1.py
+          echo PR106_IDEMPOTENT_SECOND_MATERIALIZATION_PASS
           git diff --check
           echo "SOURCE_ONLY_ART_COROUTINE_REWRITE_PASS_NO_APK_NO_OTA"
 # Smoke retry: support both original and final materialized shadow-mode guard.

@@ -1,0 +1,34 @@
+# Full presign source replay for PR106 on a throwaway checkout.
+# No Gradle packaging, signing, artifact upload, OTA or exchange API calls.
+name: WEEX PR106 ART VerifyError full source materializer replay (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr102-art-materializer-replay-20261110.yml
+permissions:
+  contents: read
+jobs:
+  source-only-presign-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact isolated private repair branch
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: repair/pr102-art-verifyerror-20261110
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Verify source-only materialization gate and ART coroutine split
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          test -f ci/preflight_full_presigning_source_v1.py
+          python3 ci/preflight_full_presigning_source_v1.py
+          echo "PR106_PRESIGN_SOURCE_ONLY_PASS_NO_APK_NO_OTA"

@@ -1,0 +1,74 @@
+# Incident P0: Android ART VerifyError in v29260027 TraderService coroutine DEX.
+# Quarantine this exact release from /releases/latest without deleting any assets.
+# Never build, replace APK, change older release or perform Android data migration.
+name: Quarantine broken WEEX v29260027 OTA from latest (retain signed artifact)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/quarantine-broken-weex-ota-29260027.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: weex-quarantine-v29260027
+  cancel-in-progress: false
+jobs:
+  quarantine-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      REPO: wilitohtc24-jpg/weex-ia-apk-updates
+      INCIDENT_RELEASE_ID: "440630627"
+      BROKEN_VERSION: "v29260027"
+      BROKEN_SHA256: 9daf05c849262d2630b930fd20882df0da1f98d486d0c7b499568e63d3dc89fe
+      BROKEN_SIZE: "63236567"
+      PREVIOUS_VERSION: "v29176085"
+      PREVIOUS_RELEASE_ID: "438806806"
+    steps:
+      - name: Inspect exact broken signed release and prior working catalogue; no mutation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$REPO"
+          test "$GITHUB_REF" = "refs/heads/main"
+          gh api "repos/$REPO/releases/$INCIDENT_RELEASE_ID" > /tmp/current.json
+          gh api "repos/$REPO/releases/$PREVIOUS_RELEASE_ID" > /tmp/previous.json
+          python3 - <<'PY'
+          import json,os
+          e=os.environ
+          r=json.load(open('/tmp/current.json'))
+          p=json.load(open('/tmp/previous.json'))
+          assert r.get('id')==int(e['INCIDENT_RELEASE_ID']) and r.get('tag_name')==e['BROKEN_VERSION']
+          assert r.get('draft') is False
+          a=[x for x in r.get('assets',[]) if x.get('name')=='WEEX-IA-Trader-release.apk']
+          assert len(a)==1 and a[0].get('digest')=='sha256:'+e['BROKEN_SHA256']
+          assert a[0].get('size')==int(e['BROKEN_SIZE'])
+          assert p.get('id')==int(e['PREVIOUS_RELEASE_ID']) and p.get('tag_name')==e['PREVIOUS_VERSION']
+          assert p.get('draft') is False and p.get('prerelease') is False
+          print('QUARANTINE_PRECONDITIONS_OK_NO_BINARY_CHANGES')
+          PY
+      - name: Exclude exact broken release from newest OTA catalog, retain archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method PATCH "repos/$REPO/releases/$INCIDENT_RELEASE_ID" -F prerelease=true -f make_latest=false > /tmp/quarantined.json
+          gh api "repos/$REPO/releases/latest" > /tmp/latest.json
+          python3 - <<'PY'
+          import json,os
+          e=os.environ
+          r=json.load(open('/tmp/quarantined.json'))
+          latest=json.load(open('/tmp/latest.json'))
+          assert r['id']==int(e['INCIDENT_RELEASE_ID']) and r['tag_name']==e['BROKEN_VERSION']
+          assert r['draft'] is False and r['prerelease'] is True
+          a=[x for x in r.get('assets',[]) if x.get('name')=='WEEX-IA-Trader-release.apk']
+          assert len(a)==1 and a[0]['digest']=='sha256:'+e['BROKEN_SHA256']
+          assert a[0]['size']==int(e['BROKEN_SIZE'])
+          assert latest['id']==int(e['PREVIOUS_RELEASE_ID'])
+          assert latest['tag_name']==e['PREVIOUS_VERSION']
+          print('BROKEN_APK_QUARANTINED_FROM_LATEST_OTA_NO_DOWNGRADE_NO_DATA_CHANGE')
+          PY

@@ -115,3 +115,4 @@ jobs:
           assert matched[0].get("size")==count and matched[0].get("digest")=="sha256:"+digest
           print("PR102_PRIVATE_GITHUB_DRAFT_VERIFIED_NO_PUBLIC_OTA",version,digest,count)
           PY
+# Transfer retry after CircleCI Read token stored: exact candidate SHA only; DRAFT, NO OTA.

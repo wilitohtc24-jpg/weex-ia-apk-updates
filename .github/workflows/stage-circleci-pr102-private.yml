@@ -1,0 +1,117 @@
+# Exact verified CircleCI artifact -> GitHub DRAFT. Never rebuild or publish OTA.
+name: WEEX PR102 stage exact CircleCI APK as private draft (NO OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/stage-circleci-pr102-private.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: weex-pr102-private-artifact-transfer
+  cancel-in-progress: false
+jobs:
+  stage-signed-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      WEEX_CIRCLECI_ARTIFACT_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      WEEX_SOURCE_RELEASE_READ_TOKEN: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+      SOURCE_SHA: 375a2d9a3cf7f58bfebdd3182e098c1dd6609d15
+    steps:
+      - name: Check available private artifact access, not the token value
+        id: access
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${WEEX_CIRCLECI_ARTIFACT_READ_TOKEN:-}" ]; then
+            echo "::notice::CIRCLECI_PRIVATE_ARTIFACT_READ_TOKEN_NOT_CONFIGURED; GitHub 30-day token cannot access CircleCI. NO APK/OTA."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "${WEEX_SOURCE_RELEASE_READ_TOKEN:-}" ]; then
+            echo "::error::PRIVATE_SOURCE_GITHUB_READ_TOKEN_MISSING"
+            exit 1
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout public OTA repository (not private trading source)
+        if: steps.access.outputs.ready == 'true'
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Prepare Android's verification tools only
+        if: steps.access.outputs.ready == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install apksigner and aapt without building APK
+        if: steps.access.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager 'build-tools;35.0.0' >/dev/null
+
+      - name: Retrieve exact CircleCI job's original APK and verify SHA/version/signature
+        if: steps.access.outputs.ready == 'true'
+        id: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/stage_circleci_pr102_candidate.py
+          test -s private-pr102-candidate/WEEX-IA-Trader-release.apk
+          test -s private-pr102-candidate/release.json
+          test -s private-pr102-candidate/release-coverage.json
+
+      - name: Save exact APK in GitHub DRAFT only - never expose public OTA
+        if: steps.access.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODE: ${{ steps.apk.outputs.version }}
+          SHA256: ${{ steps.apk.outputs.sha256 }}
+          BYTES: ${{ steps.apk.outputs.bytes }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CODE" -gt 29176085
+          test "${#SHA256}" -eq 64
+          test "$BYTES" -gt 1000000
+          TAG="v$CODE"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::TAG_EXISTS_NO_OVERWRITE_ALLOWED"
+            exit 1
+          fi
+          cat > private-pr102-candidate/release-notes.txt <<EOF
+          WEEX IA Trader - APK privada de prueba para el dispositivo (NO OTA).
+          Commit fuente firmado: $SOURCE_SHA
+          VersionCode: $CODE
+          SHA-256: $SHA256
+          Tamaño: $BYTES bytes
+          WEEX_PR102_CANDIDATE_PRIVATE_DRAFT_ONLY
+          No usar como prueba de rentabilidad ni de continuidad SIM/REAL.
+          Pendiente de aceptación funcional del usuario antes de ofrecer OTA.
+          EOF
+          gh release create "$TAG" \
+            private-pr102-candidate/WEEX-IA-Trader-release.apk \
+            private-pr102-candidate/release.json \
+            private-pr102-candidate/signing-certificate.txt \
+            private-pr102-candidate/apk-sha256.txt \
+            private-pr102-candidate/candidate-provenance.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "WEEX IA PR102 $CODE - solo prueba privada" \
+            --notes-file private-pr102-candidate/release-notes.txt \
+            --draft --prerelease --latest=false
+          ID="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json databaseId --jq '.databaseId')"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$ID" > /tmp/weex-pr102-draft.json
+          python3 - "$CODE" "$SHA256" "$BYTES" <<'PY'
+          import json,sys
+          version,digest,count=sys.argv[1],sys.argv[2],int(sys.argv[3])
+          with open("/tmp/weex-pr102-draft.json",encoding="utf8") as fh: r=json.load(fh)
+          assert r.get("draft") is True and r.get("prerelease") is True
+          assert r.get("tag_name")=="v"+version
+          matched=[x for x in r.get("assets",[]) if x.get("name")=="WEEX-IA-Trader-release.apk"]
+          assert len(matched)==1
+          assert matched[0].get("size")==count and matched[0].get("digest")=="sha256:"+digest
+          print("PR102_PRIVATE_GITHUB_DRAFT_VERIFIED_NO_PUBLIC_OTA",version,digest,count)
+          PY

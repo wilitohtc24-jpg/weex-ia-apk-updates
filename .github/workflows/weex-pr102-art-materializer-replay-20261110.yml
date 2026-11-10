@@ -33,3 +33,4 @@ jobs:
           test -f ci/preflight_full_presigning_source_v1.py
           python3 ci/preflight_full_presigning_source_v1.py
           echo "PR106_PRESIGN_SOURCE_ONLY_PASS_NO_APK_NO_OTA"
+# Replay after restoring CircleCI's original manual-APK safety filters; QA source-only.

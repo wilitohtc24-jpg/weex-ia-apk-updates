@@ -1,0 +1,140 @@
+# Promote ONLY the exact CircleCI-signed PR102 APK already verified and staged.
+# Owner explicitly requested installation through the existing in-app OTA.
+# This is a public BETA transport test; handset SIM/REAL acceptance remains pending.
+name: Promote exact signed WEEX PR102 v29260027 BETA through OTA
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/promote-verified-weex-pr102-29260027.yml
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: weex-pr102-v29260027-one-verified-beta
+  cancel-in-progress: false
+jobs:
+  publish-pr102-exact-staged-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TARGET: wilitohtc24-jpg/weex-ia-apk-updates
+      RELEASE_ID: "440630627"
+      VERSION: "29260027"
+      APK_DIGEST: 9daf05c849262d2630b930fd20882df0da1f98d486d0c7b499568e63d3dc89fe
+      APK_BYTES: "63236567"
+      SOURCE_SHA: 375a2d9a3cf7f58bfebdd3182e098c1dd6609d15
+      SIGNER: 5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6
+      VERIFIED_STAGING_RUN: "42857340407"
+      VERIFIED_STAGING_HEAD: f544a81accfc38ce1d0ceb6b2d34baac67a8e370
+    steps:
+      - name: Verify signed immutable private candidate and exact staging attestation (no build)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$TARGET"
+          test "$GITHUB_REF" = "refs/heads/main"
+          gh api "repos/$TARGET/actions/runs/$VERIFIED_STAGING_RUN" > /tmp/pr102-run.json
+          gh api "repos/$TARGET/actions/runs/$VERIFIED_STAGING_RUN/jobs?filter=latest" > /tmp/pr102-jobs.json
+          gh api "repos/$TARGET/releases/$RELEASE_ID" > /tmp/pr102-release.json
+          gh api "repos/$TARGET/releases/latest" > /tmp/pr102-previous.json
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          E=os.environ
+          run=json.loads(Path('/tmp/pr102-run.json').read_text())
+          jobs=json.loads(Path('/tmp/pr102-jobs.json').read_text()).get('jobs',[])
+          r=json.loads(Path('/tmp/pr102-release.json').read_text())
+          last=json.loads(Path('/tmp/pr102-previous.json').read_text())
+          assert run.get('id')==int(E['VERIFIED_STAGING_RUN'])
+          assert run.get('head_sha')==E['VERIFIED_STAGING_HEAD']
+          assert run.get('status')=='completed' and run.get('conclusion')=='success'
+          assert len(jobs)==1 and jobs[0].get('conclusion')=='success'
+          steps=jobs[0].get('steps',[])
+          for name in (
+            "Check available private artifact access, not the token value",
+            "Retrieve exact CircleCI job's original APK and verify SHA/version/signature",
+            "Save exact APK in GitHub DRAFT only - never expose public OTA"
+          ):
+              assert len([s for s in steps if s.get('name')==name and s.get('conclusion')=='success'])==1,name
+          assert r.get('id')==int(E['RELEASE_ID']) and r.get('tag_name')=='v'+E['VERSION']
+          assert r.get('draft') is True and r.get('prerelease') is True
+          assert E['SOURCE_SHA'] in (r.get('body') or '')
+          assert E['APK_DIGEST'] in (r.get('body') or '')
+          assets={a['name']:a for a in r.get('assets',[])}
+          expected={'WEEX-IA-Trader-release.apk','release.json','signing-certificate.txt','apk-sha256.txt','candidate-provenance.txt'}
+          assert set(assets)==expected
+          assert all(a.get('state')=='uploaded' for a in assets.values())
+          apk=assets['WEEX-IA-Trader-release.apk']
+          assert apk.get('digest')=='sha256:'+E['APK_DIGEST']
+          assert apk.get('size')==int(E['APK_BYTES'])
+          assert last.get('id')==438806806 and last.get('tag_name')=='v29176085'
+          assert last.get('draft') is False and last.get('prerelease') is False
+          print('SIGNED_PR102_APK_AND_STAGING_ATTESTATION_PASSED')
+          PY
+
+      - name: Publish exact original APK BETA for existing in-app OTA (no rebuild)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/pr102-beta-notes.txt <<EOF
+          WEEX_OTA_RELEASE_APPROVED_V1
+          WEEX_OTA_PUBLIC_TEST_BETA_V1
+
+          VERSIÓN BETA DE PRUEBA (PR #102), AÚN NO VALIDADA COMO ESTABLE EN TELÉFONO.
+          El propietario solicitó explícitamente instalar por OTA la misma APK firmada.
+          Compilación original CircleCI, sin recompilar, modificar, resignar ni enviar órdenes.
+
+          Probar en SIM primero. Comprobar continuidad del escáner, cierres y nuevas entradas,
+          saldo, órdenes pendientes, PNL, Premium y actualización sin pérdida de datos.
+          Mantener REAL desactivado hasta validar los cierres y las protecciones.
+          No garantiza rentabilidad, entradas automáticas ni ausencia de fallos.
+
+          Source SHA: $SOURCE_SHA
+          VersionCode: $VERSION
+          APK SHA256: $APK_DIGEST
+          APK bytes: $APK_BYTES
+          Android signer SHA256: $SIGNER
+          Signed artifact attested by GitHub Actions run $VERIFIED_STAGING_RUN.
+          Original PR: https://github.com/wilitohtc24-jpg/weex-auto-trader-android/pull/102
+          EOF
+          # Update ONLY release metadata while still draft, never replace binary assets.
+          gh api --method PATCH "repos/$TARGET/releases/$RELEASE_ID" \
+            -f name="WEEX IA Trader BETA de prueba PR102 - v$VERSION" \
+            -f body="$(cat /tmp/pr102-beta-notes.txt)" \
+            -F prerelease=false >/tmp/pr102-beta-draft.json
+          python3 - <<'PY'
+          import json,os
+          r=json.load(open('/tmp/pr102-beta-draft.json'))
+          assert r.get('draft') is True and r.get('prerelease') is False
+          assert r.get('tag_name')=='v'+os.environ['VERSION']
+          assert 'WEEX_OTA_PUBLIC_TEST_BETA_V1' in r.get('body','')
+          assert len(r.get('assets',[]))==5
+          a=[x for x in r['assets'] if x.get('name')=='WEEX-IA-Trader-release.apk']
+          assert len(a)==1 and a[0].get('digest')=='sha256:'+os.environ['APK_DIGEST']
+          PY
+          gh api --method PATCH "repos/$TARGET/releases/$RELEASE_ID" \
+            -F draft=false -F prerelease=false -f make_latest=true >/tmp/pr102-published.json
+          gh api "repos/$TARGET/releases/latest" > /tmp/pr102-latest.json
+          python3 - <<'PY'
+          import json,os
+          E=os.environ
+          r=json.load(open('/tmp/pr102-latest.json'))
+          assert r['id']==int(E['RELEASE_ID'])
+          assert r['tag_name']=='v'+E['VERSION']
+          assert r['draft'] is False and r['prerelease'] is False
+          assert r.get('published_at')
+          assert 'BETA' in r.get('name','')
+          assert 'WEEX_OTA_PUBLIC_TEST_BETA_V1' in r.get('body','')
+          a=[x for x in r['assets'] if x['name']=='WEEX-IA-Trader-release.apk']
+          assert len(a)==1 and a[0]['digest']=='sha256:'+E['APK_DIGEST']
+          assert a[0]['size']==int(E['APK_BYTES'])
+          assert a[0]['browser_download_url']==(
+            'https://github.com/'+E['TARGET']+'/releases/download/v'+E['VERSION']+'/WEEX-IA-Trader-release.apk'
+          )
+          print('WEEX_PR102_V29260027_PUBLIC_BETA_OTA_READY_FOR_DEVICE_TEST')
+          PY

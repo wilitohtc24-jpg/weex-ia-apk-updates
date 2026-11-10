@@ -1,0 +1,33 @@
+# Read-only verification of the already configured 30-day fine-grained PAT.
+# NEVER prints the token, uploads APKs, creates Releases or publishes OTA.
+name: WEEX source read token validity (safe read-only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/check-weex-30day-source-token.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-private-source-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify 30-day PAT can read original private source and signed source release
+        env:
+          GH_TOKEN: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::WEEX_SOURCE_RELEASE_READ_TOKEN missing; no release actions attempted"
+            exit 1
+          fi
+          # Probe exactly the GitHub fine-grained token used 9 November,
+          # without printing its value or any private source content.
+          test "$(gh api repos/wilitohtc24-jpg/weex-auto-trader-android --jq '.private')" = "true"
+          gh api repos/wilitohtc24-jpg/weex-auto-trader-android/releases/438775799 --jq '.id' >/dev/null
+          gh api repos/wilitohtc24-jpg/weex-auto-trader-android/actions/runs/42566517340 --jq '.id' >/dev/null
+          echo "WEEX_SOURCE_RELEASE_READ_TOKEN_ACTIVE: private repo, release and Actions access OK"
+          echo "READ_ONLY_PROBE_NO_APK_UPLOAD_NO_OTA"

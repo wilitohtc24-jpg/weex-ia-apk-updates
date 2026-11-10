@@ -42,22 +42,23 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Use Android SDK already installed on hosted runner (no APK build)
+      - name: Resolve hosted runner Android verification tools (never build APK)
         if: steps.access.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
-          test -n "$SDK" && test -d "$SDK"
-          command -v sdkmanager >/dev/null
-          echo "ANDROID_SDK_PRESENT_NO_LEGACY_TOOLS_INSTALL"
-
-      - name: Install apksigner and aapt without building APK
-        if: steps.access.outputs.ready == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          sdkmanager 'build-tools;35.0.0' >/dev/null
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK" || { echo "::error::ANDROID_SDK_DIR_NOT_FOUND"; exit 1; }
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          if ! find "$SDK/build-tools" -mindepth 2 -maxdepth 2 -type f -name apksigner | grep -q . || \
+             ! find "$SDK/build-tools" -mindepth 2 -maxdepth 2 -type f -name aapt | grep -q . ; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER" || { echo "::error::SDKMANAGER_NOT_FOUND"; exit 1; }
+            "$MANAGER" 'build-tools;35.0.0' >/dev/null
+          fi
+          find "$SDK/build-tools" -mindepth 2 -maxdepth 2 -type f -name apksigner | grep -q .
+          find "$SDK/build-tools" -mindepth 2 -maxdepth 2 -type f -name aapt | grep -q .
+          echo "ANDROID_BINARY_VERIFIERS_READY_NO_BUILD"
 
       - name: Retrieve exact CircleCI job's original APK and verify SHA/version/signature
         if: steps.access.outputs.ready == 'true'

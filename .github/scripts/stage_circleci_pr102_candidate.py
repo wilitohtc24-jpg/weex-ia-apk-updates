@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Stage EXACT CircleCI PR102 signed artifact; never build, trade, or publish OTA."""
-import hashlib,json,os,re,subprocess,urllib.request,urllib.parse,zipfile
+import hashlib,json,os,re,subprocess,urllib.request,urllib.parse,urllib.error,zipfile
 from pathlib import Path
 JOB="d466261a-bb7d-46fc-b419-d602f42d2efb"
 SHA="375a2d9a3cf7f58bfebdd3182e098c1dd6609d15"
@@ -67,11 +67,22 @@ for name in NAMES:
     if len(matches)!=1:fail("ARTIFACT_MISSING_OR_DUPLICATE_"+name)
     url=matches[0].get("url","")
     p=urllib.parse.urlparse(url)
-    if p.scheme!="https" or not p.hostname:fail("INVALID_ARTIFACT_URL_"+name)
-    # Artifact URL is a short-lived presigned CircleCI link. Never forward
-    # the CircleCI API token to an external download hostname.
+    # CircleCI returns raw artifact URLs that REQUIRE the Circle-Token header,
+    # rather than always returning a presigned public URL. Strict host allowlist
+    # prevents passing the personal token to untrusted hosts.
+    if p.scheme!="https" or not p.hostname or not (p.hostname=="circleci.com" or p.hostname.endswith(".circleci.com") or p.hostname=="circle-artifacts.com" or p.hostname.endswith(".circle-artifacts.com")):
+        fail("UNTRUSTED_ARTIFACT_HOST_"+name)
+    class DropTokenOnCrossHostRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            redirect=super().redirect_request(req,fp,code,msg,headers,newurl)
+            if redirect and urllib.parse.urlparse(req.full_url).hostname!=urllib.parse.urlparse(redirect.full_url).hostname:
+                # Never forward the CircleCI API credential to storage redirects.
+                return urllib.request.Request(redirect.full_url,headers={"User-Agent":"WEEX-Artifacts/1"})
+            return redirect
+    downloader=urllib.request.build_opener(DropTokenOnCrossHostRedirect())
     try:
-        with urllib.request.urlopen(urllib.request.Request(url,headers={"User-Agent":"WEEX-Artifacts/1"}),timeout=180) as r, (OUT/name).open("wb") as dst:
+        request=urllib.request.Request(url,headers={"User-Agent":"WEEX-Artifacts/1","Circle-Token":C})
+        with downloader.open(request,timeout=180) as r, (OUT/name).open("wb") as dst:
             total=0
             while True:
                 chunk=r.read(1024*1024)
@@ -79,6 +90,7 @@ for name in NAMES:
                 total+=len(chunk)
                 if total>250_000_000:fail("OVERSIZED_ARTIFACT_"+name)
                 dst.write(chunk)
+    except urllib.error.HTTPError as e:fail("ARTIFACT_DOWNLOAD_"+name+"_HTTP_"+str(e.code))
     except Exception as e:fail("ARTIFACT_DOWNLOAD_"+name+"_"+type(e).__name__)
     if not total:fail("EMPTY_ARTIFACT_"+name)
     print("PRIVATE_ARTIFACT_DOWNLOADED",name,total)

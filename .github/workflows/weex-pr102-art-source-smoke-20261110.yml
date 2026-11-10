@@ -58,3 +58,4 @@ jobs:
           fi
           git diff --check
           echo "SOURCE_ONLY_ART_COROUTINE_REWRITE_PASS_NO_APK_NO_OTA"
+# Smoke retry: support both original and final materialized shadow-mode guard.

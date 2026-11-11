@@ -34,7 +34,7 @@ jobs:
           python3 ci/patch_recovery_build_gate_branch_v1.py >> /tmp/pr125-precompat.log 2>&1
           if ! python3 ci/apply_release_patches_canonical.py > /tmp/pr125-canonical-apply.log 2>&1; then
             echo "::error::PR125_CANONICAL_PATCH_WRITER_FAILED_NO_APK"
-            grep -E 'CANONICAL_STEP_FAILED|CANONICAL_STEP_BEGIN|trade experience .*missing|invariant missing|anchor missing|SourceError|SyntaxError' /tmp/pr125-canonical-apply.log | tail -16 | cut -c1-250 || true
+            grep -E 'CANONICAL_STEP_FAILED|DEEP_RUNPY_FAILED|FINAL_TAIL_STEP_FAILED|CANONICAL_STEP_BEGIN|PREDICTIVE_V2_SIM_RESET|trade experience .*missing|invariant missing|anchor missing|SourceError|SyntaxError' /tmp/pr125-canonical-apply.log | tail -16 | cut -c1-250 || true
             exit 1
           fi
           test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"

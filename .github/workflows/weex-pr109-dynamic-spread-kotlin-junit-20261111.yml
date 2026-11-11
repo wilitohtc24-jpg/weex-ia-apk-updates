@@ -1,0 +1,75 @@
+# Kotlin/JUnit QA of private PR109 via the already-connected source read token.
+# Ephemeral checkout; no trading credentials, no signing, APK, OTA or orders.
+name: WEEX PR109 relative spread + profit SL final Kotlin/JUnit (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr109-dynamic-spread-kotlin-junit-20261111.yml
+permissions:
+  contents: read
+jobs:
+  compile-materialized-kotlin-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout private PR109 candidate read-only (no token persistence)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 2965e084615b8aad1050e99dc2d249fb1a1996a9
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Java 17 verified Android compiler prerequisite
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compile final Kotlin and JUnit after canonical source writers; NO APK
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK"
+          export ANDROID_HOME="$SDK" ANDROID_SDK_ROOT="$SDK"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          KOTLIN_ZIP=/tmp/kotlin-compiler-2.2.21.zip
+          curl -fsSL --retry 3 --retry-delay 3 \
+            https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o "$KOTLIN_ZIP"
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 "$KOTLIN_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o "$KOTLIN_ZIP" -d "$HOME/.local"
+          export PATH="$HOME/.local/kotlinc/bin:$PATH"
+          GRADLE_ZIP=/tmp/gradle-8.10.2-bin.zip
+          curl -fsSL --retry 3 --retry-delay 3 \
+            https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o "$GRADLE_ZIP"
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 "$GRADLE_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o "$GRADLE_ZIP" -d "$HOME/.gradle-dist"
+          export PATH="$HOME/.gradle-dist/gradle-8.10.2/bin:$PATH"
+          export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false"
+          command -v kotlinc >/dev/null && command -v gradle >/dev/null
+          # Do not expose private source or secrets in the public OTA runner log.
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr109-kotlin-junit-source.log 2>&1; then
+            echo "::error::PR109_ANDROID_FINAL_SOURCE_OR_KOTLIN_JUNIT_FAILED; no APK or OTA created"
+            grep -E "^PRESIGN_FAILURE_CONTEXT |WEEX_PRESIGN_FIRST_FAILURE_LINE=|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP|PR109_.*FAIL|PR109_SELECTOR_CALL_SHAPE|UNEXPECTED_SOURCE_ANCHOR|KOTLIN.*ERROR|GRADLE BUILD FAILED" /tmp/pr109-kotlin-junit-source.log | tail -32 | cut -c1-300 || true
+            exit 1
+          fi
+          grep -E "WEEX_PRESIGN_SOURCE_GATES_PASSED|ANDROID_JUNIT|KOTLIN|SOURCE_ONLY" /tmp/pr109-kotlin-junit-source.log | tail -12 || true
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr109-kotlin-junit-source.log
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr109-kotlin-junit-source.log
+          grep -q 'python3 ci/verify_real_live_scan_and_verified_ratchet_v1.py' ci/bitrise_release.sh
+          grep -q 'REAL_RELATIVE_SPREAD_COST_GATE_V1_PASS_FEE_AND_MARKET_GATES_PRESERVED' /tmp/pr109-kotlin-junit-source.log
+          grep -q 'python3 ci/verify_real_relative_spread_cost_gate_v1.py' ci/bitrise_release.sh
+          echo PR109_ANDROID_KOTLIN_JUNIT_PASS_NO_APK_NO_OTA_NO_ORDERS

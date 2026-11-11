@@ -16,11 +16,11 @@ concurrency:
 jobs:
   verify-generated-dex-with-android-art:
     # No debug build if source/JUnit failed or this was an older source commit.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '53f9a7ed092329d4dadfd9c213a4825239feb23f' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '9af7cd360f3f8d5c6293b25ab129319e2c659286' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:
-      PRIVATE_SOURCE_SHA: b92c192f141e119af446da93843aea03e961317b
+      PRIVATE_SOURCE_SHA: 6df22a0f4318d7737463d670ddb75e6c306c75f7
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: b92c192f141e119af446da93843aea03e961317b
+          ref: 6df22a0f4318d7737463d670ddb75e6c306c75f7
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source

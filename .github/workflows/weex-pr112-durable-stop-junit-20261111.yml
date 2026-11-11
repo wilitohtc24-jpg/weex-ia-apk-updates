@@ -1,0 +1,93 @@
+# Kotlin/JUnit QA of private PR112 via the already-connected source read token.
+# Ephemeral checkout; no trading credentials, no signing, APK, OTA or orders.
+name: WEEX PR112 durable STOP remote idempotency Kotlin/JUnit (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr112-durable-stop-junit-20261111.yml
+permissions:
+  contents: read
+jobs:
+  compile-materialized-kotlin-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout private PR112 candidate read-only (no token persistence)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: c0c34b62d3aaeb71d22fb025aafcde7774474630
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Java 17 verified Android compiler prerequisite
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compile final Kotlin and JUnit after canonical source writers; NO APK
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: "/tmp/weex-pr112-final-materialized-kotlin-only"
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK"
+          export ANDROID_HOME="$SDK" ANDROID_SDK_ROOT="$SDK"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          KOTLIN_ZIP=/tmp/kotlin-compiler-2.2.21.zip
+          curl -fsSL --retry 3 --retry-delay 3 \
+            https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o "$KOTLIN_ZIP"
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 "$KOTLIN_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o "$KOTLIN_ZIP" -d "$HOME/.local"
+          export PATH="$HOME/.local/kotlinc/bin:$PATH"
+          GRADLE_ZIP=/tmp/gradle-8.10.2-bin.zip
+          curl -fsSL --retry 3 --retry-delay 3 \
+            https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o "$GRADLE_ZIP"
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 "$GRADLE_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o "$GRADLE_ZIP" -d "$HOME/.gradle-dist"
+          export PATH="$HOME/.gradle-dist/gradle-8.10.2/bin:$PATH"
+          export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false"
+          command -v kotlinc >/dev/null && command -v gradle >/dev/null
+          # Do not expose private source or secrets in the public OTA runner log.
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr112-kotlin-junit-source.log 2>&1; then
+            echo "::error::PR112_ANDROID_FINAL_SOURCE_OR_KOTLIN_JUNIT_FAILED; no APK or OTA created"
+            grep -E "^PRESIGN_FAILURE_CONTEXT |WEEX_PRESIGN_FIRST_FAILURE_LINE=|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP|WEEX_AUDIT_JUNIT_BUILD_FAILED|WEEX_AUDIT_JUNIT_FAILED|AUDIT_JUNIT_FAILED |AUDIT_JUNIT_STACK |AUDIT_ANDROID |PR112_.*FAIL|REAL_FINAL_EXECUTION_COST_SHAPE|UNEXPECTED_SOURCE_ANCHOR" /tmp/pr112-kotlin-junit-source.log | tail -36 | cut -c1-370 || true
+            exit 1
+          fi
+          grep -E "WEEX_PRESIGN_SOURCE_GATES_PASSED|ANDROID_JUNIT|KOTLIN|SOURCE_ONLY" /tmp/pr112-kotlin-junit-source.log | tail -12 || true
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr112-kotlin-junit-source.log
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr112-kotlin-junit-source.log
+          grep -q 'python3 ci/verify_real_live_scan_and_verified_ratchet_v1.py' ci/bitrise_release.sh
+          # The preflight suppresses nested gate output from public logs;
+          # verify the exact exported post-materializer Kotlin, not a hidden log marker.
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'REAL_RELATIVE_SPREAD_NET_EDGE_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'expectedTargetMovePct:Double=Double.NaN' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          echo PR112_FINAL_EXECUTION_KOTLIN_PATCH_PRESENT
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt"
+          grep -q 'WEEX_1141_SNAPSHOT_PRESERVING_LEVERAGE_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt"
+          grep -q 'WeexSnapshotPreservingLeveragePolicy.prepare' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt"
+          grep -q 'python3 ci/verify_weex_1141_snapshot_preserving_leverage_v1.py' ci/bitrise_release.sh
+          echo PR112_SIGNED_LEVERAGE_DUAL_SIDE_FINAL_SOURCE_PRESENT
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'REAL_DURABLE_STOP_AMENDMENT_RECOVERY_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'amendmentJournal.begin(planned)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'PendingStopRemotePolicy.classify(pending,orders)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'python3 ci/verify_real_durable_stop_recovery_v1.py' ci/bitrise_release.sh
+          echo PR112_SIGNED_STOP_JOURNAL_RECOVERY_FINAL_SOURCE_PRESENT
+          grep -q 'python3 ci/verify_real_relative_spread_cost_gate_v1.py' ci/bitrise_release.sh
+          echo PR112_ANDROID_KOTLIN_JUNIT_PASS_NO_APK_NO_OTA_NO_ORDERS

@@ -52,6 +52,14 @@ Estado: **NO PUBLICAR**. El usuario pidió una única próxima APK por OTA (desd
 - BLOQUEANTE REAL: la materialización también añade `RealAdaptiveStopManager.maybeProtect` en `RealAIExitEngine`, que puede enviar su propio `modifyTpSlOrder` sin compartir el diario del gestor principal. Issue #104 documenta coordinación requerida: un único escritor o mutex/journal compartido para ambos, pruebas de concurrencia y reinicio. PR112 por sí solo no garantiza ratchet REAL totalmente conciliado.
 - Otra prueba Android offline de la fuente PR111: https://github.com/wilitohtc24-jpg/weex-ia-apk-updates/actions/runs/43038549096. La primera ejecución `43035837520` falló solo porque el ejecutor corrió tres métodos pero esperaba uno. Se corrigió el selector a un método exacto; la nueva prueba aún debe confirmar launcher, persistencia y reinstalación.
 
+## PR113 — diario único para los DOS gestores de SL REAL
+
+- DRAFT `https://github.com/wilitohtc24-jpg/weex-auto-trader-android/pull/113`: basado en PR112, añade mutex por proceso a `RealStopAmendmentJournal.begin/clearAfterReconciliation` y obliga a `RealAdaptiveStopManager` a registrar intent en el **mismo diario** antes de `modifyTpSlOrder`, abstenerse ante pending de otro gestor y exigir readback firmado exacto por algoId/símbolo/lado/SL. Así no pueden reemitir la misma modificación pendiente por dos rutas independientes. No declara rentabilidad.
+- `PR111` **PASS** arranque completo OFFLINE y reinstalación de APK DEBUG preservando SharedPreferences de ensayo, run `43038549096`. No es aún prueba de migración REAL con firma histórica.
+- `PR112` **PASS** fuente final Kotlin/JUnit, run `43039117348`; Android ART de código PR112 run `43039930207` pendiente de veredicto.
+- `PR113` Kotlin/JUnit de dos rutas y nuevas pruebas de diario (run `43040656073`) pendiente; después falta ART e integración de red simulada de ambos gestores. Verificadores antiguos siguen activos, se actualizan solo para demostrar el nuevo flujo más estricto, no se eliminan.
+- El diario permanece pendiente en caso de POST incierto y STOP remoto viejo: no se reintenta a ciegas. Sigue siendo necesario resolver sin bloqueo permanente mediante evidencia remota inequívoca (no inventar éxito).
+
 ## Antes de compilar UNA candidata final
 1. Materialización canónica, todos los verificadores + Kotlin/JUnit de las fuentes finales, dos pasadas, SHA idénticos sin destrucción de parches; comprobar que no se debilitaron suites por error de compilación.
 2. Unit/integración WEEX **simulada** para LONG/SHORT y validación firmada de la posición, stop vigente, TP, modifyTpSlOrder → lectura y confirmación remota → persistencia local; fallos de red, stop remoto único, idempotencia y no intervención en manuales.

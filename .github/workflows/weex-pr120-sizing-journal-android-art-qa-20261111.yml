@@ -4,6 +4,10 @@
 # no uploaded APK artifacts and no persistent app data.
 name: WEEX PR120 integrated balance and journal Android ART upgrade QA (NO OTA)
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr120-sizing-journal-android-art-qa-20261111.yml
   workflow_run:
     workflows:
       - "WEEX PR120 SIM REAL balance matrix 100-250-500 Kotlin/JUnit (NO APK)"
@@ -16,7 +20,10 @@ concurrency:
 jobs:
   verify-generated-dex-with-android-art:
     # No debug build if source/JUnit failed or this was an older source commit.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '5a43ac271204a953aa52c355ce19616bc20ae960' }}
+    # The pinned source already passed Kotlin/JUnit in run 43075973624.
+    # An explicit workflow-file push can start one offline Android-only QA,
+    # while future workflow_run events still require the exact green SHA.
+    if: ${{ github.event_name == 'push' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '5a43ac271204a953aa52c355ce19616bc20ae960') }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:

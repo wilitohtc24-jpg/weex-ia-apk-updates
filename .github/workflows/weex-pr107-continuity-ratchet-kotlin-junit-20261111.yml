@@ -67,5 +67,7 @@ jobs:
           fi
           grep -E "WEEX_PRESIGN_SOURCE_GATES_PASSED|ANDROID_JUNIT|KOTLIN|SOURCE_ONLY" /tmp/pr107-kotlin-junit-source.log | tail -12 || true
           test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
-          grep -q 'REAL_PR107_SAFE_SCANNER_AND_STOP_VERIFICATION_PASS' /tmp/pr107-kotlin-junit-source.log
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr107-kotlin-junit-source.log
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr107-kotlin-junit-source.log
+          grep -q 'python3 ci/verify_real_live_scan_and_verified_ratchet_v1.py' ci/bitrise_release.sh
           echo PR107_ANDROID_KOTLIN_JUNIT_PASS_NO_APK_NO_OTA_NO_ORDERS

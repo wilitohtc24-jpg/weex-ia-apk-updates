@@ -130,12 +130,12 @@ jobs:
           grep -q 'python3 ci/verify_real_service_owned_pending_maintenance_v1.py' ci/bitrise_release.sh
           echo PR120_SERVICE_OWNED_PENDING_RECOVERY_IN_FINAL_KOTLIN_NO_ORDERS
           test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RiskEngine.kt"
-          test -s "$WEEX_ART_QA_EXPORT_DIR/test/java/com/wilito/weexautotrader/FinalOwnerBalanceSizingMatrixTest.kt"
+          test -s "app/src/test/java/com/wilito/weexautotrader/FinalOwnerBalanceSizingMatrixTest.kt"
           grep -q 'OWNER_SIM_EXPLORATORY_RISK_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RiskEngine.kt"
-          grep -q 'private val balances=listOf(100.0,250.0,500.0)' "$WEEX_ART_QA_EXPORT_DIR/test/java/com/wilito/weexautotrader/FinalOwnerBalanceSizingMatrixTest.kt"
+          grep -q 'private val balances=listOf(100.0,250.0,500.0)' "app/src/test/java/com/wilito/weexautotrader/FinalOwnerBalanceSizingMatrixTest.kt"
           grep -q 'python3 ci/verify_owner_balance_sizing_matrix_v1.py' ci/bitrise_release.sh
-          test -s "$WEEX_ART_QA_EXPORT_DIR/test/java/com/wilito/weexautotrader/OfflineFakeWeexJournalScenariosTest.kt"
-          grep -q 'OFFLINE_FAKE_WEEX_JOURNAL_SCENARIOS_V1' "$WEEX_ART_QA_EXPORT_DIR/test/java/com/wilito/weexautotrader/OfflineFakeWeexJournalScenariosTest.kt"
+          test -s "app/src/test/java/com/wilito/weexautotrader/OfflineFakeWeexJournalScenariosTest.kt"
+          grep -q 'OFFLINE_FAKE_WEEX_JOURNAL_SCENARIOS_V1' "app/src/test/java/com/wilito/weexautotrader/OfflineFakeWeexJournalScenariosTest.kt"
           grep -q 'python3 ci/verify_offline_fake_weex_journal_scenarios_v1.py' ci/bitrise_release.sh
           echo PR120_FAKE_WEEX_STOP_ENTRY_JOURNAL_SCENARIOS_MATERIALIZED
           echo PR120_BALANCE_SIZING_100_250_500_MATRIX_MATERIALIZED

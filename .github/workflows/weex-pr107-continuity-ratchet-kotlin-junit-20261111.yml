@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: f18c678898fd92aa6f05b3e55792aa7f27a4878e
+          ref: 9722ba10639467d3b0afbc4e8fa8c6e44bb1b493
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -62,7 +62,7 @@ jobs:
           # Do not expose private source or secrets in the public OTA runner log.
           if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr107-kotlin-junit-source.log 2>&1; then
             echo "::error::PR107_ANDROID_FINAL_SOURCE_OR_KOTLIN_JUNIT_FAILED; no APK or OTA created"
-            grep -E "^PRESIGN_FAILURE_CONTEXT |WEEX_PRESIGN_FIRST_FAILURE_LINE=|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP|PR107_.*FAIL|KOTLIN.*ERROR|GRADLE BUILD FAILED" /tmp/pr107-kotlin-junit-source.log | tail -32 | cut -c1-300 || true
+            grep -E "^PRESIGN_FAILURE_CONTEXT |WEEX_PRESIGN_FIRST_FAILURE_LINE=|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP|PR107_.*FAIL|PR107_SELECTOR_CALL_SHAPE|UNEXPECTED_SOURCE_ANCHOR|KOTLIN.*ERROR|GRADLE BUILD FAILED" /tmp/pr107-kotlin-junit-source.log | tail -32 | cut -c1-300 || true
             exit 1
           fi
           grep -E "WEEX_PRESIGN_SOURCE_GATES_PASSED|ANDROID_JUNIT|KOTLIN|SOURCE_ONLY" /tmp/pr107-kotlin-junit-source.log | tail -12 || true

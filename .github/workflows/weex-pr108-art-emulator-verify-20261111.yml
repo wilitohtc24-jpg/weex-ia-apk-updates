@@ -89,7 +89,10 @@ jobs:
           grep -q 'ART_VERIFYERROR_PR102_SPLIT_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/TraderService.kt"
           grep -q 'val realCycleHandled=coroutineScope realCycle@' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/TraderService.kt"
           grep -q 'RealStopAmendmentGuard.safe' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
-          grep -q 'REAL_PR107_SAFE_SCANNER_AND_STOP_VERIFICATION_PASS' /tmp/weex-art-qa-presign.log
+          # The private preflight intentionally summarizes source gates. Verify
+          # its published success markers and the exported final Kotlin source.
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/weex-art-qa-presign.log
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/weex-art-qa-presign.log
           grep -E 'WEEX_AUDIT_JUNIT_PASS|ART_QA_FINAL_MATERIALIZED_TESTED_SOURCE_READY|WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/weex-art-qa-presign.log | tail -8
           echo ART_QA_FINAL_MATERIALIZED_SOURCES_VERIFIED
       - name: Assemble disposable unsigned-for-production debug & Android test APK

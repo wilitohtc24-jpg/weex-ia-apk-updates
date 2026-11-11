@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/weex-pr122-sim-startup-off-scanner-junit-20261111.yml
+      - .github/workflows/weex-pr122-sim-close-durable-off-scanner-junit-20261111.yml
 permissions:
   contents: read
 jobs:

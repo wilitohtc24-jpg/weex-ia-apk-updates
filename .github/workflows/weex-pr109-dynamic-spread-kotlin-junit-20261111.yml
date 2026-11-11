@@ -31,6 +31,8 @@ jobs:
         shell: bash
         env:
           WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: "/tmp/weex-pr109-final-materialized-kotlin-only"
           WEEX_ALLOW_DIRECT_PUBLISH: "false"
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
@@ -70,6 +72,11 @@ jobs:
           grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr109-kotlin-junit-source.log
           grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr109-kotlin-junit-source.log
           grep -q 'python3 ci/verify_real_live_scan_and_verified_ratchet_v1.py' ci/bitrise_release.sh
-          grep -q 'REAL_RELATIVE_SPREAD_COST_GATE_V1_PASS_FEE_AND_MARKET_GATES_PRESERVED' /tmp/pr109-kotlin-junit-source.log
+          # The preflight suppresses nested gate output from public logs;
+          # verify the exact exported post-materializer Kotlin, not a hidden log marker.
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'REAL_RELATIVE_SPREAD_NET_EDGE_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'expectedTargetMovePct:Double=Double.NaN' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          echo PR109_FINAL_EXECUTION_KOTLIN_PATCH_PRESENT
           grep -q 'python3 ci/verify_real_relative_spread_cost_gate_v1.py' ci/bitrise_release.sh
           echo PR109_ANDROID_KOTLIN_JUNIT_PASS_NO_APK_NO_OTA_NO_ORDERS

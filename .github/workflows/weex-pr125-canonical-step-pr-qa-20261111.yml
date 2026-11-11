@@ -1,0 +1,41 @@
+# Read-only PR125 patch-step diagnostic. This is NOT the production OTA workflow.
+# The event must come from the same repository's dedicated QA branch.
+name: WEEX PR125 canonical patch-step diagnostic (NO APK)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr125-canonical-step-pr-qa-20261111.yml
+permissions:
+  contents: read
+jobs:
+  first-failing-canonical-patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Read exact PRIVATE PR125 SHA, no persisted credentials
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 568d039cd52901e03265a6af56d7e44eeb2b65ae
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Identify canonical writer failure ONLY (no Android or APK)
+        working-directory: source
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+        run: |
+          set -euo pipefail
+          python3 ci/patch_maker_strategy_precompat_v1.py > /tmp/pr125-precompat.log 2>&1
+          python3 ci/patch_recovery_build_gate_branch_v1.py >> /tmp/pr125-precompat.log 2>&1
+          if ! python3 ci/apply_release_patches_canonical.py > /tmp/pr125-canonical-apply.log 2>&1; then
+            echo "::error::PR125_CANONICAL_PATCH_WRITER_FAILED_NO_APK"
+            grep -E 'CANONICAL_STEP_FAILED|DEEP_RUNPY_FAILED|FINAL_TAIL_STEP_FAILED|CANONICAL_STEP_BEGIN|PREDICTIVE_V2_SIM_RESET|trade experience .*missing|invariant missing|anchor missing|SourceError|SyntaxError' /tmp/pr125-canonical-apply.log | tail -16 | cut -c1-250 || true
+            exit 1
+          fi
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
+          echo PR125_CANONICAL_WRITER_PASS_NO_APK_NO_OTA_NO_LIVE_ORDERS

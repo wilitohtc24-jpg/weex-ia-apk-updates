@@ -1,0 +1,228 @@
+# User-approved recovery for P0 VerifyError in installed v29260027.
+# Builds one production-signer APK on a throwaway runner from the *pinned* PR106
+# repair, with original canonical materialization and all build gates.
+# Publishes MANUAL prerelease download ONLY; never updates OTA latest.
+name: WEEX PR106 verified signed manual recovery APK (NO AUTO OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr106-signed-manual-recovery-20261110.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: weex-pr106-signed-recovery-one-candidate
+  cancel-in-progress: false
+jobs:
+  build-signed-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    env:
+      SOURCE_REPO: wilitohtc24-jpg/weex-auto-trader-android
+      SOURCE_BRANCH: repair/pr102-art-verifyerror-20261110
+      SOURCE_SHA: cda4250a1b2161479a4c7849cbdc1c11cc4e402e
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Verify the exact previously passing ART emulator attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "wilitohtc24-jpg/weex-ia-apk-updates"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/42921731986" > /tmp/weex-pr106-art-run.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/42921731986/jobs?filter=latest" > /tmp/weex-pr106-art-jobs.json
+          python3 - <<'PY'
+          import json
+          run=json.load(open('/tmp/weex-pr106-art-run.json'))
+          jobs=json.load(open('/tmp/weex-pr106-art-jobs.json'))['jobs']
+          assert run['status']=='completed' and run['conclusion']=='success'
+          assert len(jobs)==1 and jobs[0]['conclusion']=='success'
+          required=(
+            'Run complete presign materializer, Kotlin, and JUnit; export exact final sources',
+            'Assemble disposable unsigned-for-production debug & Android test APK',
+            'Verify generated DEX on actual Android ART emulator',
+          )
+          assert all(len([s for s in jobs[0]['steps'] if s['name']==name and s['conclusion']=='success'])==1 for name in required)
+          print('ART_ANDROID_VERIFICATION_PRECONDITION_CONFIRMED')
+          PY
+      - name: Checkout pinned private PR106 (secret not retained on disk)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: cda4250a1b2161479a4c7849cbdc1c11cc4e402e
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Verify signed source pin and intact canonical key source
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -s ci/weex-ia-signing.keystore.b64
+          test -f ci/verify_built_apk_signer_contract.py
+          test -f ci/patch_trader_art_verifyerror_split_v1.py
+          test -f ci/verify_trader_art_verifyerror_split_v1.py
+          test -f ci/bitrise_release.sh
+          python3 -m py_compile ci/patch_trader_art_verifyerror_split_v1.py ci/verify_trader_art_verifyerror_split_v1.py
+          echo PR106_SIGNED_RECOVERY_PINNED_CORRECT_BRANCH_NO_SOURCE_MODIFICATIONS
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android SDK, pinned Kotlin and Gradle for canonical builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+          test -n "$MANAGER"
+          test -f "$SDK/platforms/android-35/android.jar" || "$MANAGER" 'platforms;android-35' >/dev/null
+          if ! find "$SDK/build-tools" -type f -name apksigner | grep -q .; then
+            "$MANAGER" 'build-tools;35.0.0' >/dev/null
+          fi
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o /tmp/kotlin-compiler-2.2.21.zip
+          echo 'a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714  /tmp/kotlin-compiler-2.2.21.zip' | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o /tmp/kotlin-compiler-2.2.21.zip -d "$HOME/.local"
+          echo "$HOME/.local/kotlinc/bin" >> "$GITHUB_PATH"
+          mkdir -p "$HOME/.gradle-dist"
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o /tmp/gradle-8.10.2-bin.zip
+          echo '31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26  /tmp/gradle-8.10.2-bin.zip' | sha256sum -c - >/dev/null
+          unzip -q -o /tmp/gradle-8.10.2-bin.zip -d "$HOME/.gradle-dist"
+          echo "$HOME/.gradle-dist/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+          echo "GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false" >> "$GITHUB_ENV"
+          echo PR106_SIGNED_BUILDER_ENVIRONMENT_READY
+      - name: Full original release test, compile and signer (private logs only)
+        working-directory: source
+        shell: bash
+        env:
+          BITRISE_GIT_BRANCH: repair/pr102-art-verifyerror-20261110
+          BITRISE_GIT_COMMIT: cda4250a1b2161479a4c7849cbdc1c11cc4e402e
+          BITRISE_BUILD_SLUG: github-pr106-manual-recovery
+          BITRISE_DEPLOY_DIR: ""
+        run: |
+          set -euo pipefail
+          export BITRISE_DEPLOY_DIR="$PWD/pr106-manual-recovery"
+          export GITHUB_REF_NAME="$BITRISE_GIT_BRANCH" GITHUB_SHA="$BITRISE_GIT_COMMIT"
+          python3 ci/patch_maker_strategy_precompat_v1.py >/tmp/weex-pr106-precompat.log 2>&1
+          python3 ci/patch_recovery_build_gate_branch_v1.py >/tmp/weex-pr106-branch-gate.log 2>&1
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('ci/bitrise_release.sh')
+          source=p.read_text()
+          before='EXPECTED_RELEASE_BRANCH="recovery/weex-apk-20260915"'
+          after='EXPECTED_RELEASE_BRANCH="repair/pr102-art-verifyerror-20261110"'
+          assert source.count(before)==1
+          transformed=source.replace(before,after,1)
+          assert transformed.replace(after,before,1)==source
+          assert transformed.count('python3 ci/patch_trader_art_verifyerror_split_v1.py')==1
+          assert transformed.count('python3 ci/verify_trader_art_verifyerror_split_v1.py')==1
+          for token in (':app:testDebugUnitTest',':app:assembleRelease',
+                        'ci/verify_signing_keystore_contract.py',
+                        'ci/verify_built_apk_signer_contract.py',
+                        '04v-final-gradle-source.sha256'):
+              assert token in transformed,token
+          runner=Path('ci/_pr106_verified_private_recovery_runner.sh')
+          runner.write_text(transformed)
+          runner.chmod(0o700)
+          print('PR106_ORIGINAL_CANONICAL_RELEASE_UNMODIFIED_BRANCH_ONLY_EPHEMERAL')
+          PY
+          if ! bash ci/_pr106_verified_private_recovery_runner.sh > /tmp/weex-pr106-production-build.log 2>&1; then
+            echo "::error::PR106_FINAL_SIGNED_RECOVERY_BUILD_FAILED_NO_PUBLIC_ASSET"
+            grep -E 'WEEX_RELEASE_ERRTRAP|WEEX_PREFLIGHT_BLOCKED|AssertionError| APK SIGNER CONTRACT:|FAILURE: Build failed|Kotlin.*error|error:|PR106_.*FAIL|FAILED' /tmp/weex-pr106-production-build.log | tail -40 || true
+            exit 1
+          fi
+          test -s "$BITRISE_DEPLOY_DIR/WEEX-IA-Trader-release.apk"
+          test -s "$BITRISE_DEPLOY_DIR/signing-certificate.txt"
+          test -s "$BITRISE_DEPLOY_DIR/release.json"
+          python3 ci/verify_built_apk_signer_contract.py "$BITRISE_DEPLOY_DIR/signing-certificate.txt"
+          grep -q "PR106_ART_COROUTINE_SPLIT_MECHANICAL_PARITY_PASS" /tmp/weex-pr106-production-build.log
+          echo "PR106_FULL_PRODUCTION_BUILD_AND_SIGNER_GATES_PASSED"
+      - name: Confirm source version, signer, signed APK, data-preserving package identity
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=pr106-manual-recovery/WEEX-IA-Trader-release.apk
+          test -s "$APK"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
+          "$APKSIGNER" verify --verbose --print-certs "$APK" > /tmp/pr106-final-signer-report.txt
+          "$AAPT" dump badging "$APK" > /tmp/pr106-final-badging.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,re
+          signed=Path('pr106-manual-recovery/WEEX-IA-Trader-release.apk')
+          badging=Path('/tmp/pr106-final-badging.txt').read_text()
+          cert=Path('/tmp/pr106-final-signer-report.txt').read_text()
+          m=re.search(r"package: name='([^']+)' versionCode='([0-9]+)'",badging)
+          assert m and m.group(1)=='com.wilito.weexautotrader'
+          version=int(m.group(2));assert version>29260027,(version,'MUST_UPDATE_INSTALLED_APK')
+          assert 'Verified using v2 scheme (APK Signature Scheme v2): true' in cert
+          known='5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6'
+          digests=re.findall(r'(?im)^.*certificate SHA-256 digest: ([0-9a-f:]{64,95})$',cert)
+          digests=[d.replace(':','').lower() for d in digests]
+          assert digests and set(digests)=={known},'CANONICAL_SIGNER_MISMATCH'
+          data=signed.read_bytes()
+          assert len(data)>40000000 and len(data)<250000000
+          digest=hashlib.sha256(data).hexdigest()
+          Path('/tmp/pr106-final-version.txt').write_text(str(version))
+          Path('/tmp/pr106-final-digest.txt').write_text(digest)
+          Path('pr106-manual-recovery/apk-sha256.txt').write_text(digest+'  WEEX-IA-Trader-release.apk\n')
+          print('PR106_SIGNED_APK_INSTALLABLE_UPDATE_SIGNER_VERIFIED version='+str(version)+' bytes='+str(len(data))+' sha256='+digest)
+          PY
+      - name: Publish MANUAL download as non-latest prerelease; no in-app OTA
+        working-directory: source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          V="$(cat /tmp/pr106-final-version.txt)"
+          HASH="$(cat /tmp/pr106-final-digest.txt)"
+          TAG="manual-pr106-v$V"
+          test "$V" -gt 29260027
+          test "$TAG" != "v29176085"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::RECOVERY_TAG_ALREADY_EXISTS_REFUSE_REPLACE"
+            exit 1
+          fi
+          cat > /tmp/weex-pr106-manual-release-notes.txt <<EOF
+          WEEX IA Trader, PR #106: recuperación manual del VerifyError del arranque.
+          
+          ***NO ES OTA AUTOMÁTICA.*** Descarga manual para el propietario cuya APK v29260027 no abre.
+          Instalación SIN DESINSTALAR la APK anterior y SIN BORRAR DATOS. Android solicitará confirmar la actualización.
+          Mantener modo REAL sin nuevas operaciones hasta comprobar STOP, posiciones y PNL en WEEX oficial.
+          No demuestra aún compatibilidad con la base del teléfono; probado en Android ART emulator en DEBUG.
+          
+          Source commit: cda4250a1b2161479a4c7849cbdc1c11cc4e402e
+          Android versionCode: $V
+          Canonical signing certificate SHA256: 5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6
+          APK sha256: $HASH
+          Issue: https://github.com/wilitohtc24-jpg/weex-auto-trader-android/issues/105
+          PR: https://github.com/wilitohtc24-jpg/weex-auto-trader-android/pull/106
+          ART proof: https://github.com/wilitohtc24-jpg/weex-ia-apk-updates/actions/runs/42921731986
+          EOF
+          gh release create "$TAG"             "pr106-manual-recovery/WEEX-IA-Trader-release.apk#WEEX-IA-Trader-PR106-recovery.apk"             "pr106-manual-recovery/apk-sha256.txt#apk-sha256.txt"             --repo "$GITHUB_REPOSITORY" --prerelease --latest=false             --title "WEEX IA Trader PR106 · recuperación manual v$V"             --notes-file /tmp/weex-pr106-manual-release-notes.txt
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > /tmp/pr106-manual-published.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > /tmp/pr106-latest-ota.json
+          python3 - <<'PY'
+          import json,os
+          r=json.load(open('/tmp/pr106-manual-published.json'))
+          latest=json.load(open('/tmp/pr106-latest-ota.json'))
+          version=open('/tmp/pr106-final-version.txt').read().strip()
+          digest=open('/tmp/pr106-final-digest.txt').read().strip()
+          assert r['tag_name']=='manual-pr106-v'+version
+          assert r['draft'] is False and r['prerelease'] is True
+          a=[a for a in r['assets'] if a['name']=='WEEX-IA-Trader-PR106-recovery.apk']
+          assert len(a)==1 and a[0].get('digest')=='sha256:'+digest
+          assert latest['tag_name']=='v29176085', 'AUTO_OTA_CATALOG_CHANGED'
+          print('WEEX_PR106_MANUAL_PUBLIC_APK_READY_NO_AUTO_OTA '+a[0]['browser_download_url'])
+          PY

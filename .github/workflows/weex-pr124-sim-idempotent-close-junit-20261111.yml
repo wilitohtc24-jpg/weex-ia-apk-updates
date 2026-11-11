@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: ae4639245ebd3f2ca74b66c32cbcadeaf60f3cf5
+          ref: cb8373c3a6792d2a1e381b7d9b3a1f89e800447d
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source

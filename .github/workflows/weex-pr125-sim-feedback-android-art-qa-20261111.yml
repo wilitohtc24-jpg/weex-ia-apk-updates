@@ -1,0 +1,365 @@
+# P0-105 ART VerifyError: compile exact tested PR125 materialized sources into a
+# disposable Android DEBUG APK, run Android ART class verification on emulator.
+# No production keystore, no trading credentials, no API submissions, no OTA,
+# no uploaded APK artifacts and no persistent app data.
+name: WEEX PR125 SIM feedback crash replay Android ART QA (NO OTA)
+on:
+  workflow_run:
+    workflows:
+      - "WEEX PR125 SIM outcome feedback durable Kotlin/JUnit (NO APK)"
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: weex-pr125-offline-launch-upgrade-qa
+  cancel-in-progress: false
+jobs:
+  verify-generated-dex-with-android-art:
+    # No debug build if source/JUnit failed or this was an older source commit.
+    # STRICTLY after the exact source's Kotlin/JUnit has passed; never
+    # build a debug APK from a failing branch or a different PR SHA.
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '5c76b72c26a321cda95784d88bbaf531bbf45725' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    env:
+      PRIVATE_SOURCE_SHA: ad7165dac0701e09bf6f5273baf5cd8263e2e74c
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout pinned private PR125 repair (no credentials retained)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: ad7165dac0701e09bf6f5273baf5cd8263e2e74c
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Pin and verify source identity, Java 17
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRIVATE_SOURCE_SHA"
+          echo PR125_EXACT_REPAIR_SOURCE_PINNED
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Gradle and Kotlin for production-equivalent source replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          KOTLIN_ZIP=/tmp/kotlin-compiler-2.2.21.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o "$KOTLIN_ZIP"
+          echo 'a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714  /tmp/kotlin-compiler-2.2.21.zip' | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o "$KOTLIN_ZIP" -d "$HOME/.local"
+          echo "$HOME/.local/kotlinc/bin" >> "$GITHUB_PATH"
+          GRADLE_ZIP=/tmp/gradle-8.10.2-bin.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o "$GRADLE_ZIP"
+          echo '31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26  /tmp/gradle-8.10.2-bin.zip' | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o "$GRADLE_ZIP" -d "$HOME/.gradle-dist"
+          echo "$HOME/.gradle-dist/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+          echo "GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false" >> "$GITHUB_ENV"
+      - name: Run complete presign materializer, Kotlin, and JUnit; export exact final sources
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: "/tmp/weex-pr125-final-verified-art-qa"
+        run: |
+          set -euo pipefail
+          test ! -e "$WEEX_ART_QA_EXPORT_DIR"
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/weex-art-qa-presign.log 2>&1; then
+            echo "::error::PRESIGN_OR_KOTLIN_JUNIT_FAILED_NO_QA_BUILD"
+            grep -E 'WEEX_PRESIGN_FIRST_FAILURE_LINE=|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_AUDIT_JUNIT_BUILD_FAILED|PR125_.*FAIL' /tmp/weex-art-qa-presign.log | tail -15 || true
+            exit 1
+          fi
+          test -f "$WEEX_ART_QA_EXPORT_DIR/main/AndroidManifest.xml"
+          test -f "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/TraderService.kt"
+          test -f "$WEEX_ART_QA_EXPORT_DIR/build.gradle.kts"
+          grep -q 'ART_VERIFYERROR_PR102_SPLIT_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/TraderService.kt"
+          grep -q 'val realCycleHandled=coroutineScope realCycle@' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/TraderService.kt"
+          grep -q 'RealStopAmendmentGuard.safe' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'WEEX_1141_SNAPSHOT_PRESERVING_LEVERAGE_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt"
+          grep -q 'WeexSnapshotPreservingLeveragePolicy.prepare' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt"
+          # PR125-specific final post-materializer checks; no direct live I/O.
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealAdaptiveStopManager.kt"
+          grep -q 'REAL_UNIFIED_STOP_JOURNAL_WRITERS_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealAdaptiveStopManager.kt"
+          grep -q 'stopJournal.begin(planned)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealAdaptiveStopManager.kt"
+          grep -q 'synchronized(BEGIN_MUTEX)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'amendmentJournal.begin(planned)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'j.optBoolean("remoteWriteStarted",true)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'amendmentJournal.markAttemptStarted(planned)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'stopJournal.markAttemptStarted(planned)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealAdaptiveStopManager.kt"
+          grep -q 'amendmentJournal.clearIfNeverSent(pending)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PendingRealEntryPhasePolicy.kt"
+          grep -q 'REAL_ENTRY_PREPARED_VS_POST_STARTED_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'markRealOrderPostStarted(clientId)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'python3 ci/verify_real_entry_prepared_vs_post_started_v1.py' ci/bitrise_release.sh
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealPendingMaintenancePolicy.kt"
+          grep -q 'REAL_PENDING_READ_ONLY_RECOVERY_BEFORE_ENTRY_STOP_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'if(!RealPendingMaintenancePolicy.mayStartNewEntry(' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'python3 ci/verify_real_pending_read_only_recovery_v1.py' ci/bitrise_release.sh
+          grep -q 'REAL_STOP_READBACK_UNAMBIGUOUS_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'matchesNew&&!matchesOld -> PendingStopRemoteState.APPLIED' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'matchesOld&&!matchesNew -> PendingStopRemoteState.OLD_CONFIRMED_BUT_POST_OUTCOME_UNKNOWN' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'python3 ci/verify_real_stop_readback_unambiguous_v1.py' ci/bitrise_release.sh
+          grep -q 'REAL_SERVICE_OWNED_UNCERTAIN_ENTRY_MAINTENANCE_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'realExecutor.reconcileUncertainEntryJournalOnly()' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/TraderService.kt"
+          grep -q 'python3 ci/verify_real_service_owned_pending_maintenance_v1.py' ci/bitrise_release.sh
+          test -s app/src/test/java/com/wilito/weexautotrader/FinalOwnerBalanceSizingMatrixTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/OfflineFakeWeexJournalScenariosTest.kt
+          grep -q 'OWNER_100_250_500_SIZING_TRACE_V1' ci/verify_owner_balance_sizing_matrix_v1.py
+          grep -q 'OFFLINE_FAKE_WEEX_JOURNAL_SCENARIOS_V1' ci/verify_offline_fake_weex_journal_scenarios_v1.py
+          grep -q 'python3 ci/verify_owner_balance_sizing_matrix_v1.py' ci/bitrise_release.sh
+          grep -q 'python3 ci/verify_offline_fake_weex_journal_scenarios_v1.py' ci/bitrise_release.sh
+          grep -q 'SIM_STARTUP_ATTRIBUTION_OFF_SCANNER_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          grep -q 'val startupAttributionEpoch=SimulationRunEpoch.current(context)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          grep -q 'val summary=LossAttributionAnalyzer(database).analyze(50)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          grep -q 'python3 ci/test_sim_startup_sqlite_busy_isolation_v1.py' ci/bitrise_release.sh
+          grep -q 'python3 ci/test_sim_close_durable_replay_v1.py' ci/bitrise_release.sh
+          grep -q 'SIM_DURABLE_CLOSE_TRANSACTION_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/TradeDatabase.kt"
+          grep -q 'SIM_CLOSE_DURABLE_INTENT_RECONCILIATION_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          grep -q 'SIM_OUTCOME_FEEDBACK_OUTBOX_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          grep -q 'SIM_OUTCOME_FEEDBACK_IO_OFF_SCANNER_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          grep -q 'SIM_OUTCOME_QUEUE_IDEMPOTENT_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/ProviderOutcomeLearning.kt"
+          grep -q 'python3 ci/test_sim_outcome_feedback_durable_outbox_v1.py' ci/bitrise_release.sh
+          echo PR125_SIM_STARTUP_SQLITE_OFF_SCANNER_VERIFIED_FINAL_ANDROID
+          echo PR125_FINAL_SIZING_JOURNAL_QA_COVERAGE_PRESENT
+          echo PR125_SERVICE_OWNED_PENDING_WORKER_SOURCE_VERIFIED
+          echo PR125_SIGNED_STOP_READBACK_GUARDED_IN_FINAL_ANDROID
+          echo PR125_READ_ONLY_PENDING_UNDER_STOP_PRESERVED_IN_ANDROID
+          echo PR125_ENTRY_ORDER_PHASE_VERIFIED_IN_FINAL_ANDROID
+          echo PR125_PREPARED_VS_SENT_SOURCE_IN_FINAL_ANDROID
+          echo PR125_DUAL_STOP_JOURNAL_VERIFIED_IN_FINAL_DEX_SOURCE
+          # The private preflight intentionally summarizes source gates. Verify
+          # its published success markers and the exported final Kotlin source.
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/weex-art-qa-presign.log
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/weex-art-qa-presign.log
+          grep -E 'WEEX_AUDIT_JUNIT_PASS|ART_QA_FINAL_MATERIALIZED_TESTED_SOURCE_READY|WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/weex-art-qa-presign.log | tail -8
+          echo ART_QA_FINAL_MATERIALIZED_SOURCES_VERIFIED
+      - name: Assemble disposable unsigned-for-production debug & Android test APK
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf app/src/main
+          cp -a /tmp/weex-pr125-final-verified-art-qa/main app/src/main
+          cp /tmp/weex-pr125-final-verified-art-qa/build.gradle.kts app/build.gradle.kts
+          # Ephemeral throwaway key only. Do NOT use the production canonical key,
+          # upload a keystore, or publish either QA/debug APK.
+          test ! -f app/weex-ia-signing.jks
+          keytool -genkeypair -keystore app/weex-ia-signing.jks \
+            -storepass android -keypass android -alias weexia -keyalg RSA \
+            -keysize 2048 -validity 1 -dname 'CN=DISPOSABLE-ART-QA,OU=TEST,O=NO-RELEASE' >/dev/null 2>&1
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/build.gradle.kts')
+          s=p.read_text()
+          original='abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))'
+          assert s.count(original)==1
+          # Emulator-only ABI; Kotlin sources and all trading policies unchanged.
+          s=s.replace(original,'abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))')
+          needle='    defaultConfig {'
+          assert s.count(needle)==1
+          s=s.replace(needle,needle+'\n        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"',1)
+          dep='    testImplementation("junit:junit:4.13.2")'
+          assert s.count(dep)==1
+          s=s.replace(dep,dep+'\n    androidTestImplementation("androidx.test:runner:1.6.2")\n    androidTestImplementation("androidx.test.ext:junit:1.2.1")',1)
+          p.write_text(s)
+          PY
+          mkdir -p app/src/androidTest/java/com/wilito/weexautotrader
+          cat > app/src/androidTest/java/com/wilito/weexautotrader/ArtDexVerifyTest.kt <<'EOF'
+          package com.wilito.weexautotrader
+          import androidx.test.ext.junit.runners.AndroidJUnit4
+          import androidx.test.platform.app.InstrumentationRegistry
+          import org.junit.Assert.assertNotNull
+          import org.junit.Assert.assertTrue
+          import org.junit.Assert.assertFalse
+          import org.junit.Assert.fail
+          import org.junit.Assert.assertEquals
+          import android.content.Context
+          import org.junit.Test
+          import org.junit.runner.RunWith
+
+          @RunWith(AndroidJUnit4::class)
+          class ArtDexVerifyTest {
+              @Test fun rejectedWorkerContinuationMustVerifyOnRealAndroidArt() {
+                  val loader=InstrumentationRegistry.getInstrumentation().targetContext.classLoader
+                  val name="com.wilito.weexautotrader.TraderService\$onCreate\$launchTraderLoop\$workerJob\$1"
+                  // Force actual ART DEX class load and method verification;
+                  // no TraderService.onCreate(), no API credentials or orders.
+                  val type=Class.forName(name,true,loader)
+                  assertNotNull(type.getDeclaredMethod("invokeSuspend",Any::class.java))
+                  assertTrue(type.declaredMethods.any { it.name=="invokeSuspend" })
+              }
+              // SIM_SQLITE_REPLAY_ANDROID_ART_V1: real Android SQLite transaction,
+              // production TradeDatabase method, absolutely no WEEX/API call.
+              @Test fun durableSimCloseReplayMustNotDuplicateSqliteRow() {
+                  val ctx=InstrumentationRegistry.getInstrumentation().targetContext
+                  val db=TradeDatabase(ctx)
+                  val p=PaperPosition(
+                      symbol="QA_SIM_REPLAY_ONLY",side="LONG",entry=100.0,
+                      quantity=2.0,stopLoss=95.0,takeProfit=110.0,
+                      leverage=20,riskPct=1.0,rationale="OFFLINE_QA_ONLY",
+                      modelVersion="test-android-sim",openedAt=System.currentTimeMillis()
+                  )
+                  val exit=98.0
+                  val net=-4.4
+                  val fees=0.4
+                  val reason="QA_SIM_STOP"
+                  val first=db.verifyOrRecordPaperClose(p,exit,net,fees,reason) {
+                      db.recordClosedPaperTrade(p,exit,net,fees,reason,
+                          maePct=0.0,mfePct=0.0,fundingCost=null,
+                          slippageCost=null,decisionContext="{}")
+                  }
+                  assertTrue("one new paper close was inserted",first)
+                  val second=db.verifyOrRecordPaperClose(p,exit,net,fees,reason) {
+                      fail("replay attempted second SQLite write")
+                  }
+                  assertFalse("same close must be recognized as already settled",second)
+                  val count=db.readableDatabase.rawQuery(
+                      "SELECT COUNT(*) FROM trades WHERE mode='SIMULATION' AND opened_at=? "+
+                          "AND symbol=? AND side=? AND timeframe=?",
+                      arrayOf(p.openedAt.toString(),p.symbol,p.side,p.interval)
+                  ).use { c -> assertTrue(c.moveToFirst());c.getInt(0) }
+                  assertEquals("exactly one durable SIM close row",1,count)
+                  try {
+                      db.verifyOrRecordPaperClose(p,97.0,net,fees,reason) {
+                          fail("conflicting close must never execute writer")
+                      }
+                      fail("conflicting close should require review")
+                  } catch(expected:IllegalStateException) {
+                      assertTrue(expected.message?.contains("SIM_CLOSE_LEDGER_CONFLICT")==true)
+                  }
+              }
+              @Test fun writePersistedUpgradeSentinel() {
+                  val ctx=InstrumentationRegistry.getInstrumentation().targetContext
+                  assertTrue(ctx.getSharedPreferences("weex_qa_offline_upgrade",Context.MODE_PRIVATE)
+                      .edit().putString("sentinel","PR125_OFFLINE_PRESERVED").commit())
+              }
+              @Test fun verifyPersistedUpgradeSentinel() {
+                  val ctx=InstrumentationRegistry.getInstrumentation().targetContext
+                  assertEquals("PR125_OFFLINE_PRESERVED",
+                      ctx.getSharedPreferences("weex_qa_offline_upgrade",Context.MODE_PRIVATE)
+                          .getString("sentinel","MISSING"))
+              }
+          }
+          EOF
+          if ! gradle --no-daemon --console=plain :app:assembleDebug :app:assembleDebugAndroidTest > /tmp/weex-pr125-debug-build.log 2>&1; then
+            echo "::error::PR125_DEBUG_QA_DEX_BUILD_FAILED"
+            grep -E '^e:|error:|FAILURE:|What went wrong:|Execution failed|Could not resolve|Task .* FAILED' /tmp/weex-pr125-debug-build.log | tail -25 || true
+            exit 1
+          fi
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          test -s app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          echo ART_QA_DEBUG_APK_GENERATED_TEMPORARILY_NOT_PUBLISHED
+      - name: Enable hardware-accelerated Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Create offline startup, reinstall and ART class verification script (no REAL requests)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/weex-pr125-offline-launch-upgrade-runner.sh <<'ART_TEST'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          adb install -r source/app/build/outputs/apk/debug/app-debug.apk
+          adb install -r source/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb logcat -c
+          adb shell am instrument -w -r -e class 'com.wilito.weexautotrader.ArtDexVerifyTest#rejectedWorkerContinuationMustVerifyOnRealAndroidArt' com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr125-art-instrumentation.txt
+          if ! grep -q 'OK (1 test)' /tmp/weex-pr125-art-instrumentation.txt; then
+            echo "::error::ART_VERIFYERROR_CLASSLOAD_TEST_FAILED"
+            grep -E 'INSTRUMENTATION_STATUS:|java.lang.VerifyError|FAILURES|shortMsg|test=' /tmp/weex-pr125-art-instrumentation.txt | tail -35 || true
+            exit 1
+          fi
+          # Exercise the ACTUAL Kotlin/Android SQLite dedup transaction before
+          # the disposable app is launched. This tests one ledger row plus
+          # conflicting replay HOLD, not the full phone crash scenario.
+          adb shell am instrument -w -r -e class 'com.wilito.weexautotrader.ArtDexVerifyTest#durableSimCloseReplayMustNotDuplicateSqliteRow' com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr125-sim-close-ledger-art.txt
+          if ! grep -q 'OK (1 test)' /tmp/weex-pr125-sim-close-ledger-art.txt; then
+            echo "::error::PR125_SIM_CLOSE_ANDROID_SQLITE_REPLAY_FAILED"
+            grep -E 'INSTRUMENTATION_STATUS:|FAILURES|AssertionError|Exception' /tmp/weex-pr125-sim-close-ledger-art.txt | tail -30 || true
+            exit 1
+          fi
+          echo PR125_ANDROID_REAL_SQLITE_CLOSE_DEDUP_AND_CONFLICT_PASS
+          if adb logcat -d -b main -b crash | grep -E 'FATAL EXCEPTION|VerifyError.*TraderService' > /tmp/weex-pr125-art-crash-matches.txt; then
+            echo "::error::ANDROID_ART_CRASH_OR_VERIFYERROR_DETECTED"
+            head -15 /tmp/weex-pr125-art-crash-matches.txt
+            exit 1
+          fi
+          echo PR125_ANDROID_ART_WORKER_CONTINUATION_VERIFIED_ON_EMULATOR_NO_REAL_ORDERS_NO_OTA
+          # Fresh emulator, no exchange credentials and NO network or live trading.
+          adb shell svc wifi disable
+          adb shell svc data disable
+          adb shell am instrument -w -r -e class 'com.wilito.weexautotrader.ArtDexVerifyTest#writePersistedUpgradeSentinel' \
+            com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr125-upgrade-write.txt
+          grep -q 'OK (1 test)' /tmp/weex-pr125-upgrade-write.txt
+          adb logcat -c
+          adb shell am start -W -n com.wilito.weexautotrader/.LauncherActivity > /tmp/weex-pr125-first-launch.txt
+          if ! grep -q 'Status: ok' /tmp/weex-pr125-first-launch.txt; then
+            echo "::error::PR125_OFFLINE_FIRST_LAUNCH_FAILED"
+            cat /tmp/weex-pr125-first-launch.txt
+            exit 1
+          fi
+          sleep 25
+          test -n "$(adb shell pidof com.wilito.weexautotrader | tr -d '\r')" || {
+            echo "::error::PR125_OFFLINE_PROCESS_DIED_ON_FIRST_LAUNCH"; exit 1;
+          }
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|VerifyError' > /tmp/weex-pr125-startup-crashes.txt; then
+            echo "::error::PR125_OFFLINE_FIRST_LAUNCH_CRASH"
+            head -25 /tmp/weex-pr125-startup-crashes.txt; exit 1
+          fi
+          # Reinstall same disposable debug signature with '-r'; never clear app data.
+          adb shell am force-stop com.wilito.weexautotrader
+          adb install -r source/app/build/outputs/apk/debug/app-debug.apk > /tmp/weex-pr125-upgrade-install.txt
+          grep -q 'Success' /tmp/weex-pr125-upgrade-install.txt
+          adb shell am instrument -w -r -e class 'com.wilito.weexautotrader.ArtDexVerifyTest#verifyPersistedUpgradeSentinel' \
+            com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr125-upgrade-read.txt
+          if ! grep -q 'OK (1 test)' /tmp/weex-pr125-upgrade-read.txt; then
+            echo "::error::PR125_OFFLINE_DATA_NOT_PRESERVED"
+            grep -E 'FAILURES|INSTRUMENTATION_STATUS|AssertionError' /tmp/weex-pr125-upgrade-read.txt | tail -20 || true
+            exit 1
+          fi
+          adb logcat -c
+          adb shell am start -W -n com.wilito.weexautotrader/.LauncherActivity > /tmp/weex-pr125-after-upgrade-launch.txt
+          grep -q 'Status: ok' /tmp/weex-pr125-after-upgrade-launch.txt
+          sleep 20
+          test -n "$(adb shell pidof com.wilito.weexautotrader | tr -d '\r')" || {
+            echo "::error::PR125_OFFLINE_PROCESS_DIED_AFTER_REINSTALL"; exit 1;
+          }
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|VerifyError' > /tmp/weex-pr125-reinstall-crashes.txt; then
+            echo "::error::PR125_OFFLINE_AFTER_REINSTALL_CRASH"
+            head -25 /tmp/weex-pr125-reinstall-crashes.txt; exit 1
+          fi
+          echo PR125_OFFLINE_FULL_STARTUP_REINSTALL_DATA_RETENTION_PASS_NO_REAL_ORDERS_NO_OTA
+          ART_TEST
+          bash -n /tmp/weex-pr125-offline-launch-upgrade-runner.sh
+          chmod 700 /tmp/weex-pr125-offline-launch-upgrade-runner.sh
+      - name: Verify generated DEX plus offline full launch and data retention on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 4096M
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          script: bash /tmp/weex-pr125-offline-launch-upgrade-runner.sh

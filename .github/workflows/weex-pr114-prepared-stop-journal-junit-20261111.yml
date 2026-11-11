@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/weex-pr114-dual-stop-journal-junit-20261111.yml
+      - .github/workflows/weex-pr114-prepared-stop-journal-junit-20261111.yml
 permissions:
   contents: read
 jobs:

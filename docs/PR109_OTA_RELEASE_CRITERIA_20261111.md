@@ -32,6 +32,12 @@ Estado: **NO PUBLICAR**. El usuario pidió una única próxima APK por OTA (desd
 - Neon `httpStatus=413` al guardar respaldo es una incidencia separada; tratar lotes y compresión de copia sin perder datos, no condicionar nuevas entradas válidas al resultado del respaldo.
 - Las capturas del usuario muestran `197/197` en SAHARA seguido de `6/197` en ZEC y `12/197` AVAX: evidencia de al menos una vuelta completa con reinicio de contador; no demuestra libre de bloqueos/ANR sostenidos.
 
+## ART de la combinación PR111 — PASS limitado (11-nov-2026, 09:49 UTC)
+
+- Run [42996874254](https://github.com/wilitohtc24-jpg/weex-ia-apk-updates/actions/runs/42996874254) **SUCCESS**: fuente final de PR111 commit `2836b8e0d2c3c7228cbb4751f18f22a778632249` fijada; materialización canónica y Kotlin/JUnit PASS; compilación DEBUG temporal; instrumentación Android ART verificó carga/continuación del worker `TraderService` sin `VerifyError` y sin crash en esa prueba. No se publicó ni firmó APK de distribución.
+- **Alcance estricto:** el propio workflow declara `no app launch`; esto es un test de carga ART del worker, **NO** una prueba de arranque completo de la app ni de 10 ciclos SIM/REAL. Tampoco prueba modificación remota de SL/TP, instalación `adb install -r` con datos persistentes, certificado histórico ni `versionCode` final. Mantener **NO PUBLICAR**.
+- Último run del workflow específico PR109 `weex-pr109-dynamic-spread-kotlin-junit-20261111.yml`: [42965200814](https://github.com/wilitohtc24-jpg/weex-ia-apk-updates/actions/runs/42965200814) PASS a las 05:27 UTC. PR108/109/111 siguen DRAFT. Issues #104/#105/#107 siguen OPEN. Ningún fallo nuevo de esta ejecución exige parche adicional.
+
 ## Antes de compilar UNA candidata final
 1. Materialización canónica, todos los verificadores + Kotlin/JUnit de las fuentes finales, dos pasadas, SHA idénticos sin destrucción de parches; comprobar que no se debilitaron suites por error de compilación.
 2. Unit/integración WEEX **simulada** para LONG/SHORT y validación firmada de la posición, stop vigente, TP, modifyTpSlOrder → lectura y confirmación remota → persistencia local; fallos de red, stop remoto único, idempotencia y no intervención en manuales.

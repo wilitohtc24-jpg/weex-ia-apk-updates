@@ -16,6 +16,12 @@ Estado: **NO PUBLICAR**. El usuario pidió una única próxima APK por OTA (desd
 - Riesgo 8% individual y 12% agregado todavía vigentes; propuesta 20% es **estudio**, no está activa. No afirmar corregido el sizing ni prometer beneficio fijo.
 - Issues #104 (protección ganancias), #107 (selector/WAIT/Samsung), #105 (VerifyError pasado) continúan documentando los síntomas.
 
+## Evidencia adicional de las seis capturas REAL (11 nov, 12:22–12:26)
+- Escáner 72→78→84→90→96→108 /197, sí avanza de seis en seis, aún falta probar vuelta completa y recuperación.
+- LPT SHORT: R/R 0.24R <1.55R; CVX SHORT: contrafactual TP-first 24%, SL-first 49%, n67/14 independientes; MORPHO LONG: no hay geometría ejecutable LATERAL; XVG SHORT: RR neto 1.03R <1.20R, costes 0.364%; MEGA SHORT: contrafactual TP-first 21%, SL-first 63%, n67/14 independientes. No eliminar puertas sin demostrar señales válidas y positivo SIM/REAL.
+- **COMP SHORT: BLOQUEANTE DE ENTREGA** issue #110: HTTP 400 WEEX -1141 = PARAM_EMPTY (campo obligatorio ausente) en solicitud de apalancamiento. Revisar GET symbolConfig, ruta POST confirmada y mensaje sanitizado con pruebas offline de LONG/SHORT. No se debe pasar a orden sin confirmación de leverage; resolver sin alterar manuales.
+- Issue #107 tiene análisis completo y condiciones de aceptación. PR #109 superó suite final Kotlin/JUnit run 42965200814, pero no valida por sí solo este problema ni arranque/gestión REAL.
+
 ## Antes de compilar UNA candidata final
 1. Materialización canónica, todos los verificadores + Kotlin/JUnit de las fuentes finales, dos pasadas, SHA idénticos sin destrucción de parches; comprobar que no se debilitaron suites por error de compilación.
 2. Unit/integración WEEX **simulada** para LONG/SHORT y validación firmada de la posición, stop vigente, TP, modifyTpSlOrder → lectura y confirmación remota → persistencia local; fallos de red, stop remoto único, idempotencia y no intervención en manuales.

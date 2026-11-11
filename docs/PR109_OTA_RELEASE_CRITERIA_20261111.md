@@ -22,6 +22,16 @@ Estado: **NO PUBLICAR**. El usuario pidió una única próxima APK por OTA (desd
 - **COMP SHORT: BLOQUEANTE DE ENTREGA** issue #110: HTTP 400 WEEX -1141 = PARAM_EMPTY (campo obligatorio ausente) en solicitud de apalancamiento. Revisar GET symbolConfig, ruta POST confirmada y mensaje sanitizado con pruebas offline de LONG/SHORT. No se debe pasar a orden sin confirmación de leverage; resolver sin alterar manuales.
 - Issue #107 tiene análisis completo y condiciones de aceptación. PR #109 superó suite final Kotlin/JUnit run 42965200814, pero no valida por sí solo este problema ni arranque/gestión REAL.
 
+## Nueva prueba concluyente — apalancamiento REAL `-1141` (WXDG2-77873f7b0619)
+
+- 11-nov-2026 06:15:41 UTC, versión instalada `29333175` (MANTA-USDT SHORT 4h, 90 puntos, cobertura 192/197); `weexNetwork.status` registra exactamente el campo que faltó: `Parameter 'isolatedLongLeverage' cannot be empty.` No orden REAL enviada; API de saldo y ledger frescos.
+- La referencia oficial de WEEX V3 documenta una sola dirección como suficiente, pero el servidor para este caso exigió ambas. Las correcciones deben basarse en la **respuesta real**. https://www.weex.com/api-doc/contract/Account_API/UpdateLeverageTRADE
+- **P0 antes de OTA:** PR #111 DRAFT en rama `repair/weex-1141-dual-field-preserve-20261111`, encima de #109, prepara ambos campos conservando el apalancamiento contrario del `symbolConfig` firmado. Nunca inventar 20x contrario; exigir modo ISOLATED/COMBINED, sin posición del símbolo, estabilidad de doble GET y confirmación posterior de ambos valores. El POST 200 no equivale a autorización de orden. No usar live WEEX en CI.
+- CI control de solo Kotlin/JUnit: https://github.com/wilitohtc24-jpg/weex-ia-apk-updates/actions/runs/42972012184; comprobar el veredicto antes de declarar PASS, luego Android ART final e integración simulada WEEX.
+- Otro hallazgo: `runtime.cycleMs=12279`, `traderCycleStalled=false`, `scannerAlignedWithTrading=true`, así que este WAIT no fue un congelamiento. `readiness=16%` y `profitFactor=0.12` son telemetría de preparación, no prueba causal de este error; `positions=0` impide validar ratchet SL.
+- Neon `httpStatus=413` al guardar respaldo es una incidencia separada; tratar lotes y compresión de copia sin perder datos, no condicionar nuevas entradas válidas al resultado del respaldo.
+- Las capturas del usuario muestran `197/197` en SAHARA seguido de `6/197` en ZEC y `12/197` AVAX: evidencia de al menos una vuelta completa con reinicio de contador; no demuestra libre de bloqueos/ANR sostenidos.
+
 ## Antes de compilar UNA candidata final
 1. Materialización canónica, todos los verificadores + Kotlin/JUnit de las fuentes finales, dos pasadas, SHA idénticos sin destrucción de parches; comprobar que no se debilitaron suites por error de compilación.
 2. Unit/integración WEEX **simulada** para LONG/SHORT y validación firmada de la posición, stop vigente, TP, modifyTpSlOrder → lectura y confirmación remota → persistencia local; fallos de red, stop remoto único, idempotencia y no intervención en manuales.

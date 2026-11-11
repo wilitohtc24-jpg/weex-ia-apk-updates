@@ -183,6 +183,8 @@ jobs:
           import androidx.test.platform.app.InstrumentationRegistry
           import org.junit.Assert.assertNotNull
           import org.junit.Assert.assertTrue
+          import org.junit.Assert.assertFalse
+          import org.junit.Assert.fail
           import org.junit.Assert.assertEquals
           import android.content.Context
           import org.junit.Test
@@ -198,6 +200,46 @@ jobs:
                   val type=Class.forName(name,true,loader)
                   assertNotNull(type.getDeclaredMethod("invokeSuspend",Any::class.java))
                   assertTrue(type.declaredMethods.any { it.name=="invokeSuspend" })
+              }
+              // SIM_SQLITE_REPLAY_ANDROID_ART_V1: real Android SQLite transaction,
+              // production TradeDatabase method, absolutely no WEEX/API call.
+              @Test fun durableSimCloseReplayMustNotDuplicateSqliteRow() {
+                  val ctx=InstrumentationRegistry.getInstrumentation().targetContext
+                  val db=TradeDatabase(ctx)
+                  val p=PaperPosition(
+                      symbol="QA_SIM_REPLAY_ONLY",side="LONG",entry=100.0,
+                      quantity=2.0,stopLoss=95.0,takeProfit=110.0,
+                      leverage=20,riskPct=1.0,rationale="OFFLINE_QA_ONLY",
+                      modelVersion="test-android-sim",openedAt=System.currentTimeMillis()
+                  )
+                  val exit=98.0
+                  val net=-4.4
+                  val fees=0.4
+                  val reason="QA_SIM_STOP"
+                  val first=db.verifyOrRecordPaperClose(p,exit,net,fees,reason) {
+                      db.recordClosedPaperTrade(p,exit,net,fees,reason,
+                          maePct=0.0,mfePct=0.0,fundingCost=null,
+                          slippageCost=null,decisionContext="{}")
+                  }
+                  assertTrue("one new paper close was inserted",first)
+                  val second=db.verifyOrRecordPaperClose(p,exit,net,fees,reason) {
+                      fail("replay attempted second SQLite write")
+                  }
+                  assertFalse("same close must be recognized as already settled",second)
+                  val count=db.readableDatabase.rawQuery(
+                      "SELECT COUNT(*) FROM trades WHERE mode='SIMULATION' AND opened_at=? "+
+                          "AND symbol=? AND side=? AND timeframe=?",
+                      arrayOf(p.openedAt.toString(),p.symbol,p.side,p.interval)
+                  ).use { c -> assertTrue(c.moveToFirst());c.getInt(0) }
+                  assertEquals("exactly one durable SIM close row",1,count)
+                  try {
+                      db.verifyOrRecordPaperClose(p,97.0,net,fees,reason) {
+                          fail("conflicting close must never execute writer")
+                      }
+                      fail("conflicting close should require review")
+                  } catch(expected:IllegalStateException) {
+                      assertTrue(expected.message?.contains("SIM_CLOSE_LEDGER_CONFLICT")==true)
+                  }
               }
               @Test fun writePersistedUpgradeSentinel() {
                   val ctx=InstrumentationRegistry.getInstrumentation().targetContext
@@ -243,6 +285,16 @@ jobs:
             grep -E 'INSTRUMENTATION_STATUS:|java.lang.VerifyError|FAILURES|shortMsg|test=' /tmp/weex-pr124-art-instrumentation.txt | tail -35 || true
             exit 1
           fi
+          # Exercise the ACTUAL Kotlin/Android SQLite dedup transaction before
+          # the disposable app is launched. This tests one ledger row plus
+          # conflicting replay HOLD, not the full phone crash scenario.
+          adb shell am instrument -w -r -e class 'com.wilito.weexautotrader.ArtDexVerifyTest#durableSimCloseReplayMustNotDuplicateSqliteRow' com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr124-sim-close-ledger-art.txt
+          if ! grep -q 'OK (1 test)' /tmp/weex-pr124-sim-close-ledger-art.txt; then
+            echo "::error::PR124_SIM_CLOSE_ANDROID_SQLITE_REPLAY_FAILED"
+            grep -E 'INSTRUMENTATION_STATUS:|FAILURES|AssertionError|Exception' /tmp/weex-pr124-sim-close-ledger-art.txt | tail -30 || true
+            exit 1
+          fi
+          echo PR124_ANDROID_REAL_SQLITE_CLOSE_DEDUP_AND_CONFLICT_PASS
           if adb logcat -d -b main -b crash | grep -E 'FATAL EXCEPTION|VerifyError.*TraderService' > /tmp/weex-pr124-art-crash-matches.txt; then
             echo "::error::ANDROID_ART_CRASH_OR_VERIFYERROR_DETECTED"
             head -15 /tmp/weex-pr124-art-crash-matches.txt

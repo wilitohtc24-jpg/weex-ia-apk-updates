@@ -1,0 +1,51 @@
+name: WEEX PR127 CircleCI private pipeline status read only (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-circleci-pipeline-status-readonly-20261112.yml
+permissions:
+  contents: read
+jobs:
+  circleci-status-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      REQUESTED_SHA: 352f698327872db773b96ca10398a5145dee35da
+    steps:
+      - name: Query CircleCI private project with existing read-only artifact token
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,urllib.request,urllib.error,urllib.parse
+          token=os.environ.get("CIRCLECI_READ_TOKEN","")
+          if not token:
+              print("CIRCLECI_READ_STATUS=NO_CONFIGURED_SECRET")
+              raise SystemExit(0)
+          branch="repair/weex-owner-adaptive-20pct-stop-risk-20261111"
+          base="https://circleci.com/api/v2/project/gh/wilitohtc24-jpg/weex-auto-trader-android/pipeline"
+          q=urllib.parse.urlencode({"branch":branch})
+          request=urllib.request.Request(base+"?"+q,headers={
+              "Accept":"application/json","Circle-Token":token,
+              "User-Agent":"weex-pr127-status-readonly"})
+          try:
+              with urllib.request.urlopen(request,timeout=20) as r:
+                  result=json.load(r)
+          except urllib.error.HTTPError as ex:
+              print("CIRCLECI_READ_STATUS=HTTP_"+str(ex.code))
+              raise SystemExit(0)
+          except Exception as ex:
+              print("CIRCLECI_READ_STATUS=UNAVAILABLE_"+type(ex).__name__)
+              raise SystemExit(0)
+          items=result.get("items",[])
+          print("CIRCLECI_READ_STATUS=OK")
+          print("CIRCLECI_VISIBLE_PIPELINES="+str(len(items)))
+          for p in items[:12]:
+              vcs=p.get("vcs") or {}
+              sha=vcs.get("revision","")
+              print("CIRCLECI_PIPELINE_MATCH_SHA="+str(sha==os.environ["REQUESTED_SHA"])+
+                    " STATE="+str(p.get("state","unknown"))+
+                    " CREATED="+str(p.get("created_at","unknown")))
+          PY

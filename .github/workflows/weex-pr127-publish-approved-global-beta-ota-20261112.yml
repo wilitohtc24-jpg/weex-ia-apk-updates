@@ -26,7 +26,7 @@ jobs:
       - name: Check original draft and prior public OTA before making changes
         shell: bash
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "$REPO"
@@ -69,7 +69,7 @@ jobs:
       - name: Stage authorized beta warnings while still unpublished
         shell: bash
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           cat > /tmp/pr127-beta-notes.md <<EOF
@@ -120,7 +120,7 @@ jobs:
       - name: Promote identical signed APK to public latest and verify app OTA discovery
         shell: bash
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$(gh api "repos/$REPO/releases/latest" --jq .tag_name)" = "v29176085"

@@ -120,6 +120,32 @@ jobs:
                                             " STATUS="+str(action.get("status"))+
                                             " START="+str(action.get("start_time"))+
                                             " END="+str(action.get("end_time")))
+                                      if action.get("name")!="PR127 exact private signed APK (no OTA)":continue
+                                      output_url=action.get("output_url")
+                                      if not output_url:continue
+                                      from urllib.parse import urlparse
+                                      host=(urlparse(output_url).hostname or "").lower()
+                                      if not (host=="circleci.com" or host.endswith(".circleci.com")
+                                              or host.endswith(".amazonaws.com")):
+                                          print("CIRCLECI_JOB_OUTPUT_SKIPPED_UNTRUSTED_HOST")
+                                          continue
+                                      try:
+                                          headers={"User-Agent":"weex-pr127-step-progress-readonly"}
+                                          if host=="circleci.com" or host.endswith(".circleci.com"):
+                                              headers["Circle-Token"]=token
+                                          outreq=urllib.request.Request(output_url,headers=headers)
+                                          with urllib.request.urlopen(outreq,timeout=20) as resp:
+                                              data=json.load(resp)
+                                          import re
+                                          allowed_lines=[]
+                                          marker=re.compile(r"\\b(PR127_[A-Z0-9_]{6,}|WEEX_OWNER_MANUAL_BUILD_ONLY_OK|CIRCLECI_[A-Z0-9_]{6,}|GLOBAL_RELEASE_VERSION_CODE=\\d+|BUILD FAILED|BUILD SUCCESSFUL)\\b")
+                                          for item in data[-150:]:
+                                              for hit in marker.findall(str(item.get("message",""))):
+                                                  if hit not in allowed_lines:allowed_lines.append(hit)
+                                          print("CIRCLECI_SIGNED_BUILD_PROGRESS_MARKERS="+",".join(allowed_lines[-22:]))
+                                          print("CIRCLECI_SIGNED_BUILD_OUTPUT_RECORDS="+str(len(data)))
+                                      except Exception as error:
+                                          print("CIRCLECI_JOB_OUTPUT_UNAVAILABLE="+type(error).__name__)
                           except urllib.error.HTTPError as error:
                               print("CIRCLECI_LEGACY_DETAIL_HTTP_"+str(error.code))
                           except Exception as error:

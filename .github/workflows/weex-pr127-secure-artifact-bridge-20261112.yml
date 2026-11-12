@@ -1,0 +1,64 @@
+name: WEEX PR127 one-use encrypted CircleCI artifact URL transfer (NO OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-secure-artifact-bridge-20261112.yml
+permissions:
+  contents: read
+jobs:
+  public-key-only-transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      RECIPIENT_CERT_DER_BASE64: MIIENTCCAp2gAwIBAgIUeL5478rQ7l2rcRs3vA5iPbKoDVIwDQYJKoZIhvcNAQELBQAwKjEoMCYGA1UEAwwfUFIxMjcgUHJpdmF0ZSBBcnRpZmFjdCBUcmFuc2ZlcjAeFw0yNjExMTIxOTE0MzBaFw0yNjExMTMxOTE0MzBaMCoxKDAmBgNVBAMMH1BSMTI3IFByaXZhdGUgQXJ0aWZhY3QgVHJhbnNmZXIwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQC566YLYNb6N/UGDqWYA25aSStHbXgtSJt9/ZXsLd6bPO8sHOo6+bHjLZ9IJUBzzbaeAGfK37JHJ2xVsul12SOMsMsnvuZE57Uwk1cwLxvY4g7C/b+VJGGwRfTUa16984NswB1g7TJsUMtsVpG3zvdTGil7YmdpO2grTRufeEvfhzksLK6ZQXrEN9auy/pohBQdrj75t5HcQQmtpB055ApQIDD4D/wo0xe1Rbtrq+HTQuye4A6haKps9rJIY07Z61+o/QrZvQOl6xz8O/RxiQDt+ZLEtuzN+AXY4/xuYW4PENBKeR4mN7XPlbGMvPBy6sOO07CAJxnHsSiJEKvKXn7eo5INIMo9KV/6HWi/mql56JDayAndWHE7fdi9kOlj7hFnHq52htETLdTgJJTAuK65c5b5mGA5iYqHa+K6+dddayBWaBgxIiqa5JHUG5Pq11//XkeMh4Rd6gvf7KS+ARPLHP+bB8CAI0CyTMvrk0qpGk+VvTEb0KI3gKuOr3eG5IkCAwEAAaNTMFEwHQYDVR0OBBYEFKAaeQTWEbAa+E9K8C3Hc3O3SDX1MB8GA1UdIwQYMBaAFKAaeQTWEbAa+E9K8C3Hc3O3SDX1MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggGBALAPxBCyResHO147fGOKhPcNcldtLqRNXqVIDWHaq2kyWKzPQcjucqEgjf/GDk5TWRy+8WTkk6eaeo1XfMoBzUkxlynYKzkCSbs4KZB9epNgJFYPRBUyHc5P72MVSXBFCMfgqRIVW069FsdPQ2NhwNzJNfgZyAdyHkFIKkrZ5SmRXoPFxkSlLyVns7drldVBq9l2rv0PDcP9UyMJijCBpJqMFLDYKOklEwq5rbYPCv7KXzyuVGJibQthg5BdMNpqJn9XFwp2t5XPdZetafNOUtUhc+hAbCsoQ7aVI9+yoEdVmXsq1J7xWsE9WtqJfvKQbcK54yT8xS+7Pgqa1EpfPsQyBzFS4WydKGHOViaI3RZlRyew1EQS6J6gs1Ln82r1trI7aX0yFFnxxEgC3uzXPTBIKBEQBjlpU3Knfh0j/So0VoeH/BGGF+7UEP8cR3afsjT/An/sT3UeZFj2XvyUE8L4NHICLZRg5CuNQi2zSt7KGP2v7UVBpzFrwNoSz5/fOA==
+    steps:
+      - name: Encrypt short-lived private APK storage link using recipient certificate only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64,json,os,subprocess,tempfile,urllib.request,urllib.error,urllib.parse
+          token=os.environ.get("CIRCLECI_READ_TOKEN")
+          assert token, "CircleCI artifact read token unavailable"
+          endpoint="https://circleci.com/api/v2/project/gh/wilitohtc24-jpg/weex-auto-trader-android/51467/artifacts"
+          req=urllib.request.Request(endpoint,headers={"Circle-Token":token,"Accept":"application/json"})
+          with urllib.request.urlopen(req,timeout=20) as r:
+              items=json.load(r)["items"]
+          matches=[a for a in items if a.get("path")=="private-pr127-circleci-candidate/WEEX-IA-Trader-release.apk"]
+          assert len(matches)==1,"Exact signed APK artifact missing or duplicated"
+          url=matches[0]["url"]
+          parsed=urllib.parse.urlparse(url)
+          assert parsed.scheme=="https" and parsed.hostname=="output.circle-artifacts.com"
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,newurl):
+                  return None
+          opener=urllib.request.build_opener(NoRedirect())
+          try:
+              request=urllib.request.Request(url,headers={"Circle-Token":token,"User-Agent":"weex-one-use-private-artifact-transfer"})
+              with opener.open(request,timeout=20) as response:
+                  raise RuntimeError("Expected short-lived signed redirect")
+          except urllib.error.HTTPError as e:
+              assert e.code in (301,302,303,307,308),"No signed artifact redirect"
+              signed_url=e.headers.get("Location","")
+          target=urllib.parse.urlparse(signed_url)
+          assert target.scheme=="https" and (
+              (target.hostname or "").endswith(".amazonaws.com")
+              or (target.hostname or "").endswith(".cloudfront.net")
+              or target.hostname=="storage.googleapis.com"),"Unexpected signed storage domain"
+          assert len(signed_url)<8192 and len(signed_url)>100
+          with tempfile.TemporaryDirectory() as td:
+              der=os.path.join(td,"recipient.der")
+              crt=os.path.join(td,"recipient.pem")
+              with open(der,"wb") as f:
+                  f.write(base64.b64decode(os.environ["RECIPIENT_CERT_DER_BASE64"]))
+              subprocess.run(["openssl","x509","-inform","DER","-in",der,"-out",crt],
+                             check=True,capture_output=True)
+              result=subprocess.run(["openssl","cms","-encrypt","-aes256","-binary",
+                                     "-outform","DER","-recip",crt],
+                                     input=signed_url.encode(),check=True,capture_output=True)
+          print("PR127_CIRCLECI_SIGNED_URL_HOST="+str(target.hostname))
+          print("PR127_CMS_ENCRYPTED_PRESIGNED_URL="+base64.b64encode(result.stdout).decode())
+          print("PR127_SIGNED_LINK_PRIVATELY_ENCRYPTED_NO_PUBLIC_URL_OR_TOKEN")
+          PY

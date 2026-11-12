@@ -43,5 +43,7 @@ jobs:
           grep -q 'NeonRequestSizePolicy.shouldDeferOversizedBackup('             app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt
           grep -q 'backup_too_large_local'             app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt
           echo 'NEON_413_SOURCE_AND_BACKUP_CONTRACT_QA_PASS'
-          grep -E '^# (tests|pass|fail)' /tmp/weex-neon-413-tests.txt | tail -3
+          # Node 24 may render test summaries with ℹ rather than TAP '#'.
+          # Test success is the node --test exit status above, not grep output.
+          grep -E '(tests|pass|fail)' /tmp/weex-neon-413-tests.txt | tail -5 || true
           test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"

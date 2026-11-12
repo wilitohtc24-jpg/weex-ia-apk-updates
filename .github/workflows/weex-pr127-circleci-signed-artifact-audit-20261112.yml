@@ -59,7 +59,10 @@ jobs:
                   print("PR127_ARTIFACT_STORAGE_HOST_TO_REVIEW="+host)
                   raise AssertionError("Unrecognized artifact storage")
               headers={"User-Agent":"weex-pr127-verified-private-apk"}
-              if host=="circleci.com" or host.endswith(".circleci.com"):
+              # Private CircleCI artifacts require the read token on the official
+              # artifact host; the redirect handler removes it before cloud storage.
+              if (host=="circleci.com" or host.endswith(".circleci.com")
+                  or host=="circle-artifacts.com" or host.endswith(".circle-artifacts.com")):
                   headers["Circle-Token"]=token
               return opener.open(urllib.request.Request(url,headers=headers),timeout=120)
           def small(filename,limit=250000):

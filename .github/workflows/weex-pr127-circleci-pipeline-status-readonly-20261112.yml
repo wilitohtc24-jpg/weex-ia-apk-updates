@@ -157,6 +157,18 @@ jobs:
                       with urllib.request.urlopen(areq,timeout=20) as r:
                           assets=json.load(r).get("items",[])
                       print("CIRCLECI_PRIVATE_ARTIFACT_COUNT="+str(len(assets)))
-                      for asset in assets[:15]:
+                      for asset in assets[:25]:
                           print("CIRCLECI_ARTIFACT_PATH="+str(asset.get("path",""))[:180])
+                      required=(
+                          "private-pr127-circleci-candidate/WEEX-IA-Trader-release.apk",
+                          "private-pr127-circleci-candidate/signing-certificate.txt",
+                          "private-pr127-circleci-candidate/release.json",
+                          "private-pr127-circleci-candidate/apk-sha256.txt",
+                          "private-pr127-circleci-candidate/candidate-provenance.txt",
+                      )
+                      found={str(asset.get("path","")) for asset in assets}
+                      missing=[name for name in required if not any(x.endswith(name) for x in found)]
+                      print("CIRCLECI_PRIVATE_REQUIRED_ARTIFACTS_ALL_PRESENT="+str(not missing))
+                      for name in missing:
+                          print("CIRCLECI_MISSING_ARTIFACT="+name)
           PY

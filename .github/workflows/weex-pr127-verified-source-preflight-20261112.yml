@@ -1,0 +1,89 @@
+# PR127 private-source verification only. No APK, signing keys, live WEEX,
+# production data, publications or OTA. A one-file push runs this once.
+name: WEEX PR127 verified release gates - source only (NO APK)
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/weex-pr127-verified-source-preflight-20261112.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weex-pr127-verified-source-preflight-20261112
+  cancel-in-progress: false
+
+jobs:
+  private-source-release-gates:
+    if: ${{ github.repository == 'wilitohtc24-jpg/weex-ia-apk-updates' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      EXPECTED_PRIVATE_SHA: f881370bd3a60835a8807116413fabe69428fad5
+      GREEN_ANDROID_SHA: d99f1c5a700e9bcb77c2c5523bd73d7aca17913d
+      PYTHONDONTWRITEBYTECODE: "1"
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+    steps:
+      - name: Checkout exact immutable PR127 SHA, no cached auth
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: f881370bd3a60835a8807116413fabe69428fad5
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: private-source
+
+      - name: Verify no new Android runtime files since successful ART run
+        working-directory: private-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_PRIVATE_SHA"
+          git cat-file -e "$GREEN_ANDROID_SHA^{commit}"
+          git merge-base --is-ancestor "$GREEN_ANDROID_SHA" HEAD
+          git diff --quiet "$GREEN_ANDROID_SHA" HEAD -- app/
+          python3 - <<'PY'
+          import subprocess
+          allowed={
+            ".circleci/config.yml",
+            "ci/verify_owner_manual_build_contract_v1.py",
+            "EMPEZAR_AQUI_WEEX.md",
+            "PLAN_MAESTRO_UNICO_WEEX_IA_TRADER.md",
+            "docs/CONTINUIDAD_UNICA_APK_PR127_20261112.md",
+          }
+          actual=set(subprocess.check_output(
+              ["git","diff","--name-only","d99f1c5a700e9bcb77c2c5523bd73d7aca17913d","HEAD"],
+              text=True).splitlines())
+          assert actual<=allowed, "Unreviewed files after successful ART: "+repr(sorted(actual-allowed))
+          assert "ci/verify_owner_manual_build_contract_v1.py" in actual
+          assert ".circleci/config.yml" in actual
+          print("PR127_SAME_VERIFIED_ANDROID_SOURCES")
+          PY
+
+      - name: Run exact release-contract and adaptive risk regressions (source only)
+        working-directory: private-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/*.py ml/*.py
+          python3 ci/verify_owner_manual_build_contract_v1.py
+          python3 ci/verify_manual_build_only.py
+          python3 ci/test_manual_build_only_final_tail_v1.py
+          python3 ci/test_owner_adaptive_twenty_stop_risk_v1.py
+          echo PR127_RELEASE_GATES_SOURCE_ONLY_PASS_NO_APK_NO_OTA_NO_REAL_ORDERS
+
+      - name: Check fake-WEEX safety test inventory, without execution
+        working-directory: private-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/src/test/java/com/wilito/weexautotrader/OfflineFakeWeexJournalScenariosTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealPendingMaintenancePolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/PendingStopRemotePolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/SimCloseSettlementPolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/SimExploratoryRiskTest.kt
+          echo PR127_OFFLINE_SIM_REAL_JOURNAL_TEST_INVENTORY_VERIFIED

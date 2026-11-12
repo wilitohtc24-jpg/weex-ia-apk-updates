@@ -1,6 +1,6 @@
 # PR127 private-source verification only. No APK, signing keys, live WEEX,
 # production data, publications or OTA. A one-file push runs this once.
-name: WEEX PR127 verified release gates - source only (NO APK)
+name: WEEX PR127 startup and release gates - source only (NO APK)
 on:
   push:
     branches:
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
-      EXPECTED_PRIVATE_SHA: f881370bd3a60835a8807116413fabe69428fad5
+      EXPECTED_PRIVATE_SHA: 05dacdbe0b43de90da26f04c11f401807466b381
       GREEN_ANDROID_SHA: d99f1c5a700e9bcb77c2c5523bd73d7aca17913d
       PYTHONDONTWRITEBYTECODE: "1"
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: f881370bd3a60835a8807116413fabe69428fad5
+          ref: 05dacdbe0b43de90da26f04c11f401807466b381
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -45,11 +45,17 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_PRIVATE_SHA"
           git cat-file -e "$GREEN_ANDROID_SHA^{commit}"
           git merge-base --is-ancestor "$GREEN_ANDROID_SHA" HEAD
-          git diff --quiet "$GREEN_ANDROID_SHA" HEAD -- app/
+          EXPECTED_ANDROID_CHANGE="app/src/main/java/com/wilito/weexautotrader/LauncherActivity.kt"
+          ACTUAL_ANDROID_CHANGE="$(git diff --name-only "$GREEN_ANDROID_SHA" HEAD -- app/)"
+          test "$ACTUAL_ANDROID_CHANGE" = "$EXPECTED_ANDROID_CHANGE"
+          echo "PR127_LAUNCHER_ONLY_ANDROID_CHANGE_FROM_GREEN_ART"
           python3 - <<'PY'
           import subprocess
           allowed={
             ".circleci/config.yml",
+            "app/src/main/java/com/wilito/weexautotrader/LauncherActivity.kt",
+            "ci/test_launcher_e6_off_main_v1.py",
+            "ci/bitrise_release.sh",
             "ci/verify_owner_manual_build_contract_v1.py",
             "EMPEZAR_AQUI_WEEX.md",
             "PLAN_MAESTRO_UNICO_WEEX_IA_TRADER.md",
@@ -74,6 +80,7 @@ jobs:
           python3 ci/verify_manual_build_only.py
           python3 ci/test_manual_build_only_final_tail_v1.py
           python3 ci/test_owner_adaptive_twenty_stop_risk_v1.py
+          python3 ci/test_launcher_e6_off_main_v1.py
           echo PR127_RELEASE_GATES_SOURCE_ONLY_PASS_NO_APK_NO_OTA_NO_REAL_ORDERS
 
       - name: Check fake-WEEX safety test inventory, without execution

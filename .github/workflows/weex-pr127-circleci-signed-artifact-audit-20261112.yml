@@ -87,12 +87,16 @@ jobs:
           print("PR127_SIGNED_VERSION_CODE="+str(version))
           canonical="5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"
           cert=small("signing-certificate.txt")
-          digests=set()
-          for m in re.finditer(
-              r"(?im)^\s*Signer\s+(?:#\d+|\([^)\r\n]+\))\s+certificate\s+SHA-256\s+digest:\s*([0-9a-f:]+)\s*$",
-              cert
-          ):
-              digests.add(m.group(1).replace(":","").lower())
+          # Match ALL three formats admitted by the canonical APK signer gate:
+          # numbered signer, minSdk-qualified signer, and v2/v3 scheme-labelled signer.
+          signer_patterns=(
+              r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*Signer\s+\([^\r\n)]*\)\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*V\d+(?:\.\d+)?\s+Signer:\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+          )
+          digests={value.replace(":","").lower()
+                   for pattern in signer_patterns for value in re.findall(pattern,cert)}
+          print("PR127_SIGNER_DIGEST_IDENTITIES="+str(len(digests)))
           assert digests=={canonical}, "Signer differs from original OTA certificate"
           print("PR127_CANONICAL_SIGNER_VERIFIED="+canonical)
           release=json.loads(small("release.json"))

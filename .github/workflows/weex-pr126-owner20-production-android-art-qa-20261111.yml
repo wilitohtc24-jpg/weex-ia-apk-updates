@@ -18,11 +18,11 @@ jobs:
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == 'ce333afde110c31bdea297798393191c3e117e8f' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '20c4e5eb75adea41d6e6f5d61624aed9ea7faa96' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:
-      PRIVATE_SOURCE_SHA: e36e67352a16e0e3ab40b0d4191c2636355dc1a6
+      PRIVATE_SOURCE_SHA: c4362f5565df29d02a2b6e4b12100781c5fed3fc
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: e36e67352a16e0e3ab40b0d4191c2636355dc1a6
+          ref: c4362f5565df29d02a2b6e4b12100781c5fed3fc
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source

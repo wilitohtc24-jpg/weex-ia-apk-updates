@@ -61,6 +61,10 @@ jobs:
           export PATH="$HOME/.gradle-dist/gradle-8.10.2/bin:$PATH"
           export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false"
           command -v kotlinc >/dev/null && command -v gradle >/dev/null
+          # Verify actual fetched private checkout identity before generating source.
+          # No tokens, APK, keys, OTA or real WEEX traffic are used.
+          test "$(git rev-parse HEAD)" = "5c7ccdebe581010e00887264e209961fa8830aa0"
+          echo PR127_IMMUTABLE_PRIVATE_SOURCE_IDENTITY_OK
           # Do not expose private source or secrets in the public OTA runner log.
           if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr126-kotlin-junit-source.log 2>&1; then
             echo "::error::PR127_ANDROID_FINAL_SOURCE_OR_KOTLIN_JUNIT_FAILED; no APK or OTA created"

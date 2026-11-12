@@ -1,0 +1,61 @@
+name: WEEX PR127 CircleCI private one-shot source guard (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-circleci-one-private-source-check-20261112.yml
+permissions:
+  contents: read
+jobs:
+  source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact private CircleCI candidate source (read only)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: a2d5d6dfca53f63b76bb388e2c8e81b12445730d
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Verify unchanged Android runtime since approved ART
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "a2d5d6dfca53f63b76bb388e2c8e81b12445730d"
+          git diff --quiet "5c7ccdebe581010e00887264e209961fa8830aa0" HEAD -- app/
+          git diff --quiet "5c7ccdebe581010e00887264e209961fa8830aa0" HEAD -- ci/bitrise_release.sh
+          echo PR127_ART_APPROVED_RUNTIME_UNCHANGED
+      - name: Execute both manual-release invariants plus negative-mutation tests
+        working-directory: source
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/verify_manual_build_only.py ci/verify_owner_manual_build_contract_v1.py ci/test_manual_build_only_final_tail_v1.py
+          python3 ci/verify_manual_build_only.py
+          python3 ci/verify_owner_manual_build_contract_v1.py
+          python3 ci/test_manual_build_only_final_tail_v1.py
+          bash -n ci/build_private_pr127_circleci_once.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          config=Path(".circleci/config.yml").read_text()
+          script=Path("ci/build_private_pr127_circleci_once.sh").read_text()
+          assert "  pr127_circleci_one_private:" in config
+          assert 'only: repair/weex-owner-adaptive-20pct-stop-risk-20261111' in config
+          assert "bash ci/build_private_pr127_circleci_once.sh" in config
+          assert "    when: << pipeline.parameters.owner_manual_release >>" in config
+          assert 'default: false' in config
+          assert "PR127_EXACT_ANDROID_KOTLIN_AND_ART_PASS" in script
+          assert "CIRCLECI_PR127_SIGNED_PRIVATE_ONCE_FOR_GREEN_SHA=" in script
+          assert 'APPROVED_SUBJECT="build(pr127): authorize one CircleCI private signed APK (no OTA)"' in script
+          assert "export WEEX_ALLOW_DIRECT_PUBLISH=false" in script
+          assert "gh release create" not in script
+          assert "publish_direct_apk_20260917.sh" not in script
+          print("PR127_CIRCLECI_ONE_SHOT_PRIVATE_SOURCE_GUARDS_PASS_NO_APK")
+          PY

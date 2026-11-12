@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 4
     env:
       CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
-      REQUESTED_SHA: 352f698327872db773b96ca10398a5145dee35da
+      REQUESTED_SHA: a0e4d372574663a2d5e48ade611ea35a310e0cde
     steps:
       - name: Query CircleCI private project with existing read-only artifact token
         shell: bash

@@ -18,7 +18,7 @@ jobs:
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == 'ac17762bbbb33e55826a1dd705273305bf7f5ed3' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '383f554593b163ce24294f8f719f8b6fbeb84c22' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:

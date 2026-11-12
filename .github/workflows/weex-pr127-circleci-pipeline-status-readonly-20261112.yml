@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 4
     env:
       CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
-      REQUESTED_SHA: a0e4d372574663a2d5e48ade611ea35a310e0cde
+      REQUESTED_SHA: 07f4a27bbb162724d2ec31c132208ea9e5ad6e52
     steps:
       - name: Query CircleCI private project with existing read-only artifact token
         shell: bash
@@ -50,6 +50,8 @@ jobs:
                     " STATE="+str(p.get("state","unknown"))+
                     " CREATED="+str(p.get("created_at","unknown")))
               if not matched:continue
+              print("CIRCLECI_MATCHED_PIPELINE_ID="+str(p.get("id","")))
+              print("CIRCLECI_MATCHED_PIPELINE_NUMBER="+str(p.get("number","")) )
               details_url="https://circleci.com/api/v2/pipeline/"+p["id"]
               detail_request=urllib.request.Request(details_url,headers={
                   "Accept":"application/json","Circle-Token":token,

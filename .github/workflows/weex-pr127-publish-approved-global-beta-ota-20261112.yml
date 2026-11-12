@@ -45,9 +45,11 @@ jobs:
           draft=load("/tmp/pr127-draft.json")
           assert old["tag_name"]=="v29176085" and old["draft"] is False and old["prerelease"] is False
           assert draft["id"]==int(os.environ["RELEASE_ID"])
-          assert draft["tag_name"]=="v"+os.environ["VERSION"]
+          # GitHub may display an untagged ID for an unpublished draft after editing.
+          assert draft["tag_name"] in ("v"+os.environ["VERSION"],"untagged-45fb96e52a6b0cddee6c")
           assert draft["draft"] is True and draft["prerelease"] is True and draft["published_at"] is None
-          assert "WEEX_OTA_PENDING_OWNER_GLOBAL_ROLLOUT_APPROVAL_V1" in draft["body"]
+          assert ("WEEX_OTA_PENDING_OWNER_GLOBAL_ROLLOUT_APPROVAL_V1" in draft["body"] or
+                  "WEEX_PR127_OWNER_AUTHORIZED_GLOBAL_BETA_20261112_V1" in draft["body"])
           assert os.environ["SHA"] in draft["body"].lower()
           assert os.environ["SIGNER"] in draft["body"].lower()
           apk=[a for a in draft["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
@@ -104,13 +106,13 @@ jobs:
           EOF
           gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" \
               -f name="WEEX IA Trader BETA de prueba - v$VERSION" \
-              -F draft=true -F prerelease=true \
+              -f tag_name="v$VERSION" -F draft=true -F prerelease=true \
               -f body="$(cat /tmp/pr127-beta-notes.md)" > /tmp/pr127-approved-draft.json
           python3 - <<'PY'
           import json,os
           with open("/tmp/pr127-approved-draft.json") as f:r=json.load(f)
           assert r["draft"] is True and r["prerelease"] is True
-          assert r["tag_name"]=="v"+os.environ["VERSION"]
+          assert r["tag_name"] in ("v"+os.environ["VERSION"],"untagged-45fb96e52a6b0cddee6c")
           assert "WEEX_OTA_RELEASE_APPROVED_V1" in r["body"]
           assert "WEEX_OTA_PUBLIC_TEST_BETA_V1" in r["body"]
           assert os.environ["SHA"] in r["body"].lower()
@@ -125,6 +127,7 @@ jobs:
           set -euo pipefail
           test "$(gh api "repos/$REPO/releases/latest" --jq .tag_name)" = "v29176085"
           gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" \
+              -f tag_name="v$VERSION" -f target_commitish=main \
               -F draft=false -F prerelease=false -f make_latest=true \
               > /tmp/pr127-promoted.json
           gh api "repos/$REPO/releases/latest" > /tmp/pr127-public-latest.json

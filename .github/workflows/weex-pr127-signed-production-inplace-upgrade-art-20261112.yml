@@ -1,0 +1,137 @@
+name: WEEX PR127 signed production APK in-place upgrade ART (NO OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-signed-production-inplace-upgrade-art-20261112.yml
+permissions:
+  contents: read
+jobs:
+  actual-signed-apk-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+    steps:
+      - name: Download official prior OTA APK and exact signed CircleCI PR127 APK (no publication)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/weex-pr127-signed-upgrade
+          python3 - <<'PY'
+          import hashlib,json,os,re,urllib.request,urllib.error
+          token=os.environ.get("CIRCLECI_READ_TOKEN","")
+          assert token
+          oldbase="https://github.com/wilitohtc24-jpg/weex-ia-apk-updates/releases/download/manual-pr106-v29333175/"
+          oldsha=urllib.request.urlopen(urllib.request.Request(oldbase+"apk-sha256.txt",headers={"User-Agent":"weex-signed-android-upgrade"}),timeout=30).read().decode().split()[0].lower()
+          assert re.fullmatch("[a-f0-9]{64}",oldsha)
+          with urllib.request.urlopen(urllib.request.Request(oldbase+"WEEX-IA-Trader-release.apk",headers={"User-Agent":"weex-signed-android-upgrade"}),timeout=120) as response:
+              with open("/tmp/weex-pr127-signed-upgrade/old.apk","wb") as file:
+                  h=hashlib.sha256()
+                  while True:
+                      data=response.read(1024*1024)
+                      if not data:break
+                      h.update(data);file.write(data)
+          assert h.hexdigest()==oldsha, "Prior OTA hash mismatch"
+          print("PR127_PREVIOUS_OFFICIAL_OTA_SHA256_MATCH")
+
+          endpoint="https://circleci.com/api/v2/project/gh/wilitohtc24-jpg/weex-auto-trader-android/51467/artifacts"
+          request=urllib.request.Request(endpoint,headers={"Circle-Token":token,"Accept":"application/json"})
+          with urllib.request.urlopen(request,timeout=25) as response:
+              assets=json.load(response)["items"]
+          bypath={a.get("path"):a for a in assets}
+          prefix="private-pr127-circleci-candidate/"
+          assert prefix+"WEEX-IA-Trader-release.apk" in bypath
+          assert prefix+"apk-sha256.txt" in bypath
+          class NoAuthRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,newurl):
+                  new=super().redirect_request(req,fp,code,msg,headers,newurl)
+                  if new is not None:
+                      for d in (new.headers,new.unredirected_hdrs):
+                          for key in list(d):
+                              if key.lower()=="circle-token":del d[key]
+                  return new
+          opener=urllib.request.build_opener(NoAuthRedirect())
+          def get_asset(name):
+              url=bypath[prefix+name]["url"]
+              return opener.open(urllib.request.Request(url,headers={
+                  "Circle-Token":token,"User-Agent":"weex-signed-production-test"}),timeout=120)
+          with get_asset("apk-sha256.txt") as response:
+              expected=response.read(200).decode().split()[0].lower()
+          assert expected=="7ab64a6e389ceb415d0c3ae4718913a80d8e2f2848f7761db1a251a9904585e3"
+          with get_asset("WEEX-IA-Trader-release.apk") as response:
+              h=hashlib.sha256()
+              with open("/tmp/weex-pr127-signed-upgrade/new.apk","wb") as file:
+                  while True:
+                      data=response.read(1024*1024)
+                      if not data:break
+                      h.update(data);file.write(data)
+          assert h.hexdigest()==expected,"Signed candidate bytes changed"
+          assert os.path.getsize("/tmp/weex-pr127-signed-upgrade/new.apk")==63244759
+          print("PR127_EXACT_SIGNED_APK_SHA256_VERIFIED_NO_PUBLIC_UPLOAD")
+          PY
+      - name: Enable KVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Create signed APK offline upgrade runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/pr127-signed-upgrade-test.sh <<'ART_TEST'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          pkg="com.wilito.weexautotrader"
+          # No account, network or REAL trades in this disposable emulator.
+          adb shell svc wifi disable
+          adb shell svc data disable
+          adb install /tmp/weex-pr127-signed-upgrade/old.apk | grep -q Success
+          oldmeta="$(adb shell dumpsys package "$pkg")"
+          echo "$oldmeta" | grep -q 'versionCode=29333175'
+          original_installed="$(printf '%s\n' "$oldmeta" | grep 'firstInstallTime=' | head -1 | tr -d '\r')"
+          test -n "$original_installed"
+          echo PR127_PRIOR_SIGNED_RELEASE_INSTALLED
+          # Do not clear/uninstall or touch app data: this is an in-place update.
+          adb install -r /tmp/weex-pr127-signed-upgrade/new.apk | grep -q Success
+          newmeta="$(adb shell dumpsys package "$pkg")"
+          echo "$newmeta" | grep -q 'versionCode=29483607'
+          new_installed="$(printf '%s\n' "$newmeta" | grep 'firstInstallTime=' | head -1 | tr -d '\r')"
+          test "$new_installed" = "$original_installed"
+          echo PR127_SIGNED_RELEASE_UPDATED_IN_PLACE_SAME_CERT_AND_DATA_DIRECTORY
+          adb logcat -c
+          adb shell am start -W -n "$pkg/.LauncherActivity" > /tmp/pr127-release-launch.txt
+          grep -q 'Status: ok' /tmp/pr127-release-launch.txt
+          resumed=0
+          for attempt in $(seq 1 35); do
+              focus="$(adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity|mTopResumedActivity' || true)"
+              if printf '%s' "$focus" | grep -q "$pkg/.MainActivity"; then
+                  resumed=1;break
+              fi
+              sleep 1
+          done
+          test "$resumed" = 1
+          test -n "$(adb shell pidof "$pkg" | tr -d '\r')"
+          echo PR127_SIGNED_RELEASE_MAINACTIVITY_RESUMED_AFTER_REAL_UPGRADE
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|java.lang.VerifyError' > /tmp/pr127-release-crashes.txt; then
+              echo "::error::PR127_SIGNED_APK_RUNTIME_CRASH"
+              head -15 /tmp/pr127-release-crashes.txt
+              exit 1
+          fi
+          echo PR127_SIGNED_RELEASE_INPLACE_UPGRADE_ART_PASS_NO_REAL_ORDERS_NO_OTA
+          ART_TEST
+          bash -n /tmp/pr127-signed-upgrade-test.sh
+          chmod 700 /tmp/pr127-signed-upgrade-test.sh
+      - name: Run actual signed production in-place update and MainActivity ART
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 4096M
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          script: bash /tmp/pr127-signed-upgrade-test.sh

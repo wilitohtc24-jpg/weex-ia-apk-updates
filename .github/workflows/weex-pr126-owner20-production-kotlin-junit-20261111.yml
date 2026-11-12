@@ -67,7 +67,9 @@ jobs:
             # Print only class/method labels from JUnit XML; do not expose
             # private source or assertion payloads on the public OTA runner.
             grep -E '^WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=' /tmp/pr126-kotlin-junit-source.log | tail -1 || true
-            awk -F ' • ' '/^AUDIT_JUNIT_FAILED / {print $1}' /tmp/pr126-kotlin-junit-source.log | head -25 | cut -c1-230 || true
+            # Only offline JUnit fixture failures; not source files or environment.
+            # Redact literals commonly used in tokens/credentials before public logs.
+            grep '^AUDIT_JUNIT_FAILED ' /tmp/pr126-kotlin-junit-source.log | head -25 | cut -c1-420 | sed -E 's/(Bearer[[:space:]]+)[[:alnum:]_.-]+/\1[REDACTED]/g; s/([Aa]pi[Kk]ey|[Tt]oken|[Ss]ecret|[Pp]assword)=[^[:space:]]+/\1=[REDACTED]/g' || true
             # Show concise compiler/root-cause diagnostics separately instead
             # of truncating failed tests behind the last 36 Gradle progress lines.
             grep -E '^PRESIGN_FAILURE_CONTEXT |^WEEX_PRESIGN_FIRST_FAILURE_LINE=|^WEEX_PRESIGN_SOURCE_REPLAY_FAILED|^WEEX_RELEASE_ERRTRAP|^WEEX_AUDIT_JUNIT_BUILD_FAILED|^PR126_.*FAIL|^REAL_FINAL_EXECUTION_COST_SHAPE|^UNEXPECTED_SOURCE_ANCHOR' /tmp/pr126-kotlin-junit-source.log | tail -16 | cut -c1-300 || true

@@ -50,10 +50,12 @@ jobs:
               parsed=urllib.parse.urlparse(url)
               host=(parsed.hostname or "").lower()
               assert parsed.scheme=="https" and host, "Invalid artifact URL"
-              assert (host=="circleci.com" or host.endswith(".circleci.com")
+              if not (host=="circleci.com" or host.endswith(".circleci.com")
                       or host.endswith(".amazonaws.com")
                       or host.endswith(".cloudfront.net")
-                      or host=="storage.googleapis.com"),"Unrecognized artifact storage"
+                      or host=="storage.googleapis.com"):
+                  print("PR127_ARTIFACT_STORAGE_HOST_TO_REVIEW="+host)
+                  raise AssertionError("Unrecognized artifact storage")
               headers={"User-Agent":"weex-pr127-verified-private-apk"}
               if host=="circleci.com" or host.endswith(".circleci.com"):
                   headers["Circle-Token"]=token

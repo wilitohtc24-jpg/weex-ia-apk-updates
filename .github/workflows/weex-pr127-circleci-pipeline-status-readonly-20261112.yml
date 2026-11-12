@@ -105,6 +105,25 @@ jobs:
                                             " END="+str(action.get("end_time")))
                           except Exception as error:
                               print("CIRCLECI_PRIVATE_JOB_DETAIL_UNAVAILABLE="+type(error).__name__)
+                          # Legacy build detail exposes step progress, unlike some v2 jobs.
+                          try:
+                              legacy_url="https://circleci.com/api/v1.1/project/github/wilitohtc24-jpg/weex-auto-trader-android/"+str(number)
+                              lreq=urllib.request.Request(legacy_url,headers={
+                                  "Accept":"application/json","Circle-Token":token,
+                                  "User-Agent":"weex-pr127-circleci-readonly"})
+                              with urllib.request.urlopen(lreq,timeout=20) as resp:
+                                  legacy=json.load(resp)
+                              print("CIRCLECI_LEGACY_BUILD_STATUS="+str(legacy.get("status")))
+                              for step in legacy.get("steps",[])[-18:]:
+                                  for action in step.get("actions",[]):
+                                      print("CIRCLECI_BUILD_ACTION="+str(action.get("name",""))[:130]+
+                                            " STATUS="+str(action.get("status"))+
+                                            " START="+str(action.get("start_time"))+
+                                            " END="+str(action.get("end_time")))
+                          except urllib.error.HTTPError as error:
+                              print("CIRCLECI_LEGACY_DETAIL_HTTP_"+str(error.code))
+                          except Exception as error:
+                              print("CIRCLECI_LEGACY_DETAIL_UNAVAILABLE="+type(error).__name__)
                       if j.get("status")!="success" or not number:continue
                       artifacts_url="https://circleci.com/api/v2/project/gh/wilitohtc24-jpg/weex-auto-trader-android/"+str(number)+"/artifacts"
                       areq=urllib.request.Request(artifacts_url,headers={

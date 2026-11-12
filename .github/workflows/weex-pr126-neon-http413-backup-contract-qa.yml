@@ -1,0 +1,47 @@
+# Private gateway regression QA. Does not deploy to Neon, produce an APK,
+# upload proprietary source artifacts, expose database credentials or place orders.
+name: WEEX PR126 Neon HTTP 413 encrypted backup QA (NO DEPLOY)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr126-neon-http413-backup-contract-qa.yml
+permissions:
+  contents: read
+jobs:
+  qa-neon-gateway:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact private PR126 source, no persistent credentials
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 5f1ce893871d59ab7d2ae7d5a8687c608f174e72
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify size contracts, encrypted-backup boundaries and harmless rejection
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check backend/neon/gateway/core.mjs
+          node --check backend/neon/gateway/index.mjs
+          node --test backend/neon/gateway/core.test.mjs             > /tmp/weex-neon-413-tests.txt 2>&1 || {
+              echo '::error::NEON_413_PRIVATE_GATEWAY_TESTS_FAILED'
+              grep -E '^# (tests|pass|fail)|^not ok' /tmp/weex-neon-413-tests.txt | tail -12 || true
+              exit 1
+            }
+          grep -q 'normal support requests stay 32 KiB while valid encrypted backups may exceed it'             backend/neon/gateway/core.test.mjs
+          grep -q 'declared encrypted upload over server cap fails before reading'             backend/neon/gateway/core.test.mjs
+          grep -q 'NeonRequestSizePolicy.tooLarge('             app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -q 'NeonRequestSizePolicy.shouldDeferOversizedBackup('             app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -q 'backup_too_large_local'             app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          echo 'NEON_413_SOURCE_AND_BACKUP_CONTRACT_QA_PASS'
+          grep -E '^# (tests|pass|fail)' /tmp/weex-neon-413-tests.txt | tail -3
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"

@@ -330,6 +330,23 @@ jobs:
           fi
           echo PR127_CHART_PROTECTION_REASON_READONLY_10_JUNIT_FINAL_SOURCE_VERIFIED_NO_ORDERS
           # Chart-only viewport and scanner-vs-position labels.
+          # Safe diagnostics only: report presence booleans, never private source.
+          if [ ! -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/ChartTradePriceScalePolicy.kt" ]; then echo PR127_VIEWPORT_FINAL_POLICY_FILE_ABSENT; fi
+          if [ ! -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/MainActivity.kt" ]; then echo PR127_VIEWPORT_FINAL_UI_FILE_ABSENT; fi
+          for marker in 'CHART_TRADE_LEVEL_VIEWPORT_READ_ONLY_V1'; do
+            grep -Fq "$marker" "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/ChartTradePriceScalePolicy.kt" ||
+              echo PR127_VIEWPORT_FINAL_POLICY_MARKER_ABSENT
+          done
+          grep -Fq 'val view=ChartTradePriceScalePolicy.bounds(' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/MainActivity.kt" ||
+            echo PR127_VIEWPORT_FINAL_UI_BOUNDS_MARKER_ABSENT
+          grep -Fq 'remember(chartKey) { mutableStateOf(1f) }' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/MainActivity.kt" ||
+            echo PR127_VIEWPORT_FINAL_UI_ZOOM_KEY_ABSENT
+          grep -Fq 'MONEDA EN ANÁLISIS' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/MainActivity.kt" ||
+            echo PR127_VIEWPORT_FINAL_UI_SCANNER_LABEL_ABSENT
+          grep -Fq 'ENCUADRAR ENTRADA + SL/TP' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/MainActivity.kt" ||
+            echo PR127_VIEWPORT_FINAL_UI_FRAME_LABEL_ABSENT
+          grep -Fq 'NIVELES LOCALES FUERA DE ESCALA' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/MainActivity.kt" ||
+            echo PR127_VIEWPORT_FINAL_UI_OFFSCREEN_HINT_ABSENT
           VIEW="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/ChartTradePriceScalePolicy.kt"
           test -s "$VIEW"
           test -s app/src/test/java/com/wilito/weexautotrader/ChartTradePriceScalePolicyTest.kt

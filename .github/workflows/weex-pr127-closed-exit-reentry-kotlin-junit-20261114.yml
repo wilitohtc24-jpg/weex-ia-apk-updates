@@ -316,16 +316,16 @@ jobs:
           # Must reconcile after a signed portfolio GET and before the new
           # entry gate. These are local source positions, not private payloads.
           python3 - <<'PYCHECK'
-from pathlib import Path
-s=Path('/tmp/weex-pr127-final-materialized-kotlin-only/main/java/com/wilito/weexautotrader/TraderService.kt').read_text()
-a=s.find('realProtectionStore.reconcile(rawRealPositions)')
-if a<0:a=s.find('realProtectionStore.reconcile(rawPositions)')
-b=s.find('realExit.reconcileClosedFromSignedPortfolio(remotePositions)',a)
-c=s.find('!realExit.hasUnreconciledClose()',b)
-assert a>=0 and a<b<c,'signed position -> close journal -> reentry order missing'
-assert s.count('realExit.reconcileClosedFromSignedPortfolio(remotePositions)')==1
-print('PR127_REENTRY_SIGNED_SNAPSHOT_BEFORE_GATE_SOURCE_ORDER_PASS')
-PYCHECK
+          from pathlib import Path
+          s=Path('/tmp/weex-pr127-final-materialized-kotlin-only/main/java/com/wilito/weexautotrader/TraderService.kt').read_text()
+          a=s.find('realProtectionStore.reconcile(rawRealPositions)')
+          if a<0:a=s.find('realProtectionStore.reconcile(rawPositions)')
+          b=s.find('realExit.reconcileClosedFromSignedPortfolio(remotePositions)',a)
+          c=s.find('!realExit.hasUnreconciledClose()',b)
+          assert a>=0 and a<b<c,'signed position -> close journal -> reentry order missing'
+          assert s.count('realExit.reconcileClosedFromSignedPortfolio(remotePositions)')==1
+          print('PR127_REENTRY_SIGNED_SNAPSHOT_BEFORE_GATE_SOURCE_ORDER_PASS')
+          PYCHECK
           echo PR127_CLOSED_EXIT_SIGNED_REENTRY_SIX_OFFLINE_JUNIT_PRESENT_NO_WEEX_POST
           echo PR127_AAVE_ORIGIN_SIX_OFFLINE_JUNIT_TESTS_PRESENT_NO_POST
           echo PR127_DELAYED_MAKER_PROTECTION_EXACT_ORDER_ID_KOTLIN_JUNIT_PASS_NO_APK_NO_WEEX_ORDERS_NO_OTA

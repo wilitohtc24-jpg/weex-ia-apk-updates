@@ -199,7 +199,10 @@ jobs:
           test -s app/src/test/java/com/wilito/weexautotrader/ChartTradePriceScalePolicyTest.kt
           grep -q 'CHART_TRADE_LEVEL_VIEWPORT_READ_ONLY_V1' "$VIEW"
           grep -q 'ENCUADRAR ENTRADA + SL/TP' "$UI"
-          grep -q 'MONEDA EN ANÁLISIS' "$UI"
+          # The canonical UI materializer rewrites HOME; require the final
+          # MARKET chart to distinguish scanner from the existing position.
+          grep -Fq 'ESCÁNER ANALIZA •' "$UI"
+          grep -Fq 'POSICIÓN ABIERTA REAL •' "$UI"
           grep -q 'NIVELES LOCALES FUERA DE ESCALA' "$UI"
           grep -q 'remember(chartKey) { mutableStateOf(1f) }' "$UI"
           echo PR127_OFFSCREEN_STOP_AND_SCANNER_VIEWPORT_SOURCE_VERIFIED_FOR_OFFLINE_ANDROID_ART

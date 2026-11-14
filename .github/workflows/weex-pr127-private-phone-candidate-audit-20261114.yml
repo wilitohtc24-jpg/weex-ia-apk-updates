@@ -157,7 +157,7 @@ jobs:
               for line in verify.stdout.splitlines():
                   if "certificate sha-256 digest:" not in line.lower():continue
                   match=re.search(
-                      r"(?i)certificate\\s+SHA-256\\s+digest:\\s*([0-9a-fA-F:]{64,96})",
+                      r"(?i)certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]{64,96})",
                       line
                   )
                   if match:signed_digests.add(match.group(1).replace(":","").lower())

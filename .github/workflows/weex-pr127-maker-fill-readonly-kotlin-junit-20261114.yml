@@ -238,5 +238,9 @@ jobs:
             exit 1
           fi
           test -s app/src/test/java/com/wilito/weexautotrader/RealMakerFillReadOnlyPolicyTest.kt
-          find app/build/test-results -type f -name '*RealMakerFillReadOnlyPolicyTest*.xml' -print -quit | grep -q .
+          # preflight_full_presigning_source_v1.py runs JUnit in an ephemeral
+          # sandbox and deletes that sandbox on success. XML is NOT present
+          # in this checkout; require its verified JUnit marker instead.
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr126-kotlin-junit-source.log
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr126-kotlin-junit-source.log
           echo PR127_MAKER_FILL_KOTLIN_JUNIT_AND_READ_ONLY_SAFETY_PASS_NO_APK_NO_ORDERS_NO_OTA

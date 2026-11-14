@@ -1,0 +1,45 @@
+# Read-only new source check: no APK, keys, trade orders or OTA operations.
+name: WEEX PR127 REAL sizing provenance source QA NO APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-sizing-provenance-source-qa-20261114.yml
+permissions:
+  contents: read
+jobs:
+  verify-quantity-truth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      EXPECTED_PRIVATE_SHA: "3eb0bee602cda82288fb10d4abd991e08a2c9db7"
+      PUBLISHED_APK_SOURCE_SHA: "07f4a27bbb162724d2ec31c132208ea9e5ad6e52"
+      PYTHONDONTWRITEBYTECODE: "1"
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+    steps:
+      - name: Checkout exact private source read only, no persisted credentials
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 3eb0bee602cda82288fb10d4abd991e08a2c9db7
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Ensure published runtime and release pipeline remain untouched
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_PRIVATE_SHA"
+          git diff --quiet "$PUBLISHED_APK_SOURCE_SHA" HEAD -- app/ backend/ ml/
+          git diff --quiet "$PUBLISHED_APK_SOURCE_SHA" HEAD -- ci/bitrise_release.sh .circleci/config.yml
+          echo PUBLISHED_ANDROID_AND_RELEASE_RUNTIME_UNCHANGED
+      - name: Verify quantity provenance and no automatic risky resizing
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/test_pr127_sizing_order_provenance_readonly_v1.py
+          python3 ci/test_pr127_sizing_order_provenance_readonly_v1.py
+          echo PR127_SIZING_PROVENANCE_REVIEW_ONLY_NO_WEEX_POST_NO_APK_NO_OTA

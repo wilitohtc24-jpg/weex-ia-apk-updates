@@ -1,0 +1,35 @@
+name: WEEX PR127 maker read-only no-order mutation proof
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-maker-fill-readonly-no-order-change-20261114.yml
+permissions:
+  contents: read
+jobs:
+  strict-source-diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout immutable PR127 private patch with read-only token
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: ff0fe67fe546e9a92a8f3838975b900d19153317
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Prove raw signed REAL gate source unchanged except read-only UI
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "ff0fe67fe546e9a92a8f3838975b900d19153317"
+          git diff --quiet "07f4a27bbb162724d2ec31c132208ea9e5ad6e52" HEAD -- ci/bitrise_release.sh .circleci/config.yml
+          python3 -m py_compile ci/test_pr127_readonly_maker_no_order_mutation_v1.py
+          python3 ci/test_pr127_readonly_maker_no_order_mutation_v1.py
+          echo READ_ONLY_AMOUNT_NO_RISK_NO_ORDER_MUTATION_VALIDATED_NO_APK_NO_OTA

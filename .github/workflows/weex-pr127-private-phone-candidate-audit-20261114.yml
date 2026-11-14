@@ -1,0 +1,162 @@
+# Read-only, one immutable CircleCI workflow and one private signed APK.
+# Absolutely no gh release, Supabase storage, OTA, publish or deployment steps.
+name: WEEX PR127 owner-private phone APK independent audit (NO OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-private-phone-candidate-audit-20261114.yml
+permissions:
+  contents: read
+jobs:
+  inspect-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      EXPECTED_SOURCE_SHA: a0e209427659440e21430227235cd9af93cf3f8f
+      EXPECTED_GREEN_SHA: 606e056fc94983b35ec2e26e59833bb6cdc624d0
+      EXPECTED_WORKFLOW_UUID: 8c85a42f-d692-44dc-a199-d1142f7ceb47
+      EXPECTED_JOB_UUID: edf33c81-c8c6-4893-9dd0-a15b22f16a7f
+      PREVIOUS_OTA_VERSION: "29483607"
+      ORIGINAL_SIGNER_SHA256: 5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6
+    steps:
+      - name: Independently read signed private artifact and assert version hash and original signer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,hashlib,re,urllib.request,urllib.parse,urllib.error,tempfile,subprocess,pathlib
+          token=os.environ.get("CIRCLECI_READ_TOKEN","")
+          assert token, "PR127_CIRCLECI_READ_SECRET_MISSING"
+          base="https://circleci.com/api/v2"
+          project="gh/wilitohtc24-jpg/weex-auto-trader-android"
+          expected_source=os.environ["EXPECTED_SOURCE_SHA"]
+          expected_green=os.environ["EXPECTED_GREEN_SHA"]
+          expected_workflow=os.environ["EXPECTED_WORKFLOW_UUID"]
+          expected_job=os.environ["EXPECTED_JOB_UUID"]
+          previous=int(os.environ["PREVIOUS_OTA_VERSION"])
+          original_cert=os.environ["ORIGINAL_SIGNER_SHA256"]
+          def circle_json(url):
+              host=(urllib.parse.urlparse(url).hostname or "").lower()
+              assert host=="circleci.com"
+              req=urllib.request.Request(url,headers={
+                  "Circle-Token":token,"Accept":"application/json",
+                  "User-Agent":"weex-owner-private-apk-readonly-audit"
+              })
+              with urllib.request.urlopen(req,timeout=45) as resp:return json.load(resp)
+          # Avoid mistaking an old successful APK for this exact candidate.
+          q=urllib.parse.urlencode({"branch":"repair/weex-owner-adaptive-20pct-stop-risk-20261111"})
+          url=f"{base}/project/{project}/pipeline?{q}"
+          found=None
+          for _ in range(4):
+              response=circle_json(url)
+              for item in response.get("items",[]):
+                  if (item.get("vcs") or {}).get("revision")==expected_source:
+                      found=item
+                      break
+              if found:break
+              page=response.get("next_page_token")
+              if not page:break
+              url=f"{base}/project/{project}/pipeline?{q}&page-token="+urllib.parse.quote(page)
+          assert found,"PR127_EXACT_CIRCLECI_APPROVAL_COMMIT_NOT_FOUND"
+          workflows=circle_json(f"{base}/pipeline/{found['id']}/workflow").get("items",[])
+          matching=[w for w in workflows if w.get("id")==expected_workflow
+                    and w.get("name")=="pr127_circleci_one_private"
+                    and w.get("status")=="success"]
+          assert len(matching)==1,"PR127_APPROVED_WORKFLOW_NOT_SUCCESS_OR_WRONG_UUID"
+          jobs=circle_json(f"{base}/workflow/{expected_workflow}/job").get("items",[])
+          match=[j for j in jobs if j.get("id")==expected_job
+                 and j.get("name")=="pr127_circleci_private_candidate"
+                 and j.get("status")=="success" and j.get("job_number")]
+          assert len(match)==1,"PR127_EXACT_PRIVATE_SIGNED_JOB_NOT_SUCCESS"
+          jobnum=int(match[0]["job_number"])
+          print("PR127_EXACT_SIGNED_CIRCLECI_JOB_NUMBER="+str(jobnum))
+          # This is read-only, and never reuploads the APK to the public repo.
+          items=circle_json(f"{base}/project/{project}/{jobnum}/artifacts").get("items",[])
+          prefix="private-pr127-circleci-candidate/"
+          required=("WEEX-IA-Trader-release.apk","apk-sha256.txt",
+                    "signing-certificate.txt","release.json","candidate-provenance.txt")
+          bypath={str(item.get("path")):item for item in items}
+          for name in required:
+              assert prefix+name in bypath,"PR127_PRIVATE_ARTIFACT_MISSING "+name
+          print("PR127_PRIVATE_ARTIFACT_FIVE_FILES_PRESENT")
+
+          class DropTokenAfterCircleRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,newurl):
+                  redirected=super().redirect_request(req,fp,code,msg,headers,newurl)
+                  if redirected is not None:
+                      for d in (redirected.headers,redirected.unredirected_hdrs):
+                          for name in list(d):
+                              if name.lower()=="circle-token":del d[name]
+                  return redirected
+          opener=urllib.request.build_opener(DropTokenAfterCircleRedirect())
+          def artifact(name):
+              url=bypath[prefix+name].get("url","")
+              host=(urllib.parse.urlparse(url).hostname or "").lower()
+              assert urllib.parse.urlparse(url).scheme=="https"
+              trusted=(host=="circleci.com" or host.endswith(".circleci.com")
+                       or host.endswith(".circle-artifacts.com")
+                       or host.endswith(".cloudfront.net")
+                       or host.endswith(".amazonaws.com")
+                       or host=="storage.googleapis.com")
+              assert trusted, "PR127_UNKNOWN_ARTIFACT_HOST"
+              headers={"User-Agent":"weex-pr127-private-apk-readonly-audit"}
+              if host=="circleci.com" or host.endswith(".circleci.com") or host.endswith(".circle-artifacts.com"):
+                  headers["Circle-Token"]=token
+              return opener.open(urllib.request.Request(url,headers=headers),timeout=180)
+          def small(name):
+              with artifact(name) as r:contents=r.read(150000+1)
+              assert len(contents)<=150000,"PR127_UNEXPECTED_METADATA_SIZE"
+              return contents.decode("utf-8")
+          expected_hash=small("apk-sha256.txt").split()[0].lower()
+          assert re.fullmatch("[0-9a-f]{64}",expected_hash)
+          provenance=dict(line.split("=",1) for line in small("candidate-provenance.txt").splitlines() if "=" in line)
+          assert provenance.get("source")==expected_source,"PR127_SOURCE_COMMIT_MISMATCH"
+          assert provenance.get("green_source")==expected_green,"PR127_GREEN_ANDROID_SOURCE_MISMATCH"
+          assert provenance.get("private_only")=="true" and provenance.get("ota_publication")=="false"
+          assert provenance.get("previousOTA")==str(previous),"PR127_OTA_BASELINE_MISMATCH"
+          version=int(provenance["versionCode"])
+          assert previous<version<=2100000000,"PR127_VERSION_NOT_INSTALLABLE_OVER_CURRENT_OTA"
+          manifest=json.loads(small("release.json"))
+          assert any(int(manifest[k])==version for k in ("versionCode","version_code") if k in manifest)
+          signer_text=small("signing-certificate.txt")
+          pats=(
+              r"(?mi)^\\s*Signer\\s+#\\d+\\s+certificate\\s+SHA-256\\s+digest:\\s*([0-9a-fA-F:]+)\\s*$",
+              r"(?mi)^\\s*Signer\\s+\\([^\\r\\n)]*\\)\\s+certificate\\s+SHA-256\\s+digest:\\s*([0-9a-fA-F:]+)\\s*$",
+              r"(?mi)^\\s*V\\d+(?:\\.\\d+)?\\s+Signer:\\s+certificate\\s+SHA-256\\s+digest:\\s*([0-9a-fA-F:]+)\\s*$",
+          )
+          signer_digests={v.replace(":","").lower() for pat in pats for v in re.findall(pat,signer_text)}
+          assert signer_digests=={original_cert},"PR127_SIGNER_CERT_WRONG"
+          with tempfile.TemporaryDirectory() as temp:
+              apk=pathlib.Path(temp)/"WEEX-IA-Trader-release.apk"
+              digest=hashlib.sha256()
+              size=0
+              with artifact("WEEX-IA-Trader-release.apk") as r,apk.open("wb") as out:
+                  while True:
+                      chunk=r.read(1024*1024)
+                      if not chunk:break
+                      size+=len(chunk)
+                      assert size<150*1024*1024,"PR127_APK_OVER_LIMIT"
+                      digest.update(chunk);out.write(chunk)
+              assert size>15*1024*1024,"PR127_APK_UNEXPECTEDLY_SMALL"
+              assert apk.open("rb").read(4)==b"PK\\x03\\x04","PR127_NOT_AN_APK"
+              assert digest.hexdigest()==expected_hash,"PR127_APK_HASH_MISMATCH"
+              android=os.environ.get("ANDROID_HOME",os.environ.get("ANDROID_SDK_ROOT","/usr/local/lib/android/sdk"))
+              buildtools=pathlib.Path(android)/"build-tools"
+              versions=sorted([p for p in buildtools.iterdir() if p.is_dir()],reverse=True)
+              assert versions,"PR127_ANDROID_BUILDTOOLS_UNAVAILABLE"
+              apksigner=next((p/"apksigner" for p in versions if (p/"apksigner").is_file()),None)
+              aapt=next((p/"aapt" for p in versions if (p/"aapt").is_file()),None)
+              assert apksigner and aapt,"PR127_APK_VERIFICATION_TOOLS_UNAVAILABLE"
+              verify=subprocess.run([str(apksigner),"verify","--print-certs",str(apk)],capture_output=True,text=True,check=True)
+              assert re.search(r"(?i)Signer #1 certificate SHA-256 digest:\\s*"+original_cert,verify.stdout), "PR127_APK_BYTES_SIGNER_MISMATCH"
+              badge=subprocess.run([str(aapt),"dump","badging",str(apk)],capture_output=True,text=True,check=True)
+              assert "name='com.wilito.weexautotrader'" in badge.stdout,"PR127_WRONG_PACKAGE"
+              assert "versionCode='"+str(version)+"'" in badge.stdout,"PR127_APK_VERSION_DIFFERS"
+          print("PR127_PRIVATE_APK_VERSION_CODE="+str(version))
+          print("PR127_PRIVATE_APK_SHA256="+expected_hash)
+          print("PR127_PRIVATE_APK_BYTES="+str(size))
+          print("PR127_PRIVATE_APK_SIGNED_ORIGINAL_CERT_OK")
+          print("PR127_PRIVATE_CIRCLECI_ARTIFACT_AUDIT_SUCCESS_NO_OTA")
+          PY

@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify-generated-dex-with-android-art:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == 'caa5d6c32cbfe80731c5945ae83f16dec10bd430' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '732a30ea0badcb85a5b82af9465624ff1b16a6b3' }}
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.

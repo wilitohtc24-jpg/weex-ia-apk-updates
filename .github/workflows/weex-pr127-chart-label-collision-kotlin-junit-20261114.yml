@@ -372,6 +372,11 @@ jobs:
             exit 1
           fi
           echo PR127_ENTRY_AND_PRICE_LABEL_NINE_OFFLINE_JUNIT_SCENARIOS_PRESENT_NO_ORDERS
+          # Handoff gate: the successful final MARKET-view source is the only
+          # source eligible for offline Android ART, never the stale HOME label.
+          grep -Fq 'ESCÁNER ANALIZA •' "$CHART_UI"
+          grep -Fq 'POSICIÓN ABIERTA REAL •' "$CHART_UI"
+          echo PR127_FINAL_MARKET_SCANNER_AND_ENTRY_LABEL_PROOF_V2
           echo PR127_OFFSCREEN_STOP_VIEWPORT_AND_SCANNER_IDENTITY_EIGHT_JUNIT_TESTS_PRESENT_NO_ORDERS
 
           echo PR127_AAVE_ORIGIN_SIX_OFFLINE_JUNIT_TESTS_PRESENT_NO_POST

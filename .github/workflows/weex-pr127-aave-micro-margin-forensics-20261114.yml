@@ -1,0 +1,46 @@
+# Exact private source-only evidence check. NO APK, WEEX API, orders, OTA or signatures.
+name: WEEX PR127 AAVE small-margin forensic source QA (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-aave-micro-margin-forensics-20261114.yml
+permissions:
+  contents: read
+jobs:
+  forensic-source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    env:
+      EXPECTED_PRIVATE_SOURCE_SHA: 244e4525b16cd166e6b6374a9808bfa1461d96e2
+      SIGNED_ANDROID_SOURCE_SHA: 07f4a27bbb162724d2ec31c132208ea9e5ad6e52
+      PYTHONDONTWRITEBYTECODE: "1"
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+    steps:
+      - name: Read immutable private source with limited read-only token
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 244e4525b16cd166e6b6374a9808bfa1461d96e2
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Confirm NO production runtime or build logic changed
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_PRIVATE_SOURCE_SHA"
+          git diff --quiet "$SIGNED_ANDROID_SOURCE_SHA" HEAD -- app/ backend/ ml/
+          git diff --quiet "$SIGNED_ANDROID_SOURCE_SHA" HEAD -- ci/bitrise_release.sh ci/apply_release_patches_canonical.py
+          test -s ci/test_pr127_aave_micro_margin_forensics_v1.py
+          echo PR127_AAVE_PRODUCTION_RUNTIME_IDENTICAL_TO_PUBLISHED_OTA
+      - name: Run independent margin/partial-fill/protection-source diagnostic without live access
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/test_pr127_aave_micro_margin_forensics_v1.py
+          python3 ci/test_pr127_aave_micro_margin_forensics_v1.py
+          echo PR127_AAVE_MARGIN_FORENSIC_SOURCE_ONLY_PASS_NO_ORDERS_NO_APK_NO_OTA

@@ -1,0 +1,333 @@
+# Kotlin/JUnit QA of private PR126 via the already-connected source read token.
+# Ephemeral checkout; no trading credentials, no signing, APK, OTA or orders.
+name: WEEX PR127 chart SL-TP reason read-only Kotlin/JUnit QA (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-chart-stop-reason-readonly-kotlin-junit-20261114.yml
+permissions:
+  contents: read
+jobs:
+  compile-materialized-kotlin-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout private PR126 candidate read-only (no token persistence)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 7c9c0111dd260eb286729875b868061ba13ddd85
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Java 17 verified Android compiler prerequisite
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compile final Kotlin and JUnit after canonical source writers; NO APK
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: "/tmp/weex-pr127-final-materialized-kotlin-only"
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK"
+          export ANDROID_HOME="$SDK" ANDROID_SDK_ROOT="$SDK"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          KOTLIN_ZIP=/tmp/kotlin-compiler-2.2.21.zip
+          curl -fsSL --retry 3 --retry-delay 3 \
+            https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o "$KOTLIN_ZIP"
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 "$KOTLIN_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o "$KOTLIN_ZIP" -d "$HOME/.local"
+          export PATH="$HOME/.local/kotlinc/bin:$PATH"
+          GRADLE_ZIP=/tmp/gradle-8.10.2-bin.zip
+          curl -fsSL --retry 3 --retry-delay 3 \
+            https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o "$GRADLE_ZIP"
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 "$GRADLE_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o "$GRADLE_ZIP" -d "$HOME/.gradle-dist"
+          export PATH="$HOME/.gradle-dist/gradle-8.10.2/bin:$PATH"
+          export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false"
+          command -v kotlinc >/dev/null && command -v gradle >/dev/null
+          # Verify actual fetched private checkout identity before generating source.
+          # No tokens, APK, keys, OTA or real WEEX traffic are used.
+          test "$(git rev-parse HEAD)" = "7c9c0111dd260eb286729875b868061ba13ddd85"
+          echo PR127_IMMUTABLE_PRIVATE_SOURCE_IDENTITY_OK
+          # Do not expose private source or secrets in the public OTA runner log.
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr126-kotlin-junit-source.log 2>&1; then
+            echo "::error::PR127_ANDROID_FINAL_SOURCE_OR_KOTLIN_JUNIT_FAILED; no APK or OTA created"
+            # Print only class/method labels from JUnit XML; do not expose
+            # private source or assertion payloads on the public OTA runner.
+            grep -E '^WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=' /tmp/pr126-kotlin-junit-source.log | tail -1 || true
+            # Only offline JUnit fixture failures; not source files or environment.
+            # Redact literals commonly used in tokens/credentials before public logs.
+            grep '^AUDIT_JUNIT_FAILED ' /tmp/pr126-kotlin-junit-source.log | head -25 | cut -c1-420 | sed -E 's/(Bearer[[:space:]]+)[[:alnum:]_.-]+/\1[REDACTED]/g; s/([Aa]pi[Kk]ey|[Tt]oken|[Ss]ecret|[Pp]assword)=[^[:space:]]+/\1=[REDACTED]/g' || true
+            # Show concise compiler/root-cause diagnostics separately instead
+            # of truncating failed tests behind the last 36 Gradle progress lines.
+            grep -E '^PRESIGN_FAILURE_CONTEXT |^WEEX_PRESIGN_FIRST_FAILURE_LINE=|^WEEX_PRESIGN_SOURCE_REPLAY_FAILED|^WEEX_RELEASE_ERRTRAP|^WEEX_AUDIT_JUNIT_BUILD_FAILED|^PR126_.*FAIL|^REAL_FINAL_EXECUTION_COST_SHAPE|^UNEXPECTED_SOURCE_ANCHOR' /tmp/pr126-kotlin-junit-source.log | tail -16 | cut -c1-300 || true
+            grep -E '^AUDIT_ANDROID (e:|.*FAILED|BUILD FAILED)' /tmp/pr126-kotlin-junit-source.log | tail -14 | cut -c1-300 || true
+            # Safe diagnostic classes only: never publish private Kotlin source,
+            # file paths, identifiers, assertion payloads or credentials.
+            # The private preflight retains the full Gradle output locally.
+            for pattern in 'Unresolved reference' 'Type mismatch' 'Cannot infer' 'Expecting ' 'Compilation error' 'Kotlin compiler daemon' 'Could not resolve' 'Could not download' 'Could not find ' 'UnknownHostException' 'Read timed out' 'Connection reset' 'Execution failed for task' 'There were failing tests' 'OutOfMemoryError' 'No space left on device'; do
+              if grep -Fqi -- "$pattern" /tmp/pr126-kotlin-junit-source.log; then
+                case "$pattern" in
+                  'Unresolved reference') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_UNRESOLVED_REFERENCE;;
+                  'Type mismatch') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_TYPE_MISMATCH;;
+                  'Cannot infer') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_INFERENCE;;
+                  'Expecting ') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_SYNTAX;;
+                  'Compilation error') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_COMPILE;;
+                  'Kotlin compiler daemon') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_DAEMON;;
+                  'Could not resolve') echo PR127_PUBLIC_SAFE_DIAG_DEPENDENCY_RESOLVE;;
+                  'Could not download') echo PR127_PUBLIC_SAFE_DIAG_DEPENDENCY_DOWNLOAD;;
+                  'Could not find ') echo PR127_PUBLIC_SAFE_DIAG_MISSING_ARTIFACT;;
+                  'UnknownHostException') echo PR127_PUBLIC_SAFE_DIAG_DNS;;
+                  'Read timed out') echo PR127_PUBLIC_SAFE_DIAG_NETWORK_TIMEOUT;;
+                  'Connection reset') echo PR127_PUBLIC_SAFE_DIAG_NETWORK_RESET;;
+                  'Execution failed for task') echo PR127_PUBLIC_SAFE_DIAG_TASK_FAILURE;;
+                  'There were failing tests') echo PR127_PUBLIC_SAFE_DIAG_JUNIT_FAILURE;;
+                  'OutOfMemoryError') echo PR127_PUBLIC_SAFE_DIAG_OUT_OF_MEMORY;;
+                  'No space left on device') echo PR127_PUBLIC_SAFE_DIAG_DISK_FULL;;
+                esac
+              fi
+            done
+            echo "PR127_PUBLIC_SAFE_DIAG_BUILD_ERRORS_COUNT=$(grep -Ec '^AUDIT_ANDROID (e:|.*[Ee]rror:)' /tmp/pr126-kotlin-junit-source.log || true)"
+            exit 1
+          fi
+          grep -E "WEEX_PRESIGN_SOURCE_GATES_PASSED|ANDROID_JUNIT|KOTLIN|SOURCE_ONLY" /tmp/pr126-kotlin-junit-source.log | tail -12 || true
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr126-kotlin-junit-source.log
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr126-kotlin-junit-source.log
+          grep -q 'python3 ci/verify_real_live_scan_and_verified_ratchet_v1.py' ci/bitrise_release.sh
+          # The preflight suppresses nested gate output from public logs;
+          # verify the exact exported post-materializer Kotlin, not a hidden log marker.
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'REAL_RELATIVE_SPREAD_NET_EDGE_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'expectedTargetMovePct:Double=Double.NaN' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          echo PR126_FINAL_EXECUTION_KOTLIN_PATCH_PRESENT
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt"
+          grep -q 'WEEX_1141_SNAPSHOT_PRESERVING_LEVERAGE_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt"
+          grep -q 'WeexSnapshotPreservingLeveragePolicy.prepare' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt"
+          grep -q 'python3 ci/verify_weex_1141_snapshot_preserving_leverage_v1.py' ci/bitrise_release.sh
+          echo PR126_SIGNED_LEVERAGE_DUAL_SIDE_FINAL_SOURCE_PRESENT
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'REAL_DURABLE_STOP_AMENDMENT_RECOVERY_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'amendmentJournal.begin(planned)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'PendingStopRemotePolicy.classify(pending,orders)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'python3 ci/verify_real_durable_stop_recovery_v1.py' ci/bitrise_release.sh
+          echo PR126_SIGNED_STOP_JOURNAL_RECOVERY_FINAL_SOURCE_PRESENT
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealAdaptiveStopManager.kt"
+          grep -q 'REAL_UNIFIED_STOP_JOURNAL_WRITERS_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealAdaptiveStopManager.kt"
+          grep -q 'stopJournal.begin(planned)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealAdaptiveStopManager.kt"
+          grep -q 'synchronized(BEGIN_MUTEX)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'python3 ci/verify_real_two_stop_writers_unified_journal_v1.py' ci/bitrise_release.sh
+          echo PR126_BOTH_REAL_STOP_WRITERS_SHARED_DURABLE_JOURNAL_PROVEN
+          grep -q 'python3 ci/verify_real_relative_spread_cost_gate_v1.py' ci/bitrise_release.sh
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'j.optBoolean("remoteWriteStarted",true)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'markAttemptStarted(planned)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProfitProtectionManager.kt"
+          grep -q 'stopJournal.markAttemptStarted(planned)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealAdaptiveStopManager.kt"
+          grep -q 'python3 ci/verify_real_prepared_stop_journal_v1.py' ci/bitrise_release.sh
+          echo PR126_PREPARED_VS_SENT_PHASE_SOURCE_VERIFIED
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PendingRealEntryPhasePolicy.kt"
+          grep -q 'REAL_ENTRY_PREPARED_VS_POST_STARTED_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'markRealOrderPostStarted(clientId)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'pending.edit().putBoolean("remote_post_started",true).commit()' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'python3 ci/verify_real_entry_prepared_vs_post_started_v1.py' ci/bitrise_release.sh
+          echo PR126_REAL_ENTRY_NEVER_SENT_CRASH_REPAIR_MATERIALIZED
+          grep -q 'REAL_PENDING_READ_ONLY_RECOVERY_BEFORE_ENTRY_STOP_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealPendingMaintenancePolicy.kt"
+          grep -q 'if(!RealPendingMaintenancePolicy.mayStartNewEntry(' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'python3 ci/verify_real_pending_read_only_recovery_v1.py' ci/bitrise_release.sh
+          echo PR126_READ_ONLY_RECOVERY_UNDER_STOP_MATERIALIZED_NO_ENTRY
+          # The PR116-only signed SL readback correction is now in the SAME
+          # materialized source tree as the PR115/117 entry recovery.
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'REAL_STOP_READBACK_UNAMBIGUOUS_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'matchesNew&&!matchesOld -> PendingStopRemoteState.APPLIED' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'matchesOld&&!matchesNew -> PendingStopRemoteState.OLD_CONFIRMED_BUT_POST_OUTCOME_UNKNOWN' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealStopAmendmentJournal.kt"
+          grep -q 'python3 ci/verify_real_stop_readback_unambiguous_v1.py' ci/bitrise_release.sh
+          grep -q 'python3 ci/verify_real_pending_read_only_recovery_v1.py' ci/bitrise_release.sh
+          grep -q 'python3 ci/verify_real_entry_prepared_vs_post_started_v1.py' ci/bitrise_release.sh
+          echo PR126_COMBINED_JOURNAL_STOP_READBACK_SOURCE_VERIFIED
+          grep -q 'REAL_SERVICE_OWNED_UNCERTAIN_ENTRY_MAINTENANCE_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'fun reconcileUncertainEntryJournalOnly():String?' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          grep -q 'realExecutor.reconcileUncertainEntryJournalOnly()' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/TraderService.kt"
+          grep -q 'python3 ci/verify_real_service_owned_pending_maintenance_v1.py' ci/bitrise_release.sh
+          echo PR126_SERVICE_OWNED_PENDING_RECOVERY_IN_FINAL_KOTLIN_NO_ORDERS
+          test -s "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RiskEngine.kt"
+          test -s "app/src/test/java/com/wilito/weexautotrader/FinalOwnerBalanceSizingMatrixTest.kt"
+          grep -q 'OWNER_SIM_EXPLORATORY_RISK_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RiskEngine.kt"
+          grep -q 'private val balances=listOf(100.0,250.0,500.0)' "app/src/test/java/com/wilito/weexautotrader/FinalOwnerBalanceSizingMatrixTest.kt"
+          grep -q 'python3 ci/verify_owner_balance_sizing_matrix_v1.py' ci/bitrise_release.sh
+          test -s "app/src/test/java/com/wilito/weexautotrader/OfflineFakeWeexJournalScenariosTest.kt"
+          grep -q 'OFFLINE_FAKE_WEEX_JOURNAL_SCENARIOS_V1' "app/src/test/java/com/wilito/weexautotrader/OfflineFakeWeexJournalScenariosTest.kt"
+          grep -q 'python3 ci/verify_offline_fake_weex_journal_scenarios_v1.py' ci/bitrise_release.sh
+          echo PR126_FAKE_WEEX_STOP_ENTRY_JOURNAL_SCENARIOS_MATERIALIZED
+          echo PR126_BALANCE_SIZING_100_250_500_MATRIX_MATERIALIZED
+          grep -q 'SIM_STARTUP_ATTRIBUTION_OFF_SCANNER_V1' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          grep -q 'val startupAttributionEpoch=SimulationRunEpoch.current(context)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          grep -q 'val summary=LossAttributionAnalyzer(database).analyze(50)' "$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          grep -q 'python3 ci/test_sim_startup_sqlite_busy_isolation_v1.py' ci/bitrise_release.sh
+          echo PR126_SIM_STARTUP_SQLITE_OPTIONAL_OFF_SCANNER_FINAL_SOURCE_PROVEN
+          # PR126: the final, materialized source must retain close durability
+          # before any optional SQLite historical classification.
+          PAPER="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          test -s "$PAPER"
+          grep -q 'SIM_CLOSE_ATTRIBUTION_OFF_SCANNER_V1' "$PAPER"
+          grep -q 'attributionReadGeneration.get()==closeAttributionGeneration' "$PAPER"
+          grep -Fq 'balance+=net;pnlToday+=net;positions.removeAll{it.symbol==p.symbol};save()' "$PAPER"
+          grep -q 'python3 ci/test_sim_startup_sqlite_busy_isolation_v1.py' ci/bitrise_release.sh
+          echo PR126_SIM_CLOSE_DURABLE_BEFORE_ADVISORY_VERIFIED
+          # Final source after all materializers: both optional learner reads
+          # MUST run inside IO workers rather than block synchronized onMarket.
+          PAPER="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          test -s "$PAPER"
+          grep -q 'SIM_OPTIONAL_AI_DB_SNAPSHOT_OFF_MONITOR_V1' "$PAPER"
+          grep -q 'SIM_OPTIONAL_GLOBAL_AI_SQLITE_OFF_MONITOR_V1' "$PAPER"
+          grep -q 'python3 ci/test_sim_optional_local_ai_sqlite_busy_v1.py' ci/bitrise_release.sh
+          grep -q 'python3 ci/test_sim_optional_global_brain_sqlite_busy_v1.py' ci/bitrise_release.sh
+          echo PR126_FINAL_SIM_ADVISORY_READS_OFF_SCANNER_MONITOR
+          # PR126: exact FINAL materialized Kotlin must keep local crash intent
+          # and transaction wrapper; never rely on old unversioned dedup.
+          DB="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/TradeDatabase.kt"
+          PAPER="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          test -s "$DB" && test -s "$PAPER"
+          grep -q 'SIM_DURABLE_CLOSE_TRANSACTION_V1' "$DB"
+          grep -q 'fun verifyOrRecordPaperClose(' "$DB"
+          grep -q 'SIM_CLOSE_DURABLE_INTENT_RECONCILIATION_V1' "$PAPER"
+          grep -q 'SIM_DURABLE_CLOSE_REPLAY_V1' "$PAPER"
+          grep -q 'verifiedCloseCommit' "$PAPER"
+          grep -q 'python3 ci/test_sim_close_durable_replay_v1.py' ci/bitrise_release.sh
+          echo PR126_SIM_CLOSE_JOURNAL_SQLITE_AND_PREFS_FINAL_SOURCE_PRESENT
+          # New local learning feedback must remain durable in the FINAL
+          # materialized Kotlin, and must not become an order/stop gate.
+          PAPER="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          LEARNER="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/ProviderOutcomeLearning.kt"
+          test -s "$PAPER" && test -s "$LEARNER"
+          grep -q 'SIM_OUTCOME_FEEDBACK_OUTBOX_V1' "$PAPER"
+          grep -q 'SIM_OUTCOME_FEEDBACK_IO_OFF_SCANNER_V1' "$PAPER"
+          grep -q 'SIM_OUTCOME_QUEUE_IDEMPOTENT_V1' "$LEARNER"
+          grep -q 'python3 ci/test_sim_outcome_feedback_durable_outbox_v1.py' ci/bitrise_release.sh
+          echo PR126_FINAL_SIM_OUTCOME_OUTBOX_AND_DEDUP_PRESENT
+          # The production mode must exist in BOTH execution engines after
+          # every historical Kotlin materializer, not merely in the patch script.
+          RISK="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RiskEngine.kt"
+          PAPER="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt"
+          REAL="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt"
+          test -s "$RISK" && test -s "$PAPER" && test -s "$REAL"
+          grep -q 'val maxRiskPerTradePct: Double = 20.0' "$RISK"
+          grep -q 'val maxPortfolioRiskPct: Double = 20.0' "$RISK"
+          grep -q 'OWNER_ADAPTIVE_STOP_RISK_20_FINAL_V1' "$RISK"
+          grep -q 'ownerAdaptiveRiskEnabled:Boolean=false' "$RISK"
+          grep -q 'ownerAdaptiveRiskEnabled=true' "$PAPER"
+          grep -q 'ownerAdaptiveRiskEnabled=true' "$REAL"
+          if grep -q 'experimentalSimulationRisk' "$RISK" "$PAPER" "$REAL"; then
+            echo "::error::Owner production risk still uses obsolete SIM experimental branch"
+            exit 1
+          fi
+          grep -q 'python3 ci/test_owner_adaptive_twenty_stop_risk_v1.py --final' ci/bitrise_release.sh
+          echo PR126_OWNER20_FULL_PRODUCTION_MODE_KOTLIN_VERIFIED
+          # APP_STARTUP_E6_OFF_MAIN_V1: verify the FINAL Android export, not just raw source.
+          LAUNCHER="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/LauncherActivity.kt"
+          test -s "$LAUNCHER"
+          grep -q 'APP_STARTUP_E6_OFF_MAIN_V1' "$LAUNCHER"
+          grep -q 'withContext(Dispatchers.IO)' "$LAUNCHER"
+          grep -q 'lifecycleScope.launch {' "$LAUNCHER"
+          grep -q 'if(openingTrader)return' "$LAUNCHER"
+          grep -q 'python3 ci/test_launcher_e6_off_main_v1.py' ci/bitrise_release.sh
+          test "$(grep -c 'python3 ci/test_launcher_e6_off_main_v1.py' ci/bitrise_release.sh)" -eq 2
+          echo PR127_LAUNCHER_UI_THREAD_MIGRATION_GUARD_PRESENT_IN_FINAL_ANDROID
+          # New feature must survive the canonical code materializers and
+          # run as a Kotlin/JUnit test, never as an order/stop authority.
+          POLICY="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealMakerFillReadOnlyPolicy.kt"
+          COORD="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt"
+          test -s "$POLICY" && test -s "$COORD"
+          grep -q 'REAL_MAKER_FILL_READ_ONLY_V1' "$POLICY"
+          grep -q 'val visibleFill=when {' "$COORD"
+          grep -q 'RealMakerFillReadOnlyPolicy.shortLabel(visibleFill)' "$COORD"
+          if grep -E 'api\.place|cancelOrder\(|setEmergencyStop\(' "$POLICY"; then
+            echo "::error::Read-only fill policy includes forbidden order or stop effects"
+            exit 1
+          fi
+          test -s app/src/test/java/com/wilito/weexautotrader/RealMakerFillReadOnlyPolicyTest.kt
+          # preflight_full_presigning_source_v1.py runs JUnit in an ephemeral
+          # sandbox and deletes that sandbox on success. XML is NOT present
+          # in this checkout; require its verified JUnit marker instead.
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr126-kotlin-junit-source.log
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr126-kotlin-junit-source.log
+          # Delayed (>60-second) maker SL/TP local binding requires exact
+          # independently proven signed WEEX opening order; NO stop modifications.
+          STORE="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProtectionStore.kt"
+          ORIGIN="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealProtectionSignedMakerBindingPolicy.kt"
+          EXEC="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt"
+          test -s "$STORE" && test -s "$ORIGIN" && test -s "$EXEC"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealProtectionSignedMakerBindingPolicyTest.kt
+          grep -q 'REAL_DELAYED_MAKER_PROTECTION_IDENTITY_V1' "$STORE"
+          grep -q 'RealProtectionSignedMakerBindingPolicy.matches(' "$STORE"
+          grep -q 'RealBotOpeningOrderStore(context)' "$STORE"
+          grep -q 'sourceOrderId' "$STORE"
+          grep -q 'sourceClientOrderId' "$STORE"
+          # Executor remains EXACTLY compatible with the published
+          # source's historical signed Maker/IOC safety writer anchors.
+          grep -q 'protectionStore.save(proposal,timeframe)' "$EXEC"
+          grep -q 'protectionStore.save(original,originalTimeframe)' "$EXEC"
+          grep -q 'PlannedRealEntryStore(context)' "$STORE"
+          grep -q 'val signedPlan=runCatching{plannedEntries.load()}.getOrNull()' "$STORE"
+          grep -q 'signedPlan.clientOrderId' "$STORE"
+          # Dedicated AAVE-origin numeric regression; no production app mutation.
+          test -s app/src/test/java/com/wilito/weexautotrader/RealAaveMarginOriginTest.kt
+          grep -q 'materiallyUnaffordableElevenAaveIsRejectedRatherThanMicroShrunk' app/src/test/java/com/wilito/weexautotrader/RealAaveMarginOriginTest.kt
+          grep -q 'makerPartialFillDoesNotProveTheOriginalOrderWasSmall' app/src/test/java/com/wilito/weexautotrader/RealAaveMarginOriginTest.kt
+          LINK="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealMakerProtectionReceiptLinkPolicy.kt"
+          SOURCE="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealBotOpeningOrderStore.kt"
+          test -s "$LINK" && test -s "$SOURCE"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealMakerProtectionReceiptLinkPolicyTest.kt
+          grep -q 'REAL_MAKER_PROTECTION_RECEIPT_LINK_V1' "$LINK"
+          grep -q 'fun bindAcceptedMakerReceipt(' "$STORE"
+          grep -q 'RealProtectionStore(appContext).bindAcceptedMakerReceipt(receipt,proposal)' "$SOURCE"
+          grep -q 'sourceOrderId' "$STORE"
+          if grep -E 'api\.place|cancelOrder\(|modifyTpSlOrder\(|closePosition\(' "$LINK"; then
+            echo "::error::Maker receipt link has trading side effects"
+            exit 1
+          fi
+          echo PR127_ACK_PROTECTION_EARLY_LINK_FINAL_SOURCE_VERIFIED_NO_WEEX_REQUESTS
+          test -s app/src/test/java/com/wilito/weexautotrader/RealProfitRatchetAndRemoteReadbackRegressionTest.kt
+          grep -q 'longRatchetMonotonicAboveOneAndTwoRUsesOriginalRisk' app/src/test/java/com/wilito/weexautotrader/RealProfitRatchetAndRemoteReadbackRegressionTest.kt
+          grep -q 'ambiguousOverlappingRemoteToleranceMustRemainUnresolved' app/src/test/java/com/wilito/weexautotrader/RealProfitRatchetAndRemoteReadbackRegressionTest.kt
+          grep -q 'duplicateSameSideStopsAndUnverifiedRemoteAreNotApplied' app/src/test/java/com/wilito/weexautotrader/RealProfitRatchetAndRemoteReadbackRegressionTest.kt
+          echo PR127_PROFIT_RATCHET_NINE_OFFLINE_LONG_SHORT_REMOTE_READBACK_TESTS_PRESENT_NO_WEEX_POST
+          test -s app/src/test/java/com/wilito/weexautotrader/AaveFinalRiskTierSizingForensicsTest.kt
+          grep -q 'smallTierCanPassAndRemainSmallDespiteLargeFreeWallet' app/src/test/java/com/wilito/weexautotrader/AaveFinalRiskTierSizingForensicsTest.kt
+          grep -q 'declaringTwentyPercentDoesNotMakeWeakSignalSpendTwentyPercent' app/src/test/java/com/wilito/weexautotrader/AaveFinalRiskTierSizingForensicsTest.kt
+          grep -q 'materiallyBetterSignalAndRiskBudgetAllowLargerMarginAtSameStop' app/src/test/java/com/wilito/weexautotrader/AaveFinalRiskTierSizingForensicsTest.kt
+          echo PR127_AAVE_FINAL_RISK_TIER_FOUR_SYNTHETIC_JUNIT_CASES_PRESENT_NO_WEEX_POST
+          # Chart-only, signed-read, no remote stop inference or new requests.
+          CHART_REASON="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/RealChartProtectionDiagnosticPolicy.kt"
+          CHART_UI="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader/MainActivity.kt"
+          test -s "$CHART_REASON" && test -s "$CHART_UI"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealChartProtectionDiagnosticPolicyTest.kt
+          grep -q 'REAL_CHART_PROTECTION_REASON_READ_ONLY_V1' "$CHART_REASON"
+          grep -q 'val realProtectionDiagnostic=if(realMode)' "$CHART_UI"
+          grep -q 'realProtectionDiagnostic?.let { diagnostic ->' "$CHART_UI"
+          grep -q 'REMOTA WEEX no comprobada' "$CHART_REASON"
+          if grep -E '(api\.place|cancelOrder\(|modifyTpSlOrder\(|closePosition\(|signedGet\(|signedPost\(|orderStatus\()' "$CHART_REASON"; then
+            echo "::error::Chart reason policy has forbidden network/order side effects"
+            exit 1
+          fi
+          echo PR127_CHART_PROTECTION_REASON_READONLY_10_JUNIT_FINAL_SOURCE_VERIFIED_NO_ORDERS
+          echo PR127_AAVE_ORIGIN_SIX_OFFLINE_JUNIT_TESTS_PRESENT_NO_POST
+          echo PR127_DELAYED_MAKER_PROTECTION_EXACT_ORDER_ID_KOTLIN_JUNIT_PASS_NO_APK_NO_WEEX_ORDERS_NO_OTA

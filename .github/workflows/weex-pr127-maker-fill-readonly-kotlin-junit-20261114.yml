@@ -78,6 +78,32 @@ jobs:
             # of truncating failed tests behind the last 36 Gradle progress lines.
             grep -E '^PRESIGN_FAILURE_CONTEXT |^WEEX_PRESIGN_FIRST_FAILURE_LINE=|^WEEX_PRESIGN_SOURCE_REPLAY_FAILED|^WEEX_RELEASE_ERRTRAP|^WEEX_AUDIT_JUNIT_BUILD_FAILED|^PR126_.*FAIL|^REAL_FINAL_EXECUTION_COST_SHAPE|^UNEXPECTED_SOURCE_ANCHOR' /tmp/pr126-kotlin-junit-source.log | tail -16 | cut -c1-300 || true
             grep -E '^AUDIT_ANDROID (e:|.*FAILED|BUILD FAILED)' /tmp/pr126-kotlin-junit-source.log | tail -14 | cut -c1-300 || true
+            # Safe diagnostic classes only: never publish private Kotlin source,
+            # file paths, identifiers, assertion payloads or credentials.
+            # The private preflight retains the full Gradle output locally.
+            for pattern in 'Unresolved reference' 'Type mismatch' 'Cannot infer' 'Expecting ' 'Compilation error' 'Kotlin compiler daemon' 'Could not resolve' 'Could not download' 'Could not find ' 'UnknownHostException' 'Read timed out' 'Connection reset' 'Execution failed for task' 'There were failing tests' 'OutOfMemoryError' 'No space left on device'; do
+              if grep -Fqi -- "$pattern" /tmp/pr126-kotlin-junit-source.log; then
+                case "$pattern" in
+                  'Unresolved reference') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_UNRESOLVED_REFERENCE;;
+                  'Type mismatch') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_TYPE_MISMATCH;;
+                  'Cannot infer') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_INFERENCE;;
+                  'Expecting ') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_SYNTAX;;
+                  'Compilation error') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_COMPILE;;
+                  'Kotlin compiler daemon') echo PR127_PUBLIC_SAFE_DIAG_KOTLIN_DAEMON;;
+                  'Could not resolve') echo PR127_PUBLIC_SAFE_DIAG_DEPENDENCY_RESOLVE;;
+                  'Could not download') echo PR127_PUBLIC_SAFE_DIAG_DEPENDENCY_DOWNLOAD;;
+                  'Could not find ') echo PR127_PUBLIC_SAFE_DIAG_MISSING_ARTIFACT;;
+                  'UnknownHostException') echo PR127_PUBLIC_SAFE_DIAG_DNS;;
+                  'Read timed out') echo PR127_PUBLIC_SAFE_DIAG_NETWORK_TIMEOUT;;
+                  'Connection reset') echo PR127_PUBLIC_SAFE_DIAG_NETWORK_RESET;;
+                  'Execution failed for task') echo PR127_PUBLIC_SAFE_DIAG_TASK_FAILURE;;
+                  'There were failing tests') echo PR127_PUBLIC_SAFE_DIAG_JUNIT_FAILURE;;
+                  'OutOfMemoryError') echo PR127_PUBLIC_SAFE_DIAG_OUT_OF_MEMORY;;
+                  'No space left on device') echo PR127_PUBLIC_SAFE_DIAG_DISK_FULL;;
+                esac
+              fi
+            done
+            echo "PR127_PUBLIC_SAFE_DIAG_BUILD_ERRORS_COUNT=$(grep -Ec '^AUDIT_ANDROID (e:|.*[Ee]rror:)' /tmp/pr126-kotlin-junit-source.log || true)"
             exit 1
           fi
           grep -E "WEEX_PRESIGN_SOURCE_GATES_PASSED|ANDROID_JUNIT|KOTLIN|SOURCE_ONLY" /tmp/pr126-kotlin-junit-source.log | tail -12 || true

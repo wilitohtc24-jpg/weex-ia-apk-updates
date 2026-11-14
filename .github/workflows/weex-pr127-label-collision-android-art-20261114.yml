@@ -15,14 +15,14 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify-generated-dex-with-android-art:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == 'ab76a359962b441896245468418fef1ecd626786' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == 'caa5d6c32cbfe80731c5945ae83f16dec10bd430' }}
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:
-      PRIVATE_SOURCE_SHA: cb72839896d6b99563ff8d06bcc4e8fdcbb58bab
+      PRIVATE_SOURCE_SHA: 606e056fc94983b35ec2e26e59833bb6cdc624d0
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: cb72839896d6b99563ff8d06bcc4e8fdcbb58bab
+          ref: 606e056fc94983b35ec2e26e59833bb6cdc624d0
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -209,6 +209,8 @@ jobs:
           test -s app/src/test/java/com/wilito/weexautotrader/ChartTradeLabelLayoutPolicyTest.kt
           grep -Fq 'CHART_TRADE_LABEL_COLLISION_READ_ONLY_V1' "$LABEL"
           grep -Fq 'ChartTradeLabelLayoutPolicy.baseline(' "$UI"
+          grep -Fq 'ESCÁNER ANALIZA •' "$UI"
+          grep -Fq 'POSICIÓN ABIERTA REAL •' "$UI"
           echo PR127_LABEL_COLLISION_VERIFIED_FINAL_KOTLIN_FOR_ART_NO_WEEX_POST
           echo ART_QA_FINAL_MATERIALIZED_SOURCES_VERIFIED
       - name: Assemble disposable unsigned-for-production debug & Android test APK

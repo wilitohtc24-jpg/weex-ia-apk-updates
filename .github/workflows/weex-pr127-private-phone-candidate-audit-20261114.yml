@@ -122,9 +122,9 @@ jobs:
           assert any(int(manifest[k])==version for k in ("versionCode","version_code") if k in manifest)
           signer_text=small("signing-certificate.txt")
           pats=(
-              r"(?mi)^\\s*Signer\\s+#\\d+\\s+certificate\\s+SHA-256\\s+digest:\\s*([0-9a-fA-F:]+)\\s*$",
-              r"(?mi)^\\s*Signer\\s+\\([^\\r\\n)]*\\)\\s+certificate\\s+SHA-256\\s+digest:\\s*([0-9a-fA-F:]+)\\s*$",
-              r"(?mi)^\\s*V\\d+(?:\\.\\d+)?\\s+Signer:\\s+certificate\\s+SHA-256\\s+digest:\\s*([0-9a-fA-F:]+)\\s*$",
+              r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*Signer\s+\([^\r\n)]*\)\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*V\d+(?:\.\d+)?\s+Signer:\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
           )
           signer_digests={v.replace(":","").lower() for pat in pats for v in re.findall(pat,signer_text)}
           assert signer_digests=={original_cert},"PR127_SIGNER_CERT_WRONG"
@@ -140,7 +140,7 @@ jobs:
                       assert size<150*1024*1024,"PR127_APK_OVER_LIMIT"
                       digest.update(chunk);out.write(chunk)
               assert size>15*1024*1024,"PR127_APK_UNEXPECTEDLY_SMALL"
-              assert apk.open("rb").read(4)==b"PK\\x03\\x04","PR127_NOT_AN_APK"
+              assert apk.open("rb").read(4)==b"PK\x03\x04","PR127_NOT_AN_APK"
               assert digest.hexdigest()==expected_hash,"PR127_APK_HASH_MISMATCH"
               android=os.environ.get("ANDROID_HOME",os.environ.get("ANDROID_SDK_ROOT","/usr/local/lib/android/sdk"))
               buildtools=pathlib.Path(android)/"build-tools"
@@ -150,7 +150,7 @@ jobs:
               aapt=next((p/"aapt" for p in versions if (p/"aapt").is_file()),None)
               assert apksigner and aapt,"PR127_APK_VERIFICATION_TOOLS_UNAVAILABLE"
               verify=subprocess.run([str(apksigner),"verify","--print-certs",str(apk)],capture_output=True,text=True,check=True)
-              assert re.search(r"(?i)Signer #1 certificate SHA-256 digest:\\s*"+original_cert,verify.stdout), "PR127_APK_BYTES_SIGNER_MISMATCH"
+              assert re.search(r"(?i)Signer #1 certificate SHA-256 digest:\s*"+original_cert,verify.stdout), "PR127_APK_BYTES_SIGNER_MISMATCH"
               badge=subprocess.run([str(aapt),"dump","badging",str(apk)],capture_output=True,text=True,check=True)
               assert "name='com.wilito.weexautotrader'" in badge.stdout,"PR127_WRONG_PACKAGE"
               assert "versionCode='"+str(version)+"'" in badge.stdout,"PR127_APK_VERSION_DIFFERS"

@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 5aa24ced4280cb7865f1b623a47e01364f1c4a1f
+          ref: d23d608db7dc45459924e95b94590a863632258b
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -63,7 +63,7 @@ jobs:
           command -v kotlinc >/dev/null && command -v gradle >/dev/null
           # Verify actual fetched private checkout identity before generating source.
           # No tokens, APK, keys, OTA or real WEEX traffic are used.
-          test "$(git rev-parse HEAD)" = "5aa24ced4280cb7865f1b623a47e01364f1c4a1f"
+          test "$(git rev-parse HEAD)" = "d23d608db7dc45459924e95b94590a863632258b"
           echo PR127_IMMUTABLE_PRIVATE_SOURCE_IDENTITY_OK
           # Do not expose private source or secrets in the public OTA runner log.
           if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr126-kotlin-junit-source.log 2>&1; then
@@ -281,6 +281,11 @@ jobs:
           grep -q 'RealBotOpeningOrderStore(context)' "$STORE"
           grep -q 'sourceOrderId' "$STORE"
           grep -q 'sourceClientOrderId' "$STORE"
-          grep -q 'recovered.orderId,recovered.clientOrderId' "$EXEC"
-          grep -q 'receipt.orderId,receipt.clientOrderId' "$EXEC"
+          # Executor remains EXACTLY compatible with the published
+          # source's historical signed Maker/IOC safety writer anchors.
+          grep -q 'protectionStore.save(proposal,timeframe)' "$EXEC"
+          grep -q 'protectionStore.save(original,originalTimeframe)' "$EXEC"
+          grep -q 'PlannedRealEntryStore(context)' "$STORE"
+          grep -q 'val signedPlan=runCatching{plannedEntries.load()}.getOrNull()' "$STORE"
+          grep -q 'signedPlan.clientOrderId' "$STORE"
           echo PR127_DELAYED_MAKER_PROTECTION_EXACT_ORDER_ID_KOTLIN_JUNIT_PASS_NO_APK_NO_WEEX_ORDERS_NO_OTA

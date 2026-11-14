@@ -150,7 +150,18 @@ jobs:
               aapt=next((p/"aapt" for p in versions if (p/"aapt").is_file()),None)
               assert apksigner and aapt,"PR127_APK_VERIFICATION_TOOLS_UNAVAILABLE"
               verify=subprocess.run([str(apksigner),"verify","--print-certs",str(apk)],capture_output=True,text=True,check=True)
-              assert re.search(r"(?i)Signer #1 certificate SHA-256 digest:\s*"+original_cert,verify.stdout), "PR127_APK_BYTES_SIGNER_MISMATCH"
+              # apksigner prints either "Signer #1" or a
+              # "Signer (minSdkVersion=...)" header; match the certificate
+              # digest itself, not an assumed signer-header shape.
+              signed_digests=set()
+              for line in verify.stdout.splitlines():
+                  if "certificate sha-256 digest:" not in line.lower():continue
+                  match=re.search(
+                      r"(?i)certificate\\s+SHA-256\\s+digest:\\s*([0-9a-fA-F:]{64,96})",
+                      line
+                  )
+                  if match:signed_digests.add(match.group(1).replace(":","").lower())
+              assert signed_digests=={original_cert}, "PR127_APK_BYTES_SIGNER_MISMATCH"
               badge=subprocess.run([str(aapt),"dump","badging",str(apk)],capture_output=True,text=True,check=True)
               assert "name='com.wilito.weexautotrader'" in badge.stdout,"PR127_WRONG_PACKAGE"
               assert "versionCode='"+str(version)+"'" in badge.stdout,"PR127_APK_VERSION_DIFFERS"

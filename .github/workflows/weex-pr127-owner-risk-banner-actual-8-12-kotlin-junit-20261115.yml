@@ -384,8 +384,8 @@ jobs:
           test -s "$RISK_UI_SRC/RiskEngine.kt"
           grep -Fq 'val maxRiskPerTradePct: Double = 20.0' "$RISK_UI_SRC/RiskEngine.kt"
           grep -Fq 'val maxPortfolioRiskPct: Double = 20.0' "$RISK_UI_SRC/RiskEngine.kt"
-          grep -RFq '\u0024{RiskSettings().maxRiskPerTradePct.toInt()}% al SL por operación' "$RISK_UI_SRC"
-          grep -RFq '\u0024{RiskSettings().maxPortfolioRiskPct.toInt()}% agregado' "$RISK_UI_SRC"
+          grep -RFq '${RiskSettings().maxRiskPerTradePct.toInt()}% al SL por operación' "$RISK_UI_SRC"
+          grep -RFq '${RiskSettings().maxPortfolioRiskPct.toInt()}% agregado' "$RISK_UI_SRC"
           grep -RFq 'Una entrada aprobada utiliza el margen que permiten' "$RISK_UI_SRC"
           if grep -REq 'hasta[[:space:]]+8%[[:space:]]+al[[:space:]]+SL[[:space:]]+por[[:space:]]+operaci[oó]n|12%[[:space:]]+agregado' "$RISK_UI_SRC"; then
             echo "::error::Owner 8%/12% card was restored by a late Android source writer"

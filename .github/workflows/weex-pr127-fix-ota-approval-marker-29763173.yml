@@ -1,0 +1,84 @@
+name: WEEX PR127 v29763173 exact OTA discovery marker repair (NO APK CHANGE)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-fix-ota-approval-marker-29763173.yml
+permissions:
+  contents: write
+concurrency:
+  group: weex-pr127-v29763173-ota-discovery
+  cancel-in-progress: false
+jobs:
+  patch-exact-owner-approved-release-notes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_ID: "446561374"
+      VERSION: "29763173"
+      SHA: "5c09544c61526ee6ede941a3133f5ab1695961d4a40fde732bafc0e3be8fb0ad"
+      BYTES: "63269335"
+      COMMIT: "c4fae8ffda72a487f48a887d8f48ec19a76cb2a1"
+      APPROVED_MARKER: "WEEX_OTA_RELEASE_APPROVED_V1"
+    steps:
+      - name: Verify ONLY current exact owner-approved signed release before patching notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "wilitohtc24-jpg/weex-ia-apk-updates"
+          test "$GITHUB_REF" = "refs/heads/main" && test "$GITHUB_EVENT_NAME" = "push"
+          mkdir -p /tmp/pr127
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > /tmp/pr127/before.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" > /tmp/pr127/target.json
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          before=json.loads(Path("/tmp/pr127/before.json").read_text())
+          rel=json.loads(Path("/tmp/pr127/target.json").read_text())
+          assert before["id"]==rel["id"]==int(os.environ["RELEASE_ID"]),"Release latest changed"
+          assert rel["tag_name"]=="v"+os.environ["VERSION"],"Unexpected version"
+          assert rel["draft"] is False and rel["prerelease"] is False and rel["published_at"]
+          body=rel.get("body") or ""
+          assert "WEEX_OTA_OWNER_APPROVAL_20261115_V1" in body
+          assert "WEEX_PR127_OWNER_APPROVED_PUBLIC_BETA_29763173_V1" in body
+          assert os.environ["COMMIT"] in body and os.environ["SHA"] in body.lower()
+          apk=[a for a in rel["assets"] if a["name"]=="WEEX-IA-Trader-release.apk" and a["state"]=="uploaded"]
+          assert len(apk)==1 and apk[0]["size"]==int(os.environ["BYTES"])
+          assert apk[0]["digest"]=="sha256:"+os.environ["SHA"]
+          expected="https://github.com/"+os.environ["GITHUB_REPOSITORY"]+"/releases/download/v"+os.environ["VERSION"]+"/WEEX-IA-Trader-release.apk"
+          assert apk[0]["browser_download_url"]==expected
+          # AppUpdater.requestVerifiedGithubRelease counts matching APKs only.
+          # AppUpdater.OtaGithubReleasePolicy.accepted requires the EXACT marker.
+          if os.environ["APPROVED_MARKER"] not in body:
+              body=body.rstrip()+"\n\n"+os.environ["APPROVED_MARKER"]+"\n"
+          Path("/tmp/pr127/updated.md").write_text(body)
+          print("PR127_OTA_DISCOVERY_EXACT_RELEASE_AND_OWNER_AUTHORIZATION_VERIFIED")
+          PY
+      - name: Add missing exact approval text without touching APK, SHA, version or assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+            -f body="$(cat /tmp/pr127/updated.md)" > /tmp/pr127/after.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > /tmp/pr127/last.json
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          before=json.loads(Path("/tmp/pr127/before.json").read_text())
+          after=json.loads(Path("/tmp/pr127/after.json").read_text())
+          last=json.loads(Path("/tmp/pr127/last.json").read_text())
+          assert before["id"]==after["id"]==last["id"]==int(os.environ["RELEASE_ID"])
+          assert last["tag_name"]=="v"+os.environ["VERSION"]
+          assert last["draft"] is False and last["prerelease"] is False
+          assert last["published_at"]==before["published_at"],"Publication timestamp changed"
+          assert after["body"]==last["body"]==Path("/tmp/pr127/updated.md").read_text()
+          assert os.environ["APPROVED_MARKER"] in last["body"]
+          assert os.environ["SHA"] in last["body"].lower()
+          apk=[a for a in last["assets"] if a["name"]=="WEEX-IA-Trader-release.apk" and a["state"]=="uploaded"]
+          assert len(apk)==1 and apk[0]["digest"]=="sha256:"+os.environ["SHA"] and apk[0]["size"]==int(os.environ["BYTES"])
+          assert {(a["name"],a["size"],a["digest"]) for a in before["assets"]}=={(a["name"],a["size"],a["digest"]) for a in last["assets"]},"Assets changed unexpectedly"
+          assert last["name"]==before["name"] and last["tag_name"]==before["tag_name"],"Release identity changed"
+          print("PR127_GITHUB_OTA_APPROVAL_MARKER_REPAIRED_PUBLIC_LATEST_DISCOVERABLE")
+          print("PR127_PUBLIC_APK_HASH_UNCHANGED="+os.environ["SHA"])
+          PY

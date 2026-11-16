@@ -72,7 +72,7 @@ jobs:
           assert last["tag_name"]=="v"+os.environ["VERSION"]
           assert last["draft"] is False and last["prerelease"] is False
           assert last["published_at"]==before["published_at"],"Publication timestamp changed"
-          assert after["body"]==last["body"]==Path("/tmp/pr127/updated.md").read_text()
+          assert after["body"]==last["body"]==Path("/tmp/pr127/updated.md").read_text().rstrip("\n"),"GitHub release body differs from approved text"
           assert os.environ["APPROVED_MARKER"] in last["body"]
           assert os.environ["SHA"] in last["body"].lower()
           apk=[a for a in last["assets"] if a["name"]=="WEEX-IA-Trader-release.apk" and a["state"]=="uploaded"]

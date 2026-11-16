@@ -1,0 +1,180 @@
+name: WEEX PR127 c4fa exact signed candidate independent stage (NO PUBLIC OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-stage-c4fa-verified-signed-ota-20261116.yml
+permissions:
+  contents: write
+concurrency:
+  group: weex-pr127-c4fa-exact-ota-stage
+  cancel-in-progress: false
+jobs:
+  stage-exact-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CIRCLE_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      EXPECTED_SHA: c4fae8ffda72a487f48a887d8f48ec19a76cb2a1
+      EXPECTED_PARENT: d498e99180623786b4dd18d19830857323db6f0b
+      EXPECTED_WORKFLOW: c59d768f-99da-4227-a006-3964816c0393
+      EXPECTED_JOB: 7168f86c-e631-443d-aa82-84a2ae0d7415
+      SIGNER: 5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6
+    steps:
+      - name: Read exact CircleCI workflow and obtain independently verified private signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "wilitohtc24-jpg/weex-ia-apk-updates"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test -n "$CIRCLE_TOKEN"
+          mkdir -p candidate
+          python3 - <<'PY'
+          import hashlib,json,os,re,urllib.parse,urllib.request
+          from pathlib import Path
+          token=os.environ["CIRCLE_TOKEN"]
+          base="https://circleci.com/api/v2"
+          def api(path):
+              req=urllib.request.Request(base+path,headers={"Circle-Token":token,"Accept":"application/json","User-Agent":"WEEX-authorized-OTA-c4fa"})
+              with urllib.request.urlopen(req,timeout=35) as r:return json.load(r)
+          wid=os.environ["EXPECTED_WORKFLOW"]
+          wf=api("/workflow/"+wid)
+          assert wf.get("id")==wid and wf.get("status")=="success",("CircleCI workflow not approved",wf.get("status"))
+          pipe=api("/pipeline/"+wf["pipeline_id"])
+          vcs=pipe.get("vcs") or {}
+          assert vcs.get("revision")==os.environ["EXPECTED_SHA"],"Wrong source commit: reject"
+          assert vcs.get("branch")=="repair/weex-owner-adaptive-20pct-stop-risk-20261111","Wrong branch"
+          assert pipe.get("project_slug")=="gh/wilitohtc24-jpg/weex-auto-trader-android","Wrong project"
+          jobs=api("/workflow/"+wid+"/job")["items"]
+          matches=[x for x in jobs if x.get("id")==os.environ["EXPECTED_JOB"] and x.get("name")=="pr127_circleci_private_candidate" and x.get("status")=="success"]
+          assert len(matches)==1,"Exact private signed candidate job missing or not SUCCESS"
+          number=int(matches[0]["job_number"])
+          assets=api("/project/gh/wilitohtc24-jpg/weex-auto-trader-android/"+str(number)+"/artifacts")["items"]
+          prefix="private-pr127-circleci-candidate/"
+          bypath={x["path"]:x for x in assets}
+          required=["WEEX-IA-Trader-release.apk","apk-sha256.txt","release.json","signing-certificate.txt","candidate-provenance.txt"]
+          assert all(prefix+x in bypath for x in required),"Complete signed APK artifact set missing"
+          class Scrub(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,hdrs,newurl):
+                  new=super().redirect_request(req,fp,code,msg,hdrs,newurl)
+                  if new is not None:
+                      for d in (new.headers,new.unredirected_hdrs):
+                          for name in list(d):
+                              if name.lower()=="circle-token":del d[name]
+                  return new
+          opener=urllib.request.build_opener(Scrub())
+          def get(name,limit):
+              url=bypath[prefix+name]["url"]
+              host=urllib.parse.urlparse(url)
+              assert host.scheme=="https" and (host.hostname or "") in ("output.circle-artifacts.com","circleci.com"),"Untrusted artifact host"
+              req=urllib.request.Request(url,headers={"Circle-Token":token,"User-Agent":"WEEX-authorized-OTA-c4fa"})
+              with opener.open(req,timeout=150) as f:
+                  data=f.read(limit+1)
+              assert len(data)<=limit,"Oversized signed artifact: "+name
+              Path("candidate",name).write_bytes(data)
+              return data
+          for n in required:
+              get(n,180*1024*1024 if n.endswith(".apk") else 100000)
+          meta=json.loads(Path("candidate/release.json").read_text())
+          pv=dict(line.strip().split("=",1) for line in Path("candidate/candidate-provenance.txt").read_text().splitlines() if "=" in line)
+          assert pv.get("source")==os.environ["EXPECTED_SHA"] and pv.get("green_source")==os.environ["EXPECTED_PARENT"],"Wrong signed APK provenance"
+          assert pv.get("private_only")=="true" and pv.get("ota_publication")=="false","Source was already published"
+          assert meta.get("sourceCommit")==os.environ["EXPECTED_SHA"] and meta.get("sourceBranch")==vcs["branch"],"Manifest source drift"
+          assert meta.get("packageName")=="com.wilito.weexautotrader","Package wrong"
+          version=int(meta["versionCode"])
+          assert version>29657260 and int(pv["versionCode"])==version,"Version cannot install over owner private APK"
+          assert version<=2100000000 and version>29483607
+          assert meta.get("signerSha256")==os.environ["SIGNER"],"Noncanonical manifest signer"
+          data=Path("candidate/WEEX-IA-Trader-release.apk")
+          sha=hashlib.file_digest(data.open("rb"),"sha256").hexdigest()
+          assert data.stat().st_size>50000000 and data.stat().st_size<=180*1024*1024,"Invalid APK size"
+          assert data.open("rb").read(4)==b"PK\x03\x04","Invalid APK ZIP magic"
+          assert sha==meta.get("sha256")==Path("candidate/apk-sha256.txt").read_text().split()[0].lower(),"APK hash mismatch"
+          assert meta.get("sizeBytes")==data.stat().st_size,"APK size mismatch"
+          cert=Path("candidate/signing-certificate.txt").read_text()
+          matches=re.findall(r"(?mi)certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)",cert)
+          assert matches and {v.replace(":","").lower() for v in matches}=={os.environ["SIGNER"]},"Signer report mismatch"
+          Path("candidate/version.txt").write_text(str(version))
+          Path("candidate/sha256.txt").write_text(sha)
+          print("WEEX_PR127_CURRENT_PRIVATE_APK_BYTES_VERIFIED")
+          print("WEEX_PR127_SOURCE_SHA="+os.environ["EXPECTED_SHA"])
+          print("WEEX_PR127_CIRCLECI_BUILD_NUMBER="+str(number))
+          print("WEEX_PR127_APK_VERSION_CODE="+str(version))
+          print("WEEX_PR127_APK_SHA256="+sha)
+          print("WEEX_PR127_APK_BYTES="+str(data.stat().st_size))
+          PY
+          echo WEEX_PR127_SOURCE_ARTIFACT_AND_MANIFEST_PASS
+
+      - name: Verify actual signed APK certificate, ZIP, package and version with Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=candidate/WEEX-IA-Trader-release.apk
+          signer="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
+          zipalign="$(find "$ANDROID_HOME/build-tools" -type f -name zipalign | sort -V | tail -1)"
+          test -x "$signer" && test -x "$aapt" && test -x "$zipalign"
+          "$signer" verify --verbose --print-certs --min-sdk-version 21 "$apk" > candidate/verified-apksigner.txt
+          grep -q "Verified using v1 scheme (JAR signing): true" candidate/verified-apksigner.txt
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" candidate/verified-apksigner.txt
+          grep -qi "$SIGNER" candidate/verified-apksigner.txt
+          "$zipalign" -c -P 16 -v 4 "$apk" > candidate/zipalign.txt
+          "$aapt" dump badging "$apk" > candidate/actual-package.txt
+          version="$(cat candidate/version.txt)"
+          grep -q "package: name='com.wilito.weexautotrader' versionCode='$version'" candidate/actual-package.txt
+          echo WEEX_PR127_APK_ORIGINAL_SIGNER_PACKAGE_VERSION_APKSIGNER_PASS
+
+      - name: Stage verified APK ONLY as unpublished draft; never offer OTA before final approval gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(cat candidate/version.txt)"
+          sha="$(cat candidate/sha256.txt)"
+          tag="v$version"
+          latest="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)"
+          test "$latest" = "v29483607"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::VERSION_ALREADY_EXISTS_REFUSE_OVERWRITE"
+            exit 1
+          fi
+          cat > candidate/release-notes.md <<EOF
+          WEEX_OTA_OWNER_APPROVAL_20261115_V1
+          WEEX_PR127_TEST_BETA_PENDING_INSTALL_QA
+
+          WEEX IA Trader PR #127: APK BETA firmada con certificado original, compilación CircleCI comprobada.
+          La OTA pública aún NO se ha activado: este lanzamiento es un borrador.
+          IMPORTANTE: no se ha comprobado esta compilación en el teléfono del dueño,
+          ni la protección real STOP/TP, continuidad de nuevas entradas, calentamiento
+          ni ganancias. No es garantía de rentabilidad o ejecución REAL.
+          Recomendación: instalar encima sin desinstalar ni borrar datos; probar SIM
+          y verificar órdenes STOP de WEEX antes de operar en REAL.
+          Versión: $version
+          SHA-256: $sha
+          APK original: c4fae8ffda72a487f48a887d8f48ec19a76cb2a1
+          Fuente: https://github.com/wilitohtc24-jpg/weex-auto-trader-android/pull/127
+          EOF
+          gh release create "$tag" \
+            "candidate/WEEX-IA-Trader-release.apk#WEEX-IA-Trader-release.apk" \
+            "candidate/apk-sha256.txt#apk-sha256.txt" \
+            --repo "$GITHUB_REPOSITORY" --target main \
+            --title "WEEX IA Trader BETA de prueba - $tag" \
+            --notes-file candidate/release-notes.md \
+            --draft --prerelease=false --latest=false
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json databaseId -q '.databaseId' > candidate/draft-id.txt
+          draft_id="$(cat candidate/draft-id.txt)"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$draft_id" > candidate/draft.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          j=json.loads(Path("candidate/draft.json").read_text())
+          v=Path("candidate/version.txt").read_text()
+          sha=Path("candidate/sha256.txt").read_text()
+          assert j["tag_name"]=="v"+v and j["draft"] is True and j["prerelease"] is False
+          a=[x for x in j["assets"] if x["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(a)==1 and a[0]["digest"]=="sha256:"+sha
+          assert a[0]["size"]==Path("candidate/WEEX-IA-Trader-release.apk").stat().st_size
+          print("WEEX_PR127_VERIFIED_PRIVATE_APK_DRAFT_STAGED_NO_PUBLIC_OTA")
+          print("WEEX_PR127_RELEASE_ID="+str(j["id"]))
+          PY

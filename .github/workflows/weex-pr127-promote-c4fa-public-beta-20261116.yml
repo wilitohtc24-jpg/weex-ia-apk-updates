@@ -1,0 +1,138 @@
+name: WEEX PR127 OWNER-approved exact c4fa BETA OTA 29763173
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr127-promote-c4fa-public-beta-20261116.yml
+permissions:
+  contents: write
+concurrency:
+  group: weex-global-beta-ota-promotion
+  cancel-in-progress: false
+jobs:
+  exact-promotion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RELEASE_ID: "446561374"
+      VERSION: "29763173"
+      STAGE_RUN_ID: "43795799369"
+      STAGE_HEAD: "23a234dd1f8eb6777edf6c4c290d8828c547f9aa"
+      SOURCE_SHA: "c4fae8ffda72a487f48a887d8f48ec19a76cb2a1"
+      APK_SHA: "5c09544c61526ee6ede941a3133f5ab1695961d4a40fde732bafc0e3be8fb0ad"
+      APK_BYTES: "63269335"
+      ORIGINAL_SIGNER: "5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Recheck exact signed APK draft, original audit, previous OTA and explicit owner authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "wilitohtc24-jpg/weex-ia-apk-updates"
+          test "$GITHUB_REF" = "refs/heads/main" && test "$GITHUB_EVENT_NAME" = "push"
+          test "$VERSION" -gt 29657260
+          mkdir -p /tmp/weex-pr127-public
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STAGE_RUN_ID" > /tmp/weex-pr127-public/stage.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" > /tmp/weex-pr127-public/draft.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > /tmp/weex-pr127-public/previous.json
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path("/tmp/weex-pr127-public")
+          stage=json.loads((root/"stage.json").read_text())
+          draft=json.loads((root/"draft.json").read_text())
+          prev=json.loads((root/"previous.json").read_text())
+          assert stage["id"]==int(os.environ["STAGE_RUN_ID"]) and stage["head_sha"]==os.environ["STAGE_HEAD"]
+          assert stage["conclusion"]=="success" and stage["status"]=="completed"
+          assert prev["tag_name"]=="v29483607" and not prev["draft"] and not prev["prerelease"]
+          assert draft["id"]==int(os.environ["RELEASE_ID"])
+          assert draft["draft"] is True and draft["prerelease"] is False and draft["published_at"] is None
+          assert draft["tag_name"] in ("v29763173","untagged-630686f9110b1a060a71")
+          assert "WEEX_OTA_OWNER_APPROVAL_20261115_V1" in draft.get("body","")
+          assert os.environ["APK_SHA"] in draft.get("body","").lower()
+          apk=[a for a in draft["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(apk)==1
+          assert apk[0]["state"]=="uploaded" and apk[0]["size"]==int(os.environ["APK_BYTES"])
+          assert apk[0]["digest"]=="sha256:"+os.environ["APK_SHA"]
+          assert len(draft["assets"])==2
+          print("WEEX_PR127_OWNER_APPROVED_EXACT_INDEPENDENT_SIGNED_CANDIDATE_AND_PRIOR_PUBLIC_VERSION_PASS")
+          PY
+
+      - name: Replace obsolete draft-only notes with accurate BETA warning, while still unpublished
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/weex-pr127-public/notes.md <<EOF
+          WEEX_OTA_OWNER_APPROVAL_20261115_V1
+          WEEX_PR127_OWNER_APPROVED_PUBLIC_BETA_29763173_V1
+          WEEX_OTA_PUBLIC_TEST_BETA_V1
+
+          WEEX IA Trader PR #127 — BETA de prueba, versión $VERSION.
+          Publicación OTA voluntaria solicitada por el propietario.
+
+          NOTA IMPORTANTE: esta APK está compilada, la firma original ha sido
+          comprobada sobre el archivo real y se verificó su procedencia exacta.
+          Todavía NO está comprobada la operación real de esta compilación
+          en el teléfono del propietario: no se garantizan nuevas entradas,
+          rentabilidad, stops remotos/TP, entrenamiento REAL, ni ausencia de ANR.
+          La compilación exitosa no implica la aceptación final de funciones.
+
+          Nunca desinstales ni borres los datos para actualizar; instala
+          sobre la APK existente. Primero prueba SIM y confirma en WEEX los
+          STOP/TP, posiciones abiertas, órdenes pendientes, saldo y PnL
+          antes de activar operaciones reales con dinero.
+
+          Versión Android: $VERSION
+          APK SHA-256: $APK_SHA
+          Tamaño APK: $APK_BYTES bytes
+          Firma Android canónica SHA-256: $ORIGINAL_SIGNER
+          Paquete: com.wilito.weexautotrader
+          Commit fuente exacto: $SOURCE_SHA
+          CircleCI comprobado: c59d768f-99da-4227-a006-3964816c0393
+          Auditoría binaria independiente aprobada: https://github.com/$GITHUB_REPOSITORY/actions/runs/$STAGE_RUN_ID
+          PR: https://github.com/wilitohtc24-jpg/weex-auto-trader-android/pull/127
+          EOF
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+             -f name="WEEX IA Trader BETA de prueba - v$VERSION" \
+             -f tag_name="v$VERSION" -F draft=true -F prerelease=false \
+             -f body="$(cat /tmp/weex-pr127-public/notes.md)" > /tmp/weex-pr127-public/prepared.json
+          python3 - <<'PY'
+          import json,os
+          j=json.load(open("/tmp/weex-pr127-public/prepared.json"))
+          assert j["id"]==int(os.environ["RELEASE_ID"]) and j["draft"] is True and not j["prerelease"]
+          assert "WEEX_PR127_OWNER_APPROVED_PUBLIC_BETA_29763173_V1" in j["body"]
+          assert os.environ["APK_SHA"] in j["body"]
+          print("WEEX_PR127_PUBLIC_BETA_NOTES_PREPARED_WHILE_STILL_DRAFT")
+          PY
+
+      - name: Publish EXACT SAME verified APK to releases/latest and assert OTA discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "v29483607"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+            -f tag_name="v$VERSION" -f target_commitish=main \
+            -F draft=false -F prerelease=false -f make_latest=true \
+            > /tmp/weex-pr127-public/promoted.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > /tmp/weex-pr127-public/latest.json
+          python3 - <<'PY'
+          import json,os
+          def read(p):return json.load(open("/tmp/weex-pr127-public/"+p))
+          p=read("promoted.json")
+          r=read("latest.json")
+          assert p["id"]==r["id"]==int(os.environ["RELEASE_ID"])
+          assert r["tag_name"]=="v"+os.environ["VERSION"] and r["draft"] is False and r["prerelease"] is False
+          assert r["published_at"] and "BETA" in r["name"]
+          assert "WEEX_PR127_OWNER_APPROVED_PUBLIC_BETA_29763173_V1" in r["body"]
+          assert os.environ["APK_SHA"] in r["body"] and os.environ["SOURCE_SHA"] in r["body"]
+          a=[a for a in r["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(a)==1
+          x=a[0]
+          assert x["state"]=="uploaded" and x["size"]==int(os.environ["APK_BYTES"])
+          assert x["digest"]=="sha256:"+os.environ["APK_SHA"]
+          want="https://github.com/"+os.environ["GITHUB_REPOSITORY"]+"/releases/download/v"+os.environ["VERSION"]+"/WEEX-IA-Trader-release.apk"
+          assert x["browser_download_url"]==want,(x["browser_download_url"],want)
+          print("WEEX_PR127_BETA_29763173_PUBLIC_OTA_PUBLISHED_AND_DISCOVERABLE")
+          print("WEEX_PR127_PUBLIC_OTA_ASSET="+want)
+          print("WEEX_PR127_SIGNER_AND_SHA_UNCHANGED_FROM_INDEPENDENT_AUDIT")
+          PY

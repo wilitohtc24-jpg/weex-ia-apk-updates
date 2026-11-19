@@ -75,26 +75,15 @@ jobs:
             # The underlying presign script deliberately emits a small
             # first-error window. Emit ONLY safe uppercase diagnostic codes
             # and numeric lines, not private source lines/values/secrets.
-            python3 - <<'SAFE_DIAG'
-            from pathlib import Path
-            import re
-            log=Path('/tmp/weex-pr128-presign-private.log').read_text(errors='replace')
-            rows=[x.removeprefix('PRESIGN_FAILURE_CONTEXT ') for x in log.splitlines()
-                  if x.startswith('PRESIGN_FAILURE_CONTEXT ')]
-            skip={'PRESIGN_FAILURE_CONTEXT','WEEX_PRESIGN_SOURCE_REPLAY_FAILED','PY','STDOUT',
-                  'SOURCE','ERROR','TRACEBACK','FILE','LINE','PASS','FAIL'}
-            tokens=[]
-            for row in rows:
-                for match in re.findall(r'(?<![A-Za-z0-9_])[A-Z][A-Z0-9_]{5,76}(?![A-Za-z0-9_])', row):
-                    if match not in skip and match not in tokens:
-                        tokens.append(match)
-            print('PR128_PRESIGN_SAFE_STAGE_CODES='+','.join(tokens[:12]))
-            for code in ('WEEX_PREFLIGHT_BLOCKED','WEEX_RELEASE_ERRTRAP','AssertionError',
-                         'FileNotFoundError','ValueError','KeyError','ImportError',
-                         'TypeError','SyntaxError','PermissionError'):
-                if code in log:
-                    print('PR128_PRESIGN_SAFE_ERROR_TYPE='+code)
-            SAFE_DIAG
+            # Only uppercase CI gate identifiers; never print source snippets.
+            (grep '^PRESIGN_FAILURE_CONTEXT ' /tmp/weex-pr128-presign-private.log || true) |
+              grep -Eo 'WEEX_[A-Z0-9_]{4,72}|[A-Z][A-Z0-9_]{5,72}' |
+              sort -u | head -18 || true
+            for cause in WEEX_PREFLIGHT_BLOCKED WEEX_RELEASE_ERRTRAP AssertionError FileNotFoundError ValueError KeyError ImportError TypeError SyntaxError PermissionError; do
+              if grep -Fq "$cause" /tmp/weex-pr128-presign-private.log; then
+                echo PR128_SAFE_ERROR_CATEGORY="$cause"
+              fi
+            done
             for reason in 'Unresolved reference' 'Type mismatch' 'Compilation error' 'Could not resolve' 'Could not download' 'There were failing tests' 'No space left on device' 'OutOfMemoryError'; do
               if grep -Fqi "$reason" /tmp/weex-pr128-presign-private.log; then
                 echo "::notice::PR128_QA_DIAGNOSTIC_CATEGORY_RECORDED"

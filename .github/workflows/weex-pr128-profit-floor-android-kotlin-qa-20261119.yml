@@ -1,0 +1,93 @@
+# Offline Android presign & Kotlin/JUnit QA of an EXACT private PR128 commit.
+# READ-ONLY source token; no signing, no APK, no WEEX private API and no OTA.
+name: WEEX PR128 continuous net-profit final Android Kotlin/JUnit (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr128-profit-floor-android-kotlin-qa-20261119.yml
+permissions:
+  contents: read
+jobs:
+  kotlin-junit-pr128:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact private PR128 (read-only source access)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 54bbe89f92d3c462f52ea9a9818e13ba61e4e58f
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Materialize full final Android source and run official Gradle JUnit
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr128-profit-floor-final-android
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "54bbe89f92d3c462f52ea9a9818e13ba61e4e58f"
+          test -f app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
+          test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt
+          echo WEEX_PR128_EXACT_PRIVATE_SOURCE_FETCHED_NO_ORDERS
+          SDK="$ANDROID_SDK_ROOT"
+          if [ -z "$SDK" ]; then SDK="$ANDROID_HOME"; fi
+          if [ -z "$SDK" ]; then SDK=/usr/local/lib/android/sdk; fi
+          test -d "$SDK"
+          export ANDROID_HOME="$SDK" ANDROID_SDK_ROOT="$SDK"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          KOTLIN_ZIP=/tmp/kotlin-compiler-2.2.21.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o "$KOTLIN_ZIP"
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 "$KOTLIN_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o "$KOTLIN_ZIP" -d "$HOME/.local"
+          export PATH="$HOME/.local/kotlinc/bin:$PATH"
+          GRADLE_ZIP=/tmp/gradle-8.10.2-bin.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o "$GRADLE_ZIP"
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 "$GRADLE_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o "$GRADLE_ZIP" -d "$HOME/.gradle-dist"
+          export PATH="$HOME/.gradle-dist/gradle-8.10.2/bin:$PATH"
+          export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false"
+          command -v kotlinc >/dev/null
+          command -v gradle >/dev/null
+          # The historical canonical presign replay performs Android Gradle
+          # compilation and the full official JUnit suite. Never create APK.
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/weex-pr128-presign-private.log 2>&1; then
+            echo "::error::PR128_PRESIGN_OR_ANDROID_JUNIT_FAILED_NO_APK"
+            grep -Eo 'WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=[0-9]+|WEEX_PRESIGN_FIRST_FAILURE_LINE=[0-9]+|WEEX_AUDIT_JUNIT_BUILD_FAILED [0-9]+' /tmp/weex-pr128-presign-private.log | tail -8 || true
+            for reason in 'Unresolved reference' 'Type mismatch' 'Compilation error' 'Could not resolve' 'Could not download' 'There were failing tests' 'No space left on device' 'OutOfMemoryError'; do
+              if grep -Fqi "$reason" /tmp/weex-pr128-presign-private.log; then
+                echo "::notice::PR128_QA_DIAGNOSTIC_CATEGORY_RECORDED"
+              fi
+            done
+            exit 1
+          fi
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/weex-pr128-presign-private.log
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/weex-pr128-presign-private.log
+          ROOT="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader"
+          test -s "$ROOT/RealProfitProtectionManager.kt"
+          test -s "$ROOT/RealAdaptiveProfitManager.kt"
+          test -s "$ROOT/RealProtectiveOrderWriteGate.kt"
+          grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealProfitProtectionManager.kt"
+          grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealAdaptiveProfitManager.kt"
+          grep -Fq 'owners[positionId] === Thread.currentThread()' "$ROOT/RealProtectiveOrderWriteGate.kt"
+          grep -Fq 'val lastAttempt=prefs.getLong(attemptKey(position.id),0L)' "$ROOT/RealProfitProtectionManager.kt"
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
+          echo WEEX_PR128_FINAL_MATERIALIZED_ANDROID_JUNIT_PASS_NO_APK_NO_SIGN_NO_OTA_NO_ORDERS

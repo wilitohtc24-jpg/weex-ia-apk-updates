@@ -72,6 +72,11 @@ jobs:
           if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/weex-pr128-presign-private.log 2>&1; then
             echo "::error::PR128_PRESIGN_OR_ANDROID_JUNIT_FAILED_NO_APK"
             grep -Eo 'WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=[0-9]+|WEEX_PRESIGN_FIRST_FAILURE_LINE=[0-9]+|WEEX_AUDIT_JUNIT_BUILD_FAILED [0-9]+' /tmp/weex-pr128-presign-private.log | tail -8 || true
+            # The canonical ERR trap records only line number and exit code.
+            # Never expose source snippets from the inner materializer logs.
+            grep -Eo 'WEEX_RELEASE_ERRTRAP line=[0-9]+ rc=[0-9]+' /tmp/weex-pr128-presign-private.log | tail -5 || true
+            (grep '^PRESIGN_FAILURE_CONTEXT ' /tmp/weex-pr128-presign-private.log || true) |
+              grep -Eo 'ci/[a-zA-Z0-9_-]+\.py' | sort -u | head -12 || true
             # The underlying presign script deliberately emits a small
             # first-error window. Emit ONLY safe uppercase diagnostic codes
             # and numeric lines, not private source lines/values/secrets.

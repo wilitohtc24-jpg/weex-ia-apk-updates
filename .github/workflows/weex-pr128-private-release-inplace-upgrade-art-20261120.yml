@@ -139,6 +139,9 @@ jobs:
                   r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([a-fA-F0-9:]+)",
                   data)
               clean={x.replace(":","").lower() for x in matches}
+              for line in data.splitlines():
+                  if "SHA-256" in line and "certificate" in line.lower():
+                      print("PR128_APKSIGNER_PUBLIC_CERT_LINE_"+type+"="+line.strip()[:230],flush=True)
               print("PR128_SIGNED_CERTIFICATE_EXACT_"+type+"="+",".join(sorted(clean)),flush=True)
               print("PR128_EXPECTED_CERTIFICATE_SHA256="+os.environ["EXPECTED_SIGNER_SHA256"],flush=True)
               assert clean=={os.environ["EXPECTED_SIGNER_SHA256"]},(

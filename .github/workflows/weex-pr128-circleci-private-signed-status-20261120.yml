@@ -1,4 +1,5 @@
 name: WEEX PR128 CircleCI one private signed APK status (READ ONLY NO OTA)
+# Owner authorized job #53040 — post-build artifact inventory verification.
 on:
   push:
     branches: [main]

@@ -1,0 +1,115 @@
+name: WEEX PR129 exact CircleCI private signed APK audit (NO OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr129-circleci-private-signed-artifact-audit-20261120.yml
+permissions:
+  contents: read
+jobs:
+  verify-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      EXPECTED_AUTH_SHA: "5232fa45c565dcfc551b6689cc9c5663b2e85750"
+      EXPECTED_GREEN_SHA: "77254e3fb1f6fcafd16c6772bef08a4e80e851c4"
+      EXPECTED_WORKFLOW: "1aa79929-bde8-4eb7-a2aa-de96038ee25f"
+      EXPECTED_JOB: "d04a070a-ab37-469a-a295-6a1160a6d1a4"
+      ORIGINAL_SIGNER: "5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"
+      PREVIOUS_VERSION: "30123946"
+    steps:
+      - name: Audit CircleCI build identity, signed APK, certificate and hash; no OTA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re,urllib.request,urllib.parse
+          token=os.environ.get('CIRCLECI_READ_TOKEN','')
+          assert token,'PR129_CIRCLECI_READ_SECRET_NOT_AVAILABLE'
+          base='https://circleci.com/api/v2'
+          project='/project/gh/wilitohtc24-jpg/weex-auto-trader-android'
+          headers={'Circle-Token':token,'Accept':'application/json','User-Agent':'weex-pr129-independent-artifact-audit'}
+          def get(path):
+              req=urllib.request.Request(base+path,headers=headers)
+              with urllib.request.urlopen(req,timeout=35) as response:
+                  return json.load(response)
+          wid=os.environ['EXPECTED_WORKFLOW']
+          workflow=get('/workflow/'+wid)
+          assert workflow.get('status')=='success','PR129_EXACT_CIRCLECI_WORKFLOW_NOT_SUCCESS'
+          pipeline=get('/pipeline/'+workflow['pipeline_id'])
+          vcs=pipeline.get('vcs') or {}
+          assert vcs.get('revision')==os.environ['EXPECTED_AUTH_SHA'],'PR129_WRONG_PRIVATE_BUILD_COMMIT'
+          assert vcs.get('branch')=='repair/pr129-real-profit-stop-provenance-20261120','PR129_WRONG_BUILD_BRANCH'
+          jobs=get('/workflow/'+wid+'/job').get('items',[])
+          match=[j for j in jobs if j.get('id')==os.environ['EXPECTED_JOB'] and
+                 j.get('name')=='pr129_circleci_private_candidate' and j.get('status')=='success']
+          assert len(match)==1,'PR129_EXACT_SIGNED_BUILD_JOB_NOT_FOUND'
+          job_number=int(match[0]['job_number'])
+          print('PR129_PRIVATE_CIRCLECI_JOB_NUMBER='+str(job_number))
+          artifacts=get(project+'/'+str(job_number)+'/artifacts').get('items',[])
+          prefix='private-pr129-circleci-candidate/'
+          asset={a.get('path'):a for a in artifacts}
+          required=('WEEX-IA-Trader-release.apk','apk-sha256.txt','signing-certificate.txt',
+                    'release.json','candidate-provenance.txt')
+          assert all(prefix+x in asset for x in required),'PR129_SIGNED_APK_ARTIFACTS_MISSING'
+          print('PR129_PRIVATE_SIGNED_ARTIFACTS_PRESENT')
+          class SafeRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,url):
+                  nxt=super().redirect_request(req,fp,code,msg,headers,url)
+                  if nxt is not None:
+                      for mapping in (nxt.headers,nxt.unredirected_hdrs):
+                          for key in list(mapping):
+                              if key.lower()=='circle-token':del mapping[key]
+                  return nxt
+          opener=urllib.request.build_opener(SafeRedirect())
+          def artifact(name):
+              url=asset[prefix+name].get('url','')
+              parsed=urllib.parse.urlparse(url)
+              assert parsed.scheme=='https' and (parsed.hostname or '').lower() in (
+                  'circleci.com','output.circle-artifacts.com'),'PR129_UNTRUSTED_ARTIFACT_HOST'
+              req=urllib.request.Request(url,headers={'Circle-Token':token,
+                  'User-Agent':'weex-pr129-readonly-independent-apk-audit'})
+              return opener.open(req,timeout=150)
+          def small(name,limit=250000):
+              with artifact(name) as r:data=r.read(limit+1)
+              assert len(data)<=limit,'PR129_OVERSIZED_METADATA'
+              return data.decode('utf-8')
+          expected=small('apk-sha256.txt').strip().split()[0].lower()
+          assert re.fullmatch('[a-f0-9]{64}',expected),'PR129_INVALID_SHA256'
+          prov=dict(line.split('=',1) for line in small('candidate-provenance.txt').splitlines()
+                    if '=' in line)
+          assert prov.get('source')==os.environ['EXPECTED_AUTH_SHA'],'PR129_WRONG_SOURCE_PROVENANCE'
+          assert prov.get('green_source')==os.environ['EXPECTED_GREEN_SHA'],'PR129_WRONG_TESTED_SOURCE'
+          assert prov.get('private_only')=='true' and prov.get('ota_publication')=='false','PR129_PUBLICATION_BOUNDARY_BROKEN'
+          version=int(prov['versionCode'])
+          assert int(os.environ['PREVIOUS_VERSION'])<version<=2100000000,'PR129_NOT_INSTALLABLE_OVER_CURRENT_OTA'
+          meta=json.loads(small('release.json'))
+          for key in ('versionCode','version_code'):
+              if key in meta:assert int(meta[key])==version,'PR129_MANIFEST_VERSION_MISMATCH'
+          if 'packageName' in meta:
+              assert meta['packageName']=='com.wilito.weexautotrader','PR129_PACKAGE_CHANGED'
+          cert=small('signing-certificate.txt')
+          patterns=(
+              r'(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$',
+              r'(?mi)^\s*Signer\s+\([^\r\n)]*\)\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$',
+              r'(?mi)^\s*V\d+(?:\.\d+)?\s+Signer:\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$'
+          )
+          digests={x.replace(':','').lower() for pattern in patterns for x in re.findall(pattern,cert)}
+          assert digests=={os.environ['ORIGINAL_SIGNER']},'PR129_ORIGINAL_APK_SIGNER_CHANGED'
+          digest=hashlib.sha256();size=0;first=b''
+          with artifact('WEEX-IA-Trader-release.apk') as r:
+              while True:
+                  chunk=r.read(1024*1024)
+                  if not chunk:break
+                  if not first:first=chunk[:4]
+                  size+=len(chunk)
+                  assert size<200*1024*1024,'PR129_APK_SIZE_UNEXPECTED'
+                  digest.update(chunk)
+          assert first==b'PK\x03\x04','PR129_NOT_APK_ZIP'
+          assert size>10*1024*1024 and digest.hexdigest()==expected,'PR129_APK_CONTENT_SHA_MISMATCH'
+          print('PR129_APK_VERSION_CODE='+str(version))
+          print('PR129_APK_SHA256='+expected)
+          print('PR129_APK_SIZE_BYTES='+str(size))
+          print('PR129_SIGNED_APK_INDEPENDENT_AUDIT_PASS_NO_OTA')
+          PY

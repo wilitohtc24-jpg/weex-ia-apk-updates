@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 5bf1c4d13d64374fda92c6278583ebfb769dccf2
+          ref: f56a3c6c0be23ac2dac1ac329888c8d62d621d9f
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "5bf1c4d13d64374fda92c6278583ebfb769dccf2"
+          test "$(git rev-parse HEAD)" = "f56a3c6c0be23ac2dac1ac329888c8d62d621d9f"
           python3 ci/verify_global_profit_control_pr130_v1.py
       - name: Exercise owner identity binding using synthetic users ONLY
         working-directory: source
@@ -99,6 +99,6 @@ jobs:
             echo "::error::PR131_OWNER_WITHOUT_BIOMETRIC_WAS_ACCEPTED"
             exit 1
           fi
-          grep -Fq 'PR131_EXCLUSIVE_OWNER_IDENTITY_NOT_UNIQUE' /tmp/pr131-no-biometric.log
+          grep -Fq 'PR131_EXCLUSIVE_OWNER_BIND_REJECTED' /tmp/pr131-no-biometric.log
           test "$(psql -At -c 'SELECT enabled::text FROM public.global_real_profit_control WHERE singleton_id=1')" = "false"
           echo PR131_OWNER_DUPLICATE_AND_NO_BIOMETRIC_FAIL_CLOSED_PASS_NO_PROD_NO_OTA

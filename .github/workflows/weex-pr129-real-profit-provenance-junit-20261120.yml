@@ -75,6 +75,21 @@ jobs:
           if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/weex-pr128-presign-private.log 2>&1; then
             echo "::error::PR128_PRESIGN_OR_ANDROID_JUNIT_FAILED_NO_APK"
             grep -E 'PR129_FREEZE_GATE_FAILURE_LOG_LINES|PR129_FREEZE_GATE_CAUSE' /tmp/weex-pr128-presign-private.log | tail -20 || true
+            # Read-only sanitized diagnostic categories from the LAST failed
+            # source-verifier steps; never print private source or credentials.
+            python3 - <<'PY'
+            import re
+            from pathlib import Path
+            lines=Path("/tmp/weex-pr128-presign-private.log").read_text(errors="replace").splitlines()
+            selected=[]
+            for raw in lines[-120:]:
+                for token in re.findall(r"\\b(?:WEEX|REAL|PR129|OWNER|PRESIGN|CRYPTO|SIM)_[A-Z0-9_]{5,}\\b",raw):
+                    if any(secret in token for secret in ("TOKEN","SECRET","PASSWORD","API_KEY","LICENSE","WALLET","KEYSTORE")):
+                        continue
+                    if token not in selected:selected.append(token)
+            print("PR129_SAFE_LATE_PRESIGN_MARKERS="+",".join(selected[-45:]))
+            PY
+
             grep -Eo 'WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=[0-9]+|WEEX_PRESIGN_FIRST_FAILURE_LINE=[0-9]+|WEEX_AUDIT_JUNIT_BUILD_FAILED [0-9]+' /tmp/weex-pr128-presign-private.log | tail -8 || true
           # PR128_SAFE_KOTLIN_ERROR_LOCATION_V1:
           # Only public-safe error kind, Kotlin BASENAME, and line number.

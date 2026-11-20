@@ -80,6 +80,18 @@ jobs:
               print("PR130_SAFE_KOTLIN_ERROR="+name+":"+line+":"+kind)
           tokens=re.findall(r'\b(?:PR130|WEEX|REAL|PRESIGN)_[A-Z0-9_]{5,}\b',content[-8000:])
           print("PR130_SAFE_LAST_QA_CODES="+",".join(list(dict.fromkeys(tokens))[-30:]))
+          gradle=[line.split("AUDIT_ANDROID ",1)[1] for line in content.splitlines()
+                  if line.startswith("AUDIT_ANDROID ")]
+          terms=("FAILURE","What went wrong","Could not","Failed","failed",
+                 "Exception","OutOfMemory","Download","Timeout","unavailable",
+                 "Gradle","Kotlin","No space left","Execution failed")
+          selected=[x for x in gradle[-90:] if any(t in x for t in terms)]
+          safe=[]
+          for line in selected[-15:]:
+              line=re.sub(r'/(?:home|tmp|opt|usr)/[^ ]+',"<localpath>",line)
+              line=re.sub(r'https?://[^ ]+',"<url>",line)
+              safe.append(line[-240:])
+          print("PR130_SAFE_ANDROID_GRADLE_TAIL="+" || ".join(safe))
           PY
             exit 1
           fi

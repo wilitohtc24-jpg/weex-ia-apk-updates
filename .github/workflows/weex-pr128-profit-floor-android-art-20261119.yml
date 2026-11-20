@@ -163,7 +163,10 @@ jobs:
         working-directory: source
         run: |
           set -euo pipefail
-          ROOT="app/src/main/java/com/wilito/weexautotrader"
+          # Verify the EXACT post-materializer Android source, not the unpatched checkout.
+          # Step 6 exported this same tree after presign and official Android/JUnit PASS.
+          ROOT="/tmp/weex-pr127-final-verified-art-qa/main/java/com/wilito/weexautotrader"
+          test -s "$ROOT/RealProfitProtectionManager.kt"
           test -f "$ROOT/RealProtectiveOrderWriteGate.kt"
           test -f "$ROOT/RealStopAmendmentJournal.kt"
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealProfitProtectionManager.kt"

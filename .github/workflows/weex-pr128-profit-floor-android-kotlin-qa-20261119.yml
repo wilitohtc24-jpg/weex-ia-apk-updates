@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 81a18c9df8c4b56073d2b26fcabe4ded286d0ca5
+          ref: 673cd39271ebd8d11d863694373a9af4ea8d1f0f
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -37,7 +37,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "81a18c9df8c4b56073d2b26fcabe4ded286d0ca5"
+          test "$(git rev-parse HEAD)" = "673cd39271ebd8d11d863694373a9af4ea8d1f0f"
           test -f app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt
@@ -158,6 +158,18 @@ jobs:
           grep -Fq 'port.freshMarketStopSafe(intended)' "$ROOT/ContinuousNetProfitStopTransaction.kt"
           test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitMarketSafetyPolicyTest.kt
           grep -Fq 'marketMovesAfterPreparedJournalNeverMarksPostStarted' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          # PR128: money-real net profit cannot treat absent signed API
+          # fees or funding as zero, or adopt manual fee rates silently.
+          test -s "$ROOT/ContinuousNetProfitSignedFeeSnapshotPolicy.kt"
+          test -s "$ROOT/ContinuousNetProfitStrictApiRatePolicy.kt"
+          test -s "$ROOT/ContinuousNetProfitVerifiedCostReader.kt"
+          grep -Fq 'PR128_CONTINUOUS_SIGNED_FEE_NOT_MISSING_ZERO_V1' "$ROOT/ContinuousNetProfitSignedFeeSnapshotPolicy.kt"
+          grep -Fq 'PR128_CONTINUOUS_SIGNED_API_EXIT_FEE_STRICT_V1' "$ROOT/ContinuousNetProfitStrictApiRatePolicy.kt"
+          grep -Fq 'PR128_CONTINUOUS_SIGNED_NET_COST_READER_V1' "$ROOT/ContinuousNetProfitVerifiedCostReader.kt"
+          grep -Fq 'signedProfitFeeSnapshot(' "$ROOT/WeexPrivateApi.kt"
+          grep -Fq 'signedApiProfitExitFeeRates(' "$ROOT/WeexPrivateApi.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedFeeSnapshotPolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStrictApiRatePolicyTest.kt
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealAdaptiveProfitManager.kt"
           grep -Fq 'owners[positionId] === Thread.currentThread()' "$ROOT/RealProtectiveOrderWriteGate.kt"

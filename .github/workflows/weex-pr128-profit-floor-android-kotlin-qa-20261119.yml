@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: efdc1190366e0f94cff6ac4add06e9fc52826df8
+          ref: 73770ebb6ea0b9f7dafa5a80fb34db9318634bb3
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -37,7 +37,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "efdc1190366e0f94cff6ac4add06e9fc52826df8"
+          test "$(git rev-parse HEAD)" = "73770ebb6ea0b9f7dafa5a80fb34db9318634bb3"
           test -f app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt
@@ -76,7 +76,7 @@ jobs:
             # Never expose source snippets from the inner materializer logs.
             grep -Eo 'WEEX_RELEASE_ERRTRAP line=[0-9]+ rc=[0-9]+' /tmp/weex-pr128-presign-private.log | tail -5 || true
             # Only predefined SQLite QA stage identifiers, no private sources.
-            grep -Eo 'OWNER_INDEX_VERIFY_STAGE=[A-Z0-9_]+' /tmp/weex-pr128-presign-private.log | tail -12 || true
+            grep -Eo 'OWNER_INDEX_VERIFY_STAGE=[A-Z0-9_]+|OWNER_INDEX_VERIFY_COUNT_V15=[0-9]+' /tmp/weex-pr128-presign-private.log | tail -14 || true
             (grep '^PRESIGN_FAILURE_CONTEXT ' /tmp/weex-pr128-presign-private.log || true) |
               grep -Eo 'ci/[a-zA-Z0-9_-]+\.py' | sort -u | head -12 || true
             # The underlying presign script deliberately emits a small

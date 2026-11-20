@@ -11,18 +11,18 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: weex-pr128-offline-art-b3fa64c5b44a
+  group: weex-pr128-offline-art-35af9111a320
   cancel-in-progress: false
 jobs:
   verify-generated-dex-with-android-art:
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '484ee39e0bb890054aec588fdf83ab0d3ab4048d' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '51c81397f1a07c9c63309e4245b66cad9e101e20' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:
-      PRIVATE_SOURCE_SHA: b3fa64c5b44ac927051c4fbdae6cbc62fb14b84e
+      PRIVATE_SOURCE_SHA: 35af9111a320e64e2e95af3ef4f738fcf82eeb72
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: b3fa64c5b44ac927051c4fbdae6cbc62fb14b84e
+          ref: 35af9111a320e64e2e95af3ef4f738fcf82eeb72
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -204,6 +204,16 @@ jobs:
           test -s "$ROOT/ContinuousNetProfitVerifiedAtrReader.kt"
           grep -Fq 'PR128_CONTINUOUS_PROFIT_CLOSED_CANDLE_ATR_V1' "$ROOT/ContinuousNetProfitVerifiedAtrPolicy.kt"
           grep -Fq 'signedGet(PROFIT_SIGNED_POSITIONS_ENDPOINT)' "$ROOT/WeexPrivateApi.kt"
+          # PR128 REAL staged integration must be owner-OFF by default,
+          # and all three legacy writers must honor future pending journal.
+          test -s "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          test -s "$ROOT/RealContinuousNetProfitActivation.kt"
+          grep -Fq 'PR128_REAL_CYCLE_CONTINUOUS_PROFIT_OPTIONAL_SIGNED_WIRING_V1' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          grep -Fq 'realContinuousNetProfit.maybeManage(' "$ROOT/TraderService.kt"
+          grep -Fq 'PR128_REAL_CONTINUOUS_PROFIT_OWNER_ACTIVATION_V1' "$ROOT/RealContinuousNetProfitActivation.kt"
+          grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealProfitProtectionManager.kt"
+          grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealAdaptiveStopManager.kt"
+          grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealAdaptiveProfitManager.kt"
           grep -Fq 'readCompleteConditionalOrdersForProfitStudy(position.symbol)' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'PendingStopRemotePolicy.classify(pending,signed.orders)' "$ROOT/RealProfitProtectionManager.kt"
           echo PR128_SIGNED_FULL_STOP_JOURNAL_AND_SHARED_WRITER_PRESENT_NO_REAL_ORDERS

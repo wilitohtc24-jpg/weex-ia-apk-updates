@@ -1,0 +1,41 @@
+name: WEEX PR130 global owner protection isolated backend and source QA (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr130-global-profit-source-qa-20261120.yml
+permissions:
+  contents: read
+jobs:
+  private-global-control-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact private PR130 source (read only)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 94b8f78faae8f30dacb599cb30d0d149b43ac103
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Source freeze — exact old entry and STOP engine untouched
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "94b8f78faae8f30dacb599cb30d0d149b43ac103"
+          python3 ci/verify_global_profit_control_pr130_v1.py
+      - name: Node tests — role and multiple users after owner global switch
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          node --check backend/neon/gateway/core.mjs
+          node --test backend/neon/gateway/global-profit-control.test.mjs backend/neon/gateway/core.test.mjs
+          echo PR130_GLOBAL_OWNER_CONTROL_TEST_PASS_NO_APK_NO_OTA_NO_ORDER

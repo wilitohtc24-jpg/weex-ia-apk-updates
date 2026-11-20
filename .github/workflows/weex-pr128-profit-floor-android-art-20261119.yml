@@ -11,18 +11,18 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: weex-pr128-offline-art-c17c43d11638
+  group: weex-pr128-offline-art-d08539ec9847
   cancel-in-progress: false
 jobs:
   verify-generated-dex-with-android-art:
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == 'e703603658402ffaa123149c1afa6d495e2a1561' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '206a8549afbd92a777637e5e9f54f6deed0b4726' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:
-      PRIVATE_SOURCE_SHA: c17c43d116380796c6bab933cad40178f2ac313a
+      PRIVATE_SOURCE_SHA: d08539ec9847063ee67cd9d5b06e4e703801a067
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: c17c43d116380796c6bab933cad40178f2ac313a
+          ref: d08539ec9847063ee67cd9d5b06e4e703801a067
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -218,6 +218,9 @@ jobs:
           grep -Fq 'armFromAuthenticatedOwnerPanel(' "$ROOT/OwnerControlCenterDialog.kt"
           grep -Fq 'if (pending == null && (!activation.ready' "$ROOT/RealContinuousNetProfitCoordinator.kt"
           grep -Fq 'pending.intent,' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          test -s "$ROOT/ContinuousNetProfitRecoveryGate.kt"
+          grep -Fq 'PR128_RECOVER_UNCERTAIN_REAL_STOP_BEFORE_LEGACY_ENTRY_WAIT_V1' "$ROOT/ContinuousNetProfitRecoveryGate.kt"
+          grep -Fq 'ContinuousNetProfitRecoveryGate.permit(' "$ROOT/RealContinuousNetProfitCoordinator.kt"
           test -s ci/build_private_pr128_circleci_once.sh
           grep -Fq 'PR128_CIRCLECI_ONE_PRIVATE_SIGNED_APK_V1' ci/build_private_pr128_circleci_once.sh
           grep -Fq 'PR128_EXACT_ANDROID_JUNIT_AND_ART_GREEN_CONFIRMED' ci/build_private_pr128_circleci_once.sh

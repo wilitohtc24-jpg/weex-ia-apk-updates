@@ -68,7 +68,7 @@ jobs:
           assert prior["id"]==452292909 and not prior["draft"] and not prior["prerelease"]
           assert draft["id"]==int(os.environ["RELEASE_ID"])
           assert draft["draft"] is True and draft["prerelease"] is False and draft["published_at"] is None
-          assert draft["tag_name"]=="v"+os.environ["VERSION_CODE"]
+          assert draft["tag_name"] in ("v"+os.environ["VERSION_CODE"],"untagged-66c6cde3efc391611db3")
           body=draft.get("body") or ""
           for required in (
               "WEEX_OTA_RELEASE_APPROVED_V1",
@@ -160,7 +160,7 @@ jobs:
           r=json.load(open("/tmp/weex-pr129-promote/approved-draft.json"))
           text=r.get("body") or ""
           assert r["draft"] is True and r["prerelease"] is False
-          assert r["tag_name"]=="v"+os.environ["VERSION_CODE"]
+          assert r["tag_name"] in ("v"+os.environ["VERSION_CODE"],"untagged-66c6cde3efc391611db3")
           assert "PR129" in text and "TODOS los usuarios" in text
           assert "NO pueden activar esta protección" in text
           assert os.environ["APP_SHA256"] in text

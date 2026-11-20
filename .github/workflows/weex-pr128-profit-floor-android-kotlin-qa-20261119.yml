@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: b3fa64c5b44ac927051c4fbdae6cbc62fb14b84e
+          ref: 35af9111a320e64e2e95af3ef4f738fcf82eeb72
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -37,7 +37,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "b3fa64c5b44ac927051c4fbdae6cbc62fb14b84e"
+          test "$(git rev-parse HEAD)" = "35af9111a320e64e2e95af3ef4f738fcf82eeb72"
           test -f app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt
@@ -180,6 +180,22 @@ jobs:
           # Historical official V3 safety mutation fixture must remain unique.
           test "$(grep -Fc 'signedGet("/capi/v3/account/position/allPosition")' "$ROOT/WeexPrivateApi.kt")" -eq 1
           grep -Fq 'signedGet(PROFIT_SIGNED_POSITIONS_ENDPOINT)' "$ROOT/WeexPrivateApi.kt"
+          # PR128 REAL connector is present in the normal REAL position
+          # management loop but remains owner-OFF by default, with no API
+          # requests in disabled state. Existing writers must defer only
+          # for a PENDING future STOP of the very SAME position.
+          test -s "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          test -s "$ROOT/RealContinuousNetProfitActivation.kt"
+          test -s "$ROOT/ContinuousNetProfitPendingWriteGuard.kt"
+          grep -Fq 'PR128_REAL_CYCLE_CONTINUOUS_PROFIT_OPTIONAL_SIGNED_WIRING_V1' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          grep -Fq 'realContinuousNetProfit.maybeManage(' "$ROOT/TraderService.kt"
+          grep -Fq 'PR128_REAL_CONTINUOUS_PROFIT_OWNER_ACTIVATION_V1' "$ROOT/RealContinuousNetProfitActivation.kt"
+          grep -Fq 'PR128_ACTIVE_WRITERS_RESPECT_FUTURE_STOP_JOURNAL_V1' "$ROOT/RealProfitProtectionManager.kt"
+          grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealAdaptiveProfitManager.kt"
+          test -s "$ROOT/RealAdaptiveStopManager.kt"
+          grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealAdaptiveStopManager.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealContinuousNetProfitActivationTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitPendingWriteGuardTest.kt
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealAdaptiveProfitManager.kt"
           grep -Fq 'owners[positionId] === Thread.currentThread()' "$ROOT/RealProtectiveOrderWriteGate.kt"

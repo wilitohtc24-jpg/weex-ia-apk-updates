@@ -136,7 +136,7 @@ jobs:
           for type in ("old","new"):
               data=Path("/tmp/weex-pr128-signed-upgrade/"+type+"-signer.txt").read_text()
               matches=re.findall(
-                  r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([a-fA-F0-9:]+)",
+                  r"(?mi)^\s*(?:Signer\s+#\d+|V\d+(?:\.\d+)?\s+Signer)\s*:\?\s*certificate\s+SHA-256\s+digest:\s*([a-fA-F0-9:]+)",
                   data)
               clean={x.replace(":","").lower() for x in matches}
               for line in data.splitlines():

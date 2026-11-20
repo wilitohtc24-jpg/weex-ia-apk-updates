@@ -201,7 +201,7 @@ jobs:
           # do NOT automatically grant authority to sign a STOP write.
           grep -Fq 'PR128_OWNER_APPROVED_REAL_NET_PROFIT_ONLY_V1' "$ROOT/OwnerControlCenterDialog.kt"
           grep -Fq 'armFromAuthenticatedOwnerPanel(' "$ROOT/OwnerControlCenterDialog.kt"
-          grep -Fq 'if (!activation.ready' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          grep -Fq 'if (pending == null && (!activation.ready' "$ROOT/RealContinuousNetProfitCoordinator.kt"
           grep -Fq 'RealContinuousNetProfitActivationStore.current(context)' "$ROOT/RealContinuousNetProfitCoordinator.kt"
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealAdaptiveProfitManager.kt"

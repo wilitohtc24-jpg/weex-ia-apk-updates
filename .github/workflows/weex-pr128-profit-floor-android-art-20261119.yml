@@ -11,18 +11,18 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: weex-pr128-offline-art-35af9111a320
+  group: weex-pr128-offline-art-791c8d7460a0
   cancel-in-progress: false
 jobs:
   verify-generated-dex-with-android-art:
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '51c81397f1a07c9c63309e4245b66cad9e101e20' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == 'de22011958198db1ace0c68eef7bf0e67e9a5abb' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:
-      PRIVATE_SOURCE_SHA: 35af9111a320e64e2e95af3ef4f738fcf82eeb72
+      PRIVATE_SOURCE_SHA: 791c8d7460a00f684b940582f54d8b8593bb44c3
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 35af9111a320e64e2e95af3ef4f738fcf82eeb72
+          ref: 791c8d7460a00f684b940582f54d8b8593bb44c3
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -214,6 +214,9 @@ jobs:
           grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealAdaptiveStopManager.kt"
           grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealAdaptiveProfitManager.kt"
+          grep -Fq 'PR128_OWNER_APPROVED_REAL_NET_PROFIT_ONLY_V1' "$ROOT/OwnerControlCenterDialog.kt"
+          grep -Fq 'armFromAuthenticatedOwnerPanel(' "$ROOT/OwnerControlCenterDialog.kt"
+          grep -Fq 'if (pending == null && (!activation.ready' "$ROOT/RealContinuousNetProfitCoordinator.kt"
           grep -Fq 'readCompleteConditionalOrdersForProfitStudy(position.symbol)' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'PendingStopRemotePolicy.classify(pending,signed.orders)' "$ROOT/RealProfitProtectionManager.kt"
           echo PR128_SIGNED_FULL_STOP_JOURNAL_AND_SHARED_WRITER_PRESENT_NO_REAL_ORDERS

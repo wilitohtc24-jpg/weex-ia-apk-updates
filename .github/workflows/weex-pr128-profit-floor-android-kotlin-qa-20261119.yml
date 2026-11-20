@@ -77,6 +77,26 @@ jobs:
             grep -Eo 'WEEX_RELEASE_ERRTRAP line=[0-9]+ rc=[0-9]+' /tmp/weex-pr128-presign-private.log | tail -5 || true
             # Only predefined SQLite QA stage identifiers, no private sources.
             grep -Eo 'OWNER_INDEX_VERIFY_STAGE=[A-Z0-9_]+|OWNER_INDEX_VERIFY_COUNT_V15=[0-9]+|OWNER_SCANNER_SQLITE_V15_PRESERVE_AND_INDEX_PASS' /tmp/weex-pr128-presign-private.log | tail -17 || true
+            # The SQLite fixture itself printed PASS; next isolate a failing
+            # tee/pipe/filesystem without exposing private paths or source.
+            if grep -Fq 'OWNER_INDEX_VERIFY_STAGE=WITH_CONTEXT_EXITED_OK' /tmp/weex-pr128-presign-private.log; then
+              echo PR128_SQLITE_FIXTURE_REACHED_CLEAN_PYTHON_EXIT
+            fi
+            for candidate in 'tee:' 'No space left on device' 'Broken pipe' 'Permission denied' 'No such file or directory' 'Input/output error' 'FileNotFoundError' 'OSError'; do
+              if grep -Fq "$candidate" /tmp/weex-pr128-presign-private.log; then
+                case "$candidate" in
+                  'tee:') echo PR128_SAFE_ERROR_CATEGORY=TEE_FAILED;;
+                  'No space left on device') echo PR128_SAFE_ERROR_CATEGORY=DISK_FULL;;
+                  'Broken pipe') echo PR128_SAFE_ERROR_CATEGORY=BROKEN_PIPE;;
+                  'Permission denied') echo PR128_SAFE_ERROR_CATEGORY=PERMISSION_DENIED;;
+                  'No such file or directory') echo PR128_SAFE_ERROR_CATEGORY=MISSING_FILE;;
+                  'Input/output error') echo PR128_SAFE_ERROR_CATEGORY=FILESYSTEM_IO;;
+                  'FileNotFoundError') echo PR128_SAFE_ERROR_CATEGORY=FILE_NOT_FOUND;;
+                  'OSError') echo PR128_SAFE_ERROR_CATEGORY=OS_ERROR;;
+                esac
+              fi
+            done
+            echo PR128_CI_DISK_KB_AVAILABLE="$(df -Pk /tmp | tail -1 | awk '{print $4}')"
             (grep '^PRESIGN_FAILURE_CONTEXT ' /tmp/weex-pr128-presign-private.log || true) |
               grep -Eo 'ci/[a-zA-Z0-9_-]+\.py' | sort -u | head -12 || true
             # The underlying presign script deliberately emits a small

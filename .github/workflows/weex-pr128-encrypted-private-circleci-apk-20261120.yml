@@ -1,0 +1,157 @@
+name: WEEX PR128 private signed CircleCI APK audit and encrypted download (NO OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr128-encrypted-private-circleci-apk-20261120.yml
+permissions:
+  contents: read
+jobs:
+  audit-and-encrypt-link:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      RECIPIENT_CERT_DER_BASE64: "MIIEPzCCAqegAwIBAgIUPPHR4JsubQ6BcY8n50ldFlVRhNgwDQYJKoZIhvcNAQELBQAwLzEtMCsGA1UEAwwkV0VFWC1QUjEyOC1Qcml2YXRlLUFydGlmYWN0LVRyYW5zZmVyMB4XDTI2MTEyMDAzMjkzNFoXDTI2MTEyMTAzMjkzNFowLzEtMCsGA1UEAwwkV0VFWC1QUjEyOC1Qcml2YXRlLUFydGlmYWN0LVRyYW5zZmVyMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAwZ3m0OvE+76fhK1gVBY9XNw0LGNEGcAr6GdNiOchnIiZtEd4Ht5gYIkkT7s818XzaRaLlhQusEyJ0VGHmx/0OL2Rzlq7bxdtFANZch9DBtSU+PEWa3g/W52iM+HFiCJlkRuctNxIncAkCrNlAjwl28+U/pDWnxcxyT9IXXZ5gnW3sITXXIAnKoE3mZTMfSxeZPvwDkSBNY59k7w5HBt7QR/qMV0TJ0iBmFj2kDzJUVkSV6GezqabiqT44Lx2PElGB6WleZz+oU/eJ3U+/v0TMsLbJFGsz6jeaaCluN4bM9PT7EcQyIdTjvCQbOq0pWvl01AUAMD0RO5bxX6lw2xOGy/drJZC/4V8tXPSSeyxMH780ovMqee2mFkqZiFZFwbAxg00In6YRhf9brIZaT+C0JJlECHJKkZTKwj5vO2JwUr89x3Gy6cNEfDcnJABxUplZyZCE8FhZm/tSw2IIlGoF/fN6R7Iko7b7ZnZbEXE7KsIrQmuqd4hh02xNCtUBWD5AgMBAAGjUzBRMB0GA1UdDgQWBBQYedYyKngiaeVzxVycjuaqngpdCzAfBgNVHSMEGDAWgBQYedYyKngiaeVzxVycjuaqngpdCzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBgQAoI+U0f589Pl0XUmf3IiIKGSRUGrAIbcuYPxcDkLRjfNosTTDNjgwNjoboThqGPRcLU40EblxQz2ZzDLibqJZ2NB0OaQxcQ6Jyq7xnCw3RWZDWDlcmi7HbO1/yHbBW99hg8BVPT63rmts6SAlhA3gj5MNzy0Vz88bDsa2qbzflwoo+nSXZ9S/r4A/0GIAPOofTXIH+17R8UPBNYEZvSseX/ARxmIygw5Y03f0Cko+yLT63TjtpwtuTV+7yZCYJ0oBd/7bPz+2GCzV4bszSPDbVb57ecxTJwGB1VBzzsTihEmb0aRfiTvIW1ndwshAOpWuMSMaTWUboqQvrMCSikLEj39eBRj/fvGDzo1zhfqjaCpYFqWAdi1UXSSV7FGoDbkkRmjz11/WXStDwO+SWmSh3u8SRkpQZ2u+B5l0ZkJEOgAOhW9y5lRI/9J42dgIsiOt7Wpj6wnp72HkUoz4446DKBjgH6+t/aEEDr8De5uf4FLVDINNgxX4n9VUghEDhUqE="
+      PR128_AUTH_SOURCE_SHA: "UNAUTHORIZED"
+      PR128_GREEN_SOURCE_SHA: "UNAUTHORIZED"
+      PR128_CIRCLE_WORKFLOW_ID: "UNAUTHORIZED"
+      PR128_CIRCLE_JOB_UUID: "UNAUTHORIZED"
+    steps:
+      - name: Audit exact private CircleCI APK and encrypt only its short-lived link
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$PR128_AUTH_SOURCE_SHA" = "UNAUTHORIZED" ]; then
+            echo PR128_PRIVATE_ARTIFACT_TRANSFER_NOT_YET_AUTHORIZED_NO_APK_NO_OTA
+            exit 0
+          fi
+          python3 - <<'PY'
+          import base64,hashlib,json,os,re,subprocess,tempfile,urllib.error,urllib.parse,urllib.request
+          token=os.environ.get("CIRCLECI_READ_TOKEN","")
+          assert token, "PR128_PRIVATE_CIRCLECI_READ_TOKEN_UNAVAILABLE"
+          expected_auth=os.environ["PR128_AUTH_SOURCE_SHA"]
+          green=os.environ["PR128_GREEN_SOURCE_SHA"]
+          wid=os.environ["PR128_CIRCLE_WORKFLOW_ID"]
+          jid=os.environ["PR128_CIRCLE_JOB_UUID"]
+          assert re.fullmatch("[a-f0-9]{40}",expected_auth)
+          assert re.fullmatch("[a-f0-9]{40}",green)
+          for uuid in (wid,jid):
+              assert re.fullmatch("[0-9a-f-]{36}",uuid)
+          circle="https://circleci.com/api/v2"
+          headers={"Circle-Token":token,"Accept":"application/json",
+                   "User-Agent":"weex-pr128-private-signed-apk-audit"}
+          def get(path):
+              req=urllib.request.Request(circle+path,headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as res:
+                  return json.load(res)
+          workflow=get("/workflow/"+wid)
+          assert workflow.get("status")=="success", "PR128_CIRCLECI_WORKFLOW_NOT_GREEN"
+          pipeline=get("/pipeline/"+workflow["pipeline_id"])
+          vcs=pipeline.get("vcs") or {}
+          assert vcs.get("revision")==expected_auth,"PR128_CIRCLECI_WRONG_BUILD_SHA"
+          assert vcs.get("branch")=="repair/weex-continuous-profit-floor-isolated-20261119","PR128_CIRCLECI_WRONG_BRANCH"
+          jobs=get("/workflow/"+wid+"/job").get("items",[])
+          eligible=[j for j in jobs if j.get("id")==jid and
+                    j.get("name")=="pr128_circleci_private_candidate" and
+                    j.get("status")=="success"]
+          assert len(eligible)==1,"PR128_SIGNED_CIRCLECI_JOB_MISSING_OR_NOT_GREEN"
+          job_number=int(eligible[0]["job_number"])
+          print("PR128_PRIVATE_CIRCLECI_JOB_NUMBER="+str(job_number))
+          items=get("/project/gh/wilitohtc24-jpg/weex-auto-trader-android/"+
+                    str(job_number)+"/artifacts").get("items",[])
+          prefix="private-pr128-circleci-candidate/"
+          bypath={a.get("path"):a for a in items}
+          needed=("WEEX-IA-Trader-release.apk","apk-sha256.txt","signing-certificate.txt",
+                  "release.json","candidate-provenance.txt")
+          assert all(prefix+name in bypath for name in needed), "PR128_APK_ARTIFACT_SET_INCOMPLETE"
+          class SafeRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,newurl):
+                  nxt=super().redirect_request(req,fp,code,msg,headers,newurl)
+                  if nxt is not None:
+                      for mapping in (nxt.headers,nxt.unredirected_hdrs):
+                          for k in list(mapping):
+                              if k.lower()=="circle-token": del mapping[k]
+                  return nxt
+          opener=urllib.request.build_opener(SafeRedirect())
+          def artifact(name):
+              url=bypath[prefix+name].get("url","")
+              p=urllib.parse.urlparse(url)
+              assert p.scheme=="https" and (p.hostname or "").lower() in (
+                  "output.circle-artifacts.com","circleci.com"),"PR128_UNTRUSTED_ARTIFACT_HOST"
+              return opener.open(urllib.request.Request(url,headers={
+                  "Circle-Token":token,"User-Agent":"weex-pr128-private-download"
+              }),timeout=120)
+          def small(name,limit=250000):
+              with artifact(name) as response: data=response.read(limit+1)
+              assert len(data)<=limit
+              return data.decode("utf-8")
+          sha=small("apk-sha256.txt").strip().split()[0].lower()
+          assert re.fullmatch("[a-f0-9]{64}",sha),"PR128_APK_SHA_INVALID"
+          provenance=dict(line.split("=",1) for line in small("candidate-provenance.txt").splitlines() if "=" in line)
+          assert provenance.get("source")==expected_auth
+          assert provenance.get("green_source")==green
+          assert provenance.get("private_only")=="true"
+          assert provenance.get("ota_publication")=="false"
+          version=int(provenance["versionCode"])
+          assert 29763173<version<=2100000000,"PR128_OTA_UPGRADE_VERSION_INVALID"
+          release=json.loads(small("release.json"))
+          for k in ("versionCode","version_code"):
+              if k in release: assert int(release[k])==version
+          cert=small("signing-certificate.txt")
+          patterns=(
+              r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*Signer\s+\([^\r\n)]*\)\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*V\d+(?:\.\d+)?\s+Signer:\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$"
+          )
+          digests={x.replace(":","").lower() for p in patterns for x in re.findall(p,cert)}
+          canonical="5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"
+          assert digests=={canonical},"PR128_WRONG_ORIGINAL_APK_SIGNER"
+          h=hashlib.sha256();size=0;first=b""
+          with artifact("WEEX-IA-Trader-release.apk") as response:
+              while True:
+                  block=response.read(1024*1024)
+                  if not block:break
+                  if not first:first=block[:4]
+                  h.update(block);size+=len(block)
+                  assert size<=200*1024*1024,"PR128_APK_TOO_BIG"
+          assert first==b"PK\\x03\\x04","PR128_NOT_AN_APK_ZIP"
+          assert size>10*1024*1024 and h.hexdigest()==sha,"PR128_APK_SHA256_MISMATCH"
+          print("PR128_INDEPENDENT_APK_HASH="+sha)
+          print("PR128_INDEPENDENT_APK_SIZE_BYTES="+str(size))
+          print("PR128_INDEPENDENT_VERSION_CODE="+str(version))
+          print("PR128_CANONICAL_SIGNER_AND_APK_INTEGRITY_PASS_NO_OTA")
+          # Private retrieval: do NOT print an unencrypted CircleCI URL.
+          url=bypath[prefix+"WEEX-IA-Trader-release.apk"]["url"]
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,newurl):
+                  return None
+          try:
+              request=urllib.request.Request(url,headers={
+                 "Circle-Token":token,"User-Agent":"weex-pr128-owner-one-use-apk"})
+              urllib.request.build_opener(NoRedirect()).open(request,timeout=25)
+              raise AssertionError("PR128_EXPECTED_SIGNED_URL_REDIRECT")
+          except urllib.error.HTTPError as e:
+              assert e.code in (301,302,303,307,308)
+              signed=e.headers.get("Location","")
+          target=urllib.parse.urlparse(signed)
+          host=(target.hostname or "").lower()
+          assert target.scheme=="https" and (
+              host.endswith(".amazonaws.com") or
+              host.endswith(".cloudfront.net") or
+              host=="storage.googleapis.com"),"PR128_UNKNOWN_PRIVATE_URL_HOST"
+          assert 100<len(signed)<8192
+          with tempfile.TemporaryDirectory() as tmp:
+              der=os.path.join(tmp,"recipient.der")
+              crt=os.path.join(tmp,"recipient.pem")
+              with open(der,"wb") as f:
+                  f.write(base64.b64decode(os.environ["RECIPIENT_CERT_DER_BASE64"]))
+              subprocess.run(["openssl","x509","-inform","DER","-in",der,"-out",crt],
+                             capture_output=True,check=True)
+              encrypted=subprocess.run(
+                  ["openssl","cms","-encrypt","-aes256","-binary",
+                   "-outform","DER","-recip",crt],
+                  input=signed.encode("utf-8"),check=True,capture_output=True).stdout
+          print("PR128_CMS_ENCRYPTED_PRIVATE_APK_URL="+base64.b64encode(encrypted).decode("ascii"))
+          print("PR128_PRIVATE_SIGNED_APK_SECURE_TRANSFER_PASS_NO_OTA")
+          PY

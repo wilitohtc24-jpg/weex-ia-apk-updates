@@ -11,18 +11,18 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: weex-pr128-offline-art-96a54cbee095
+  group: weex-pr128-offline-art-5faffbf88ee9
   cancel-in-progress: false
 jobs:
   verify-generated-dex-with-android-art:
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == 'a6b0d8080acce0d3fb8c29aee92b62457ad45a7e' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '7773e6c7006d452b7377a9f6760655582ca0df88' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:
-      PRIVATE_SOURCE_SHA: 96a54cbee0952a1e4e8074a7d6c84ada7157f89c
+      PRIVATE_SOURCE_SHA: 5faffbf88ee99d5781da660d1318e944503111f2
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 96a54cbee0952a1e4e8074a7d6c84ada7157f89c
+          ref: 5faffbf88ee99d5781da660d1318e944503111f2
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -186,6 +186,9 @@ jobs:
           grep -Fq 'PR128_CONTINUOUS_STOP_DURABLE_FULL_IDENTITY_V1' "$ROOT/ContinuousNetProfitStopJournal.kt"
           grep -Fq 'fun markRemoteAttemptStartedDurable(' "$ROOT/ContinuousNetProfitStopJournal.kt"
           grep -Fq 'fun clearDurableAfterReconciliation(' "$ROOT/ContinuousNetProfitStopJournal.kt"
+          test -s "$ROOT/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'RealProtectiveOrderWriteGate.heldByCurrentThread(intent.positionId)' "$ROOT/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'fun heldByCurrentThread(positionId: String)' "$ROOT/RealProtectiveOrderWriteGate.kt"
           grep -Fq 'readCompleteConditionalOrdersForProfitStudy(position.symbol)' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'PendingStopRemotePolicy.classify(pending,signed.orders)' "$ROOT/RealProfitProtectionManager.kt"
           echo PR128_SIGNED_FULL_STOP_JOURNAL_AND_SHARED_WRITER_PRESENT_NO_REAL_ORDERS

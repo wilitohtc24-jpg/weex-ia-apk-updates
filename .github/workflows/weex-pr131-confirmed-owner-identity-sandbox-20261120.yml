@@ -60,7 +60,7 @@ jobs:
           import re
           from pathlib import Path
           p=Path('backend/neon/manual/20261120_bind_confirmed_owner_only.sql').read_text()
-          m=re.search(r"WHERE l\\.label = '([^']+)'",p)
+          m=re.search(r"WHERE l\.label = '([^']+)'",p)
           assert m and len(m.group(1)) < 90
           print(m.group(1))
           PY

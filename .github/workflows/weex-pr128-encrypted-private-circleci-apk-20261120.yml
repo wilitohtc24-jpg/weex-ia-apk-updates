@@ -115,7 +115,7 @@ jobs:
                   if not first:first=block[:4]
                   h.update(block);size+=len(block)
                   assert size<=200*1024*1024,"PR128_APK_TOO_BIG"
-          assert first==b"PK\\x03\\x04","PR128_NOT_AN_APK_ZIP"
+          assert first==b"PK\x03\x04","PR128_NOT_AN_APK_ZIP"
           assert size>10*1024*1024 and h.hexdigest()==sha,"PR128_APK_SHA256_MISMATCH"
           print("PR128_INDEPENDENT_APK_HASH="+sha)
           print("PR128_INDEPENDENT_APK_SIZE_BYTES="+str(size))

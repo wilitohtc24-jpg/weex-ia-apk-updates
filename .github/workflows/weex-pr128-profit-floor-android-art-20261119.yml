@@ -11,18 +11,18 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: weex-pr128-offline-art-81a18c9df8c
+  group: weex-pr128-offline-art-673cd39271eb
   cancel-in-progress: false
 jobs:
   verify-generated-dex-with-android-art:
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '37d9eb0f94f1fa1782b21160ccd89adec20e5744' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '6bc0726e660bee9db9770c5a5f13c4acc957fc18' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:
-      PRIVATE_SOURCE_SHA: 81a18c9df8c4b56073d2b26fcabe4ded286d0ca5
+      PRIVATE_SOURCE_SHA: 673cd39271ebd8d11d863694373a9af4ea8d1f0f
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 81a18c9df8c4b56073d2b26fcabe4ded286d0ca5
+          ref: 673cd39271ebd8d11d863694373a9af4ea8d1f0f
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -193,6 +193,13 @@ jobs:
           grep -Fq 'PR128_CONTINUOUS_STOP_FRESH_MARK_AND_BOOK_V1' "$ROOT/ContinuousNetProfitMarketSafetyPolicy.kt"
           grep -Fq 'port.freshMarketStopSafe(intended)' "$ROOT/ContinuousNetProfitStopTransaction.kt"
           grep -Fq 'override fun freshMarketStopSafe(' "$ROOT/ContinuousNetProfitAndroidStopPort.kt"
+          # Require the optional signed API-specific cost reader in the
+          # exact Android source before assembly; OFF in production.
+          test -s "$ROOT/ContinuousNetProfitSignedFeeSnapshotPolicy.kt"
+          test -s "$ROOT/ContinuousNetProfitStrictApiRatePolicy.kt"
+          test -s "$ROOT/ContinuousNetProfitVerifiedCostReader.kt"
+          grep -Fq 'signedApiProfitExitFeeRates(' "$ROOT/WeexPrivateApi.kt"
+          grep -Fq 'PR128_CONTINUOUS_SIGNED_NET_COST_READER_V1' "$ROOT/ContinuousNetProfitVerifiedCostReader.kt"
           grep -Fq 'readCompleteConditionalOrdersForProfitStudy(position.symbol)' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'PendingStopRemotePolicy.classify(pending,signed.orders)' "$ROOT/RealProfitProtectionManager.kt"
           echo PR128_SIGNED_FULL_STOP_JOURNAL_AND_SHARED_WRITER_PRESENT_NO_REAL_ORDERS

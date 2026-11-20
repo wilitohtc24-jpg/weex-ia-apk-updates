@@ -238,6 +238,42 @@ jobs:
 
           @RunWith(AndroidJUnit4::class)
           class ArtDexVerifyTest {
+              private fun qaContinuousIntent() = ContinuousNetProfitStopIntent(
+                  accountScope="qa-offline-opaque-account",
+                  positionId="QA_CONTINUOUS_STOP_JOURNAL_ART_V1",
+                  positionOpenedAtMs=1730000000000L,
+                  entryPrice=589.94, positionQuantity=0.40,
+                  symbol="BNBUSDT",side="SHORT",
+                  stopAlgoId="9871234",takeProfitAlgoId="9871235",
+                  oldStop=606.37,newStop=583.50,confirmedTakeProfit=560.64,
+                  currentPrice=580.0,priceTick=0.01
+              )
+              // PR128: real Android SharedPreferences commit and process restart.
+              // NO credentials, HTTP, signed POST, current trades or OTA.
+              @Test fun durableContinuousStopPhaseCommittedBeforeOfflineRestart() {
+                  val ctx=InstrumentationRegistry.getInstrumentation().targetContext
+                  val journal=ContinuousNetProfitStopJournalStore(ctx)
+                  val intent=qaContinuousIntent()
+                  assertEquals(null,journal.loadPending(intent.positionId))
+                  assertTrue(journal.beginDurable(intent))
+                  assertTrue(journal.markRemoteAttemptStartedDurable(intent))
+                  val saved=journal.loadPending(intent.positionId)
+                  assertEquals(intent,saved?.intent)
+                  assertEquals(true,saved?.remoteAttemptStarted)
+              }
+              @Test fun durableContinuousStopPhaseSurvivesOfflineProcessRestart() {
+                  val ctx=InstrumentationRegistry.getInstrumentation().targetContext
+                  val journal=ContinuousNetProfitStopJournalStore(ctx)
+                  val intent=qaContinuousIntent()
+                  val recovered=journal.loadPending(intent.positionId)
+                  assertEquals(intent,recovered?.intent)
+                  assertEquals(true,recovered?.remoteAttemptStarted)
+                  assertFalse(journal.clearDurableIfNeverSubmitted(intent))
+                  // This is ONLY an offline storage semantics test; production
+                  // transaction requires signed remote proof before this method.
+                  assertTrue(journal.clearDurableAfterReconciliation(intent))
+                  assertEquals(null,journal.loadPending(intent.positionId))
+              }
               @Test fun rejectedWorkerContinuationMustVerifyOnRealAndroidArt() {
                   val loader=InstrumentationRegistry.getInstrumentation().targetContext.classLoader
                   val name="com.wilito.weexautotrader.TraderService\$onCreate\$launchTraderLoop\$workerJob\$1"
@@ -358,6 +394,20 @@ jobs:
             exit 1
           fi
           echo PR126_ANDROID_REAL_SQLITE_CLOSE_DEDUP_AND_CONFLICT_PASS
+          adb shell am instrument -w -r -e class 'com.wilito.weexautotrader.ArtDexVerifyTest#durableContinuousStopPhaseCommittedBeforeOfflineRestart' com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/pr128-continuous-stop-journal-commit-art.txt
+          if ! grep -q 'OK (1 test)' /tmp/pr128-continuous-stop-journal-commit-art.txt; then
+            echo "::error::PR128_CONTINUOUS_STOP_ANDROID_PERSISTENCE_COMMIT_FAILED"
+            grep -E 'INSTRUMENTATION_STATUS:|FAILURES|AssertionError|Exception' /tmp/pr128-continuous-stop-journal-commit-art.txt | tail -30 || true
+            exit 1
+          fi
+          adb shell am force-stop com.wilito.weexautotrader
+          adb shell am instrument -w -r -e class 'com.wilito.weexautotrader.ArtDexVerifyTest#durableContinuousStopPhaseSurvivesOfflineProcessRestart' com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/pr128-continuous-stop-journal-restart-art.txt
+          if ! grep -q 'OK (1 test)' /tmp/pr128-continuous-stop-journal-restart-art.txt; then
+            echo "::error::PR128_CONTINUOUS_STOP_ANDROID_DURABLE_RESTART_FAILED"
+            grep -E 'INSTRUMENTATION_STATUS:|FAILURES|AssertionError|Exception' /tmp/pr128-continuous-stop-journal-restart-art.txt | tail -30 || true
+            exit 1
+          fi
+          echo PR128_ANDROID_CONTINUOUS_STOP_JOURNAL_DURABLE_PHASE_RESTART_PASS_NO_REAL_ORDERS_NO_OTA
           if adb logcat -d -b main -b crash | grep -E 'FATAL EXCEPTION|VerifyError.*TraderService' > /tmp/weex-pr126-art-crash-matches.txt; then
             echo "::error::ANDROID_ART_CRASH_OR_VERIFYERROR_DETECTED"
             head -15 /tmp/weex-pr126-art-crash-matches.txt

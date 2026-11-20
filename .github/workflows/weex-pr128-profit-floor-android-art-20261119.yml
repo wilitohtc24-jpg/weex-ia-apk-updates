@@ -11,18 +11,18 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: weex-pr128-offline-art-b461ee7bacff
+  group: weex-pr128-offline-art-cf74ac54ec29
   cancel-in-progress: false
 jobs:
   verify-generated-dex-with-android-art:
     # No debug build if source/JUnit failed or this was an older source commit.
     # STRICTLY after the exact source's Kotlin/JUnit has passed; never
     # build a debug APK from a failing branch or a different PR SHA.
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == 'b78ef38d35da3b2a21035162f85ce7d60e5dcdf6' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '0b6b79895867ae17fa550b73ade8de58adcbf16f' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     env:
-      PRIVATE_SOURCE_SHA: b461ee7bacffb9f32c3dbb9264584f18c3fc357a
+      PRIVATE_SOURCE_SHA: cf74ac54ec29e8205c63ed0ec4d899b89c92356b
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: b461ee7bacffb9f32c3dbb9264584f18c3fc357a
+          ref: cf74ac54ec29e8205c63ed0ec4d899b89c92356b
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source

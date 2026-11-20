@@ -78,17 +78,17 @@ jobs:
             # Read-only sanitized diagnostic categories from the LAST failed
             # source-verifier steps; never print private source or credentials.
             python3 - <<'PY'
-            import re
-            from pathlib import Path
-            lines=Path("/tmp/weex-pr128-presign-private.log").read_text(errors="replace").splitlines()
-            selected=[]
-            for raw in lines[-120:]:
-                for token in re.findall(r"\\b(?:WEEX|REAL|PR129|OWNER|PRESIGN|CRYPTO|SIM)_[A-Z0-9_]{5,}\\b",raw):
-                    if any(secret in token for secret in ("TOKEN","SECRET","PASSWORD","API_KEY","LICENSE","WALLET","KEYSTORE")):
-                        continue
-                    if token not in selected:selected.append(token)
-            print("PR129_SAFE_LATE_PRESIGN_MARKERS="+",".join(selected[-45:]))
-            PY
+          import re
+          from pathlib import Path
+          lines=Path("/tmp/weex-pr128-presign-private.log").read_text(errors="replace").splitlines()
+          selected=[]
+          for raw in lines[-120:]:
+              for token in re.findall(r"\b(?:WEEX|REAL|PR129|OWNER|PRESIGN|CRYPTO|SIM)_[A-Z0-9_]{5,}\b",raw):
+                  if any(secret in token for secret in ("TOKEN","SECRET","PASSWORD","API_KEY","LICENSE","WALLET","KEYSTORE")):
+                      continue
+                  if token not in selected:selected.append(token)
+          print("PR129_SAFE_LATE_PRESIGN_MARKERS="+",".join(selected[-45:]))
+          PY
 
             grep -Eo 'WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=[0-9]+|WEEX_PRESIGN_FIRST_FAILURE_LINE=[0-9]+|WEEX_AUDIT_JUNIT_BUILD_FAILED [0-9]+' /tmp/weex-pr128-presign-private.log | tail -8 || true
           # PR128_SAFE_KOTLIN_ERROR_LOCATION_V1:

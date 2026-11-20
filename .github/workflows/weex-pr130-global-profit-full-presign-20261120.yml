@@ -43,6 +43,12 @@ jobs:
               if re.search(r'\b(?:WEEX|PR129|PR130|REAL|OWNER|PRESIGN|CRYPTO)_[A-Z0-9_]{5,}\b',line):
                   keep.extend(re.findall(r'\b(?:WEEX|PR129|PR130|REAL|OWNER|PRESIGN|CRYPTO)_[A-Z0-9_]{5,}\b',line))
           print('PR130_SOURCE_ONLY_DIAGNOSTIC_CODES='+','.join(list(dict.fromkeys(keep))[-45:]))
+          numbers=[m.group(1) for line in ls for m in
+            [re.search(r'WEEX_PRESIGN_FIRST_FAILURE_LINE=([0-9]+)',line)] if m]
+          print('PR130_FIRST_FAILURE_RUNNER_LINES='+','.join(numbers[-3:]))
+          names=[x for line in ls[-100:] for x in
+                 re.findall(r'ci/[A-Za-z0-9_-]+\\.py',line)]
+          print('PR130_LAST_SAFE_PYTHON_FILES='+','.join(list(dict.fromkeys(names))[-12:]))
           print('PR130_PRESIGN_SAFE_EXCEPTION_TYPES='+','.join(list(dict.fromkeys(
               re.findall(r'\b(?:AssertionError|ValueError|TypeError|FileNotFoundError|SyntaxError)\b',
               '\n'.join(ls[-60:]))))))

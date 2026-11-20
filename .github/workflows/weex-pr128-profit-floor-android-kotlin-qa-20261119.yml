@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 673cd39271ebd8d11d863694373a9af4ea8d1f0f
+          ref: b3fa64c5b44ac927051c4fbdae6cbc62fb14b84e
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -37,7 +37,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "673cd39271ebd8d11d863694373a9af4ea8d1f0f"
+          test "$(git rev-parse HEAD)" = "b3fa64c5b44ac927051c4fbdae6cbc62fb14b84e"
           test -f app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt
@@ -170,6 +170,16 @@ jobs:
           grep -Fq 'signedApiProfitExitFeeRates(' "$ROOT/WeexPrivateApi.kt"
           test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedFeeSnapshotPolicyTest.kt
           test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStrictApiRatePolicyTest.kt
+          # PR128: ATR evidence must be closed candles of the actual
+          # position timeframe. No stale/incomplete public cache qualifies.
+          test -s "$ROOT/ContinuousNetProfitVerifiedAtrPolicy.kt"
+          test -s "$ROOT/ContinuousNetProfitVerifiedAtrReader.kt"
+          grep -Fq 'PR128_CONTINUOUS_PROFIT_CLOSED_CANDLE_ATR_V1' "$ROOT/ContinuousNetProfitVerifiedAtrPolicy.kt"
+          grep -Fq 'PR128_CONTINUOUS_EXCHANGE_CLOSED_ATR_READER_V1' "$ROOT/ContinuousNetProfitVerifiedAtrReader.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitVerifiedAtrPolicyTest.kt
+          # Historical official V3 safety mutation fixture must remain unique.
+          test "$(grep -Fc 'signedGet("/capi/v3/account/position/allPosition")' "$ROOT/WeexPrivateApi.kt")" -eq 1
+          grep -Fq 'signedGet(PROFIT_SIGNED_POSITIONS_ENDPOINT)' "$ROOT/WeexPrivateApi.kt"
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealAdaptiveProfitManager.kt"
           grep -Fq 'owners[positionId] === Thread.currentThread()' "$ROOT/RealProtectiveOrderWriteGate.kt"

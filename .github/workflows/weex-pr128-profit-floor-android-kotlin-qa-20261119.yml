@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: dc3fd5ad79ad4e839bee00d8f77041dbd507f5ac
+          ref: f2111be4640d77220ec086122f31589dc9884944
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -37,7 +37,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "dc3fd5ad79ad4e839bee00d8f77041dbd507f5ac"
+          test "$(git rev-parse HEAD)" = "f2111be4640d77220ec086122f31589dc9884944"
           test -f app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt

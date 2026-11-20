@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: d37d3ae34c81e2fccb6809d3d58d1261b736b1f6
+          ref: 05e77c6c435325e1aca20a98e04569e8cd2ab5de
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -37,7 +37,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "d37d3ae34c81e2fccb6809d3d58d1261b736b1f6"
+          test "$(git rev-parse HEAD)" = "05e77c6c435325e1aca20a98e04569e8cd2ab5de"
           test -f app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt
@@ -124,6 +124,15 @@ jobs:
           test -s "$ROOT/RealProfitProtectionManager.kt"
           test -s "$ROOT/RealAdaptiveProfitManager.kt"
           test -s "$ROOT/RealProtectiveOrderWriteGate.kt"
+          # PR128: future STOP transaction joins ALL existing STOP/TP writers
+          # through the SAME per-position lease. Never globally serialize
+          # separate symbols/positions behind signed network roundtrips.
+          test -s "$ROOT/ContinuousNetProfitStopTransaction.kt"
+          grep -Fq 'PR128_CONTINUOUS_STOP_JOIN_EXISTING_POSITION_LEASE_V1' "$ROOT/ContinuousNetProfitStopTransaction.kt"
+          grep -Fq 'withLeaseOrNull(intended.positionId)' "$ROOT/ContinuousNetProfitStopTransaction.kt"
+          ! grep -Fq 'WRITER_MUTEX' "$ROOT/ContinuousNetProfitStopTransaction.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          grep -Fq 'unrelatedPositionCanProgressWhileAnotherHasStopLease' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealProfitProtectionManager.kt"
           grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealAdaptiveProfitManager.kt"
           grep -Fq 'owners[positionId] === Thread.currentThread()' "$ROOT/RealProtectiveOrderWriteGate.kt"

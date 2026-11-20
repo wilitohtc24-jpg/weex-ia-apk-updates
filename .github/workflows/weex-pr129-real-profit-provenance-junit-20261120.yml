@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: b0456b22c5252ddf0085739fdbfddad850902d20
+          ref: b2d341a8da51f697c95b37cd5f9a773c0f0ae912
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -37,7 +37,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "b0456b22c5252ddf0085739fdbfddad850902d20"
+          test "$(git rev-parse HEAD)" = "b2d341a8da51f697c95b37cd5f9a773c0f0ae912"
           # PR129: restore durable verified opening order identity on ALL
           # accepted/recovered REAL entry paths, with no new live POST.
           python3 ci/test_real_profit_receipt_binding_pr129_v1.py
@@ -74,7 +74,7 @@ jobs:
           # compilation and the full official JUnit suite. Never create APK.
           if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/weex-pr128-presign-private.log 2>&1; then
             echo "::error::PR128_PRESIGN_OR_ANDROID_JUNIT_FAILED_NO_APK"
-            grep -E 'PR129_FREEZE_GATE_FAILURE_LOG_LINES|PR129_FREEZE_GATE_CAUSE' /tmp/weex-pr128-presign-private.log | tail -20 || true
+            grep -E 'PR129_FREEZE_GATE_FAILURE_LOG_LINES|PR129_FREEZE_GATE_CAUSE|PR129_REPLAY_LATE_EVENT' /tmp/weex-pr128-presign-private.log | tail -30 || true
             # Read-only sanitized diagnostic categories from the LAST failed
             # source-verifier steps; never print private source or credentials.
             python3 - <<'PY'

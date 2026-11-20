@@ -1,0 +1,263 @@
+# Offline Android presign & Kotlin/JUnit QA of an EXACT private PR128 commit.
+# READ-ONLY source token; no signing, no APK, no WEEX private API and no OTA.
+name: WEEX PR129 REAL profit provenance Android JUnit (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr129-real-profit-provenance-junit-20261120.yml
+permissions:
+  contents: read
+jobs:
+  kotlin-junit-pr128:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact private PR129 (read-only source access)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 97fdc67cb4aff0b6faf6457b62a3dde30008d955
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Materialize full final Android source and run official Gradle JUnit
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr128-profit-floor-final-android
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "97fdc67cb4aff0b6faf6457b62a3dde30008d955"
+          # PR129: restore durable verified opening order identity on ALL
+          # accepted/recovered REAL entry paths, with no new live POST.
+          python3 ci/test_real_profit_receipt_binding_pr129_v1.py
+          test -f app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
+          test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt
+          echo WEEX_PR128_EXACT_PRIVATE_SOURCE_FETCHED_NO_ORDERS
+          SDK="$ANDROID_SDK_ROOT"
+          if [ -z "$SDK" ]; then SDK="$ANDROID_HOME"; fi
+          if [ -z "$SDK" ]; then SDK=/usr/local/lib/android/sdk; fi
+          test -d "$SDK"
+          export ANDROID_HOME="$SDK" ANDROID_SDK_ROOT="$SDK"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          KOTLIN_ZIP=/tmp/kotlin-compiler-2.2.21.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o "$KOTLIN_ZIP"
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 "$KOTLIN_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o "$KOTLIN_ZIP" -d "$HOME/.local"
+          export PATH="$HOME/.local/kotlinc/bin:$PATH"
+          GRADLE_ZIP=/tmp/gradle-8.10.2-bin.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o "$GRADLE_ZIP"
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 "$GRADLE_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o "$GRADLE_ZIP" -d "$HOME/.gradle-dist"
+          export PATH="$HOME/.gradle-dist/gradle-8.10.2/bin:$PATH"
+          export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false"
+          command -v kotlinc >/dev/null
+          command -v gradle >/dev/null
+          # The historical canonical presign replay performs Android Gradle
+          # compilation and the full official JUnit suite. Never create APK.
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/weex-pr128-presign-private.log 2>&1; then
+            echo "::error::PR128_PRESIGN_OR_ANDROID_JUNIT_FAILED_NO_APK"
+            grep -Eo 'WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=[0-9]+|WEEX_PRESIGN_FIRST_FAILURE_LINE=[0-9]+|WEEX_AUDIT_JUNIT_BUILD_FAILED [0-9]+' /tmp/weex-pr128-presign-private.log | tail -8 || true
+          # PR128_SAFE_KOTLIN_ERROR_LOCATION_V1:
+          # Only public-safe error kind, Kotlin BASENAME, and line number.
+          # Never print signed data, source snippets, files' content or keys.
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          p=Path("/tmp/weex-pr128-presign-private.log")
+          data=p.read_text(encoding="utf-8",errors="replace").splitlines()
+          errors=[x.split("WEEX_AUDIT_KOTLIN_FIRST_ERROR:",1)[1].strip()
+                  for x in data if "WEEX_AUDIT_KOTLIN_FIRST_ERROR:" in x]
+          kinds=("UNRESOLVED REFERENCE","TYPE MISMATCH","NO VALUE PASSED",
+                 "TOO MANY ARGUMENTS","ARGUMENT TYPE MISMATCH",
+                 "NONE OF THE FOLLOWING","OVERLOAD RESOLUTION AMBIGUITY",
+                 "SUSPENSION FUNCTIONS","RETURNS ARE NOT ALLOWED",
+                 "EXPECTING","CONFLICTING OVERLOADS","CANNOT ACCESS",
+                 "VAL CANNOT BE REASSIGNED","INFERENCE FAILED")
+          for index, e in enumerate(errors[:8],1):
+              m=re.search(r'([A-Za-z][A-Za-z0-9_]{0,80}\.kt):\s*\(?(\d{1,6})',e)
+              if m is None:
+                  m=re.search(r'([A-Za-z][A-Za-z0-9_]{0,80}\.kt)\s*\((\d{1,6})',e)
+              name=m.group(1) if m else "UNKNOWN_KOTLIN_FILE"
+              line=m.group(2) if m else "0"
+              upper=e.upper()
+              kind=next((k.replace(" ","_") for k in kinds if k in upper),"OTHER_KOTLIN_ERROR")
+              print(f"PR128_SAFE_KOTLIN_{index}_LOCATION={name}:{line}:{kind}",flush=True)
+          PY
+            # The canonical ERR trap records only line number and exit code.
+            # Never expose source snippets from the inner materializer logs.
+            grep -Eo 'WEEX_RELEASE_ERRTRAP line=[0-9]+ rc=[0-9]+' /tmp/weex-pr128-presign-private.log | tail -5 || true
+            # Only predefined SQLite QA stage identifiers, no private sources.
+            grep -Eo 'OWNER_INDEX_VERIFY_STAGE=[A-Z0-9_]+|OWNER_INDEX_VERIFY_COUNT_V15=[0-9]+|OWNER_SCANNER_SQLITE_V15_PRESERVE_AND_INDEX_PASS' /tmp/weex-pr128-presign-private.log | tail -17 || true
+            # The SQLite fixture itself printed PASS; next isolate a failing
+            # tee/pipe/filesystem without exposing private paths or source.
+            if grep -Fq 'OWNER_INDEX_VERIFY_STAGE=WITH_CONTEXT_EXITED_OK' /tmp/weex-pr128-presign-private.log; then
+              echo PR128_SQLITE_FIXTURE_REACHED_CLEAN_PYTHON_EXIT
+            fi
+            for candidate in 'tee:' 'No space left on device' 'Broken pipe' 'Permission denied' 'No such file or directory' 'Input/output error' 'FileNotFoundError' 'OSError'; do
+              if grep -Fq "$candidate" /tmp/weex-pr128-presign-private.log; then
+                case "$candidate" in
+                  'tee:') echo PR128_SAFE_ERROR_CATEGORY=TEE_FAILED;;
+                  'No space left on device') echo PR128_SAFE_ERROR_CATEGORY=DISK_FULL;;
+                  'Broken pipe') echo PR128_SAFE_ERROR_CATEGORY=BROKEN_PIPE;;
+                  'Permission denied') echo PR128_SAFE_ERROR_CATEGORY=PERMISSION_DENIED;;
+                  'No such file or directory') echo PR128_SAFE_ERROR_CATEGORY=MISSING_FILE;;
+                  'Input/output error') echo PR128_SAFE_ERROR_CATEGORY=FILESYSTEM_IO;;
+                  'FileNotFoundError') echo PR128_SAFE_ERROR_CATEGORY=FILE_NOT_FOUND;;
+                  'OSError') echo PR128_SAFE_ERROR_CATEGORY=OS_ERROR;;
+                esac
+              fi
+            done
+            echo PR128_CI_DISK_KB_AVAILABLE="$(df -Pk /tmp | tail -1 | awk '{print $4}')"
+            (grep '^PRESIGN_FAILURE_CONTEXT ' /tmp/weex-pr128-presign-private.log || true) |
+              grep -Eo 'ci/[a-zA-Z0-9_-]+\.py' | sort -u | head -12 || true
+            # The underlying presign script deliberately emits a small
+            # first-error window. Emit ONLY safe uppercase diagnostic codes
+            # and numeric lines, not private source lines/values/secrets.
+            # Only uppercase CI gate identifiers; never print source snippets.
+            (grep '^PRESIGN_FAILURE_CONTEXT ' /tmp/weex-pr128-presign-private.log || true) |
+              grep -Eo 'WEEX_[A-Z0-9_]{4,72}|[A-Z][A-Z0-9_]{5,72}' |
+              sort -u | head -18 || true
+            for cause in WEEX_PREFLIGHT_BLOCKED WEEX_RELEASE_ERRTRAP AssertionError FileNotFoundError ValueError KeyError ImportError TypeError SyntaxError PermissionError; do
+              if grep -Fq "$cause" /tmp/weex-pr128-presign-private.log; then
+                echo PR128_SAFE_ERROR_CATEGORY="$cause"
+              fi
+            done
+            for reason in 'Unresolved reference' 'Type mismatch' 'Compilation error' 'Could not resolve' 'Could not download' 'There were failing tests' 'No space left on device' 'OutOfMemoryError'; do
+              if grep -Fqi "$reason" /tmp/weex-pr128-presign-private.log; then
+                echo "::notice::PR128_QA_DIAGNOSTIC_CATEGORY_RECORDED"
+              fi
+            done
+            exit 1
+          fi
+          grep -q 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/weex-pr128-presign-private.log
+          grep -q 'WEEX_AUDIT_JUNIT_PASS' /tmp/weex-pr128-presign-private.log
+          ROOT="$WEEX_ART_QA_EXPORT_DIR/main/java/com/wilito/weexautotrader"
+          test -s "$ROOT/RealProfitProtectionManager.kt"
+          test -s "$ROOT/RealAdaptiveProfitManager.kt"
+          test -s "$ROOT/RealProtectiveOrderWriteGate.kt"
+          # PR128: future STOP transaction joins ALL existing STOP/TP writers
+          # through the SAME per-position lease. Never globally serialize
+          # separate symbols/positions behind signed network roundtrips.
+          test -s "$ROOT/ContinuousNetProfitStopTransaction.kt"
+          grep -Fq 'PR128_CONTINUOUS_STOP_JOIN_EXISTING_POSITION_LEASE_V1' "$ROOT/ContinuousNetProfitStopTransaction.kt"
+          grep -Fq 'withLeaseOrNull(intended.positionId)' "$ROOT/ContinuousNetProfitStopTransaction.kt"
+          ! grep -Fq 'WRITER_MUTEX' "$ROOT/ContinuousNetProfitStopTransaction.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          grep -Fq 'unrelatedPositionCanProgressWhileAnotherHasStopLease' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          # Crash-durable full account/position/size/algo/TP journal for the
+          # FUTURE adapter, isolated from the active legacy STOP journal.
+          test -s "$ROOT/ContinuousNetProfitStopJournal.kt"
+          grep -Fq 'PR128_CONTINUOUS_STOP_DURABLE_FULL_IDENTITY_V1' "$ROOT/ContinuousNetProfitStopJournal.kt"
+          grep -Fq 'fun markRemoteAttemptStartedDurable(' "$ROOT/ContinuousNetProfitStopJournal.kt"
+          grep -Fq 'fun clearDurableIfNeverSubmitted(' "$ROOT/ContinuousNetProfitStopJournal.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopJournalCodecTest.kt
+          grep -Fq 'changedPayloadCannotKeepPreviousChecksumValid' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopJournalCodecTest.kt
+          # Future WEEX adapter must not place a STOP unless the exact
+          # position's same-thread STOP/TP lease is held. All inactive in
+          # production; review all signed mutations before future rollout.
+          test -s "$ROOT/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'PR128_CONTINUOUS_PROFIT_ANDROID_SIGNED_STOP_ADAPTER_V1' "$ROOT/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'RealProtectiveOrderWriteGate.heldByCurrentThread(intent.positionId)' "$ROOT/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'if (!leased(intent)) return false' "$ROOT/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'fun heldByCurrentThread(positionId: String)' "$ROOT/RealProtectiveOrderWriteGate.kt"
+          grep -Fq 'futureSignedAdapterSeesOnlyOwnThreadPositionLease' app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
+          # PR128 market freshness guards: MARK_PRICE triggers must not use
+          # stale chart price or an executable bid/ask on the wrong side.
+          test -s "$ROOT/ContinuousNetProfitMarketSafetyPolicy.kt"
+          grep -Fq 'PR128_CONTINUOUS_STOP_FRESH_MARK_AND_BOOK_V1' "$ROOT/ContinuousNetProfitMarketSafetyPolicy.kt"
+          grep -Fq 'override fun freshMarketStopSafe(' "$ROOT/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'port.freshMarketStopSafe(intended)' "$ROOT/ContinuousNetProfitStopTransaction.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitMarketSafetyPolicyTest.kt
+          grep -Fq 'marketMovesAfterPreparedJournalNeverMarksPostStarted' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          # PR128: money-real net profit cannot treat absent signed API
+          # fees or funding as zero, or adopt manual fee rates silently.
+          test -s "$ROOT/ContinuousNetProfitSignedFeeSnapshotPolicy.kt"
+          test -s "$ROOT/ContinuousNetProfitStrictApiRatePolicy.kt"
+          test -s "$ROOT/ContinuousNetProfitVerifiedCostReader.kt"
+          grep -Fq 'PR128_CONTINUOUS_SIGNED_FEE_NOT_MISSING_ZERO_V1' "$ROOT/ContinuousNetProfitSignedFeeSnapshotPolicy.kt"
+          grep -Fq 'PR128_CONTINUOUS_SIGNED_API_EXIT_FEE_STRICT_V1' "$ROOT/ContinuousNetProfitStrictApiRatePolicy.kt"
+          grep -Fq 'PR128_CONTINUOUS_SIGNED_NET_COST_READER_V1' "$ROOT/ContinuousNetProfitVerifiedCostReader.kt"
+          grep -Fq 'signedProfitFeeSnapshot(' "$ROOT/WeexPrivateApi.kt"
+          grep -Fq 'signedApiProfitExitFeeRates(' "$ROOT/WeexPrivateApi.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedFeeSnapshotPolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStrictApiRatePolicyTest.kt
+          # PR128: ATR evidence must be closed candles of the actual
+          # position timeframe. No stale/incomplete public cache qualifies.
+          test -s "$ROOT/ContinuousNetProfitVerifiedAtrPolicy.kt"
+          test -s "$ROOT/ContinuousNetProfitVerifiedAtrReader.kt"
+          grep -Fq 'PR128_CONTINUOUS_PROFIT_CLOSED_CANDLE_ATR_V1' "$ROOT/ContinuousNetProfitVerifiedAtrPolicy.kt"
+          grep -Fq 'PR128_CONTINUOUS_EXCHANGE_CLOSED_ATR_READER_V1' "$ROOT/ContinuousNetProfitVerifiedAtrReader.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitVerifiedAtrPolicyTest.kt
+          # Historical official V3 safety mutation fixture must remain unique.
+          test "$(grep -Fc 'signedGet("/capi/v3/account/position/allPosition")' "$ROOT/WeexPrivateApi.kt")" -eq 1
+          grep -Fq 'signedGet(PROFIT_SIGNED_POSITIONS_ENDPOINT)' "$ROOT/WeexPrivateApi.kt"
+          # PR128 REAL connector is present in the normal REAL position
+          # management loop but remains owner-OFF by default, with no API
+          # requests in disabled state. Existing writers must defer only
+          # for a PENDING future STOP of the very SAME position.
+          test -s "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          test -s "$ROOT/RealContinuousNetProfitActivation.kt"
+          test -s "$ROOT/ContinuousNetProfitPendingWriteGuard.kt"
+          grep -Fq 'PR128_REAL_CYCLE_CONTINUOUS_PROFIT_OPTIONAL_SIGNED_WIRING_V1' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          grep -Fq 'realContinuousNetProfit.maybeManage(' "$ROOT/TraderService.kt"
+          grep -Fq 'PR128_REAL_CONTINUOUS_PROFIT_OWNER_ACTIVATION_V1' "$ROOT/RealContinuousNetProfitActivation.kt"
+          grep -Fq 'PR128_ACTIVE_WRITERS_RESPECT_FUTURE_STOP_JOURNAL_V1' "$ROOT/RealProfitProtectionManager.kt"
+          grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealAdaptiveProfitManager.kt"
+          test -s "$ROOT/RealAdaptiveStopManager.kt"
+          grep -Fq 'ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(' "$ROOT/RealAdaptiveStopManager.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealContinuousNetProfitActivationTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitPendingWriteGuardTest.kt
+          # Owner-only fresh server session and strong-biometric panel controls
+          # new REAL STOP feature activation; existing public Premium licenses
+          # do NOT automatically grant authority to sign a STOP write.
+          grep -Fq 'PR128_OWNER_APPROVED_REAL_NET_PROFIT_ONLY_V1' "$ROOT/OwnerControlCenterDialog.kt"
+          grep -Fq 'armFromAuthenticatedOwnerPanel(' "$ROOT/OwnerControlCenterDialog.kt"
+          grep -Fq 'if (pending == null && (!activation.ready' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          grep -Fq 'RealContinuousNetProfitActivationStore.current(context)' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          # The durable journal load returns a RECORD; the remote
+          # transaction MUST receive only its signed, exact intent.
+          grep -Fq 'pending.intent,' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          # PR128 regression: an entry-WAIT from legacy SL never traps a
+          # durable uncertain STOP forever. No new optional write is
+          # authorized by this recovery priority.
+          test -s "$ROOT/ContinuousNetProfitRecoveryGate.kt"
+          grep -Fq 'PR128_RECOVER_UNCERTAIN_REAL_STOP_BEFORE_LEGACY_ENTRY_WAIT_V1' "$ROOT/ContinuousNetProfitRecoveryGate.kt"
+          grep -Fq 'ContinuousNetProfitRecoveryGate.permit(' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitRecoveryGateTest.kt
+          grep -Fq 'pendingLegacyCloseAlwaysTakesPriority' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitRecoveryGateTest.kt
+          # PR128 signed private APK builder must retain the exact original
+          # signing authority; source verifier itself rejects mutated branch
+          # scopes, missing owner approval, signer skips and OTA publishing.
+          test -s ci/build_private_pr128_circleci_once.sh
+          grep -Fq 'PR128_CIRCLECI_ONE_PRIVATE_SIGNED_APK_V1' ci/build_private_pr128_circleci_once.sh
+          grep -Fq 'PR128_EXACT_ANDROID_JUNIT_AND_ART_GREEN_CONFIRMED' ci/build_private_pr128_circleci_once.sh
+          test -s ci/test_manual_build_only_final_tail_v1.py
+          grep -Fq 'PR128_PRIVATE_SIGNER_BYPASS_MUST_FAIL' ci/test_manual_build_only_final_tail_v1.py
+          grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealProfitProtectionManager.kt"
+          grep -Fq 'RealProtectiveOrderWriteGate.tryEnter(position.id)' "$ROOT/RealAdaptiveProfitManager.kt"
+          grep -Fq 'owners[positionId] === Thread.currentThread()' "$ROOT/RealProtectiveOrderWriteGate.kt"
+          grep -Fq 'val lastAttempt=prefs.getLong(attemptKey(position.id),0L)' "$ROOT/RealProfitProtectionManager.kt"
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
+          # Source-level regression must also survive the canonical
+          # materialization: otherwise the final APK would still lose
+          # its order-ID/SL/TP binding.
+          python3 ci/test_real_profit_receipt_binding_pr129_v1.py
+          echo PR129_SIGNED_PROVENANCE_FINAL_ANDROID_JUNIT_PASS_NO_APK_NO_ORDERS_NO_OTA

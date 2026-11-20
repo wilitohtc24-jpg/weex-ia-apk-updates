@@ -1,0 +1,78 @@
+name: WEEX PR128 CircleCI one private signed APK status (READ ONLY NO OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr128-circleci-private-signed-status-20261120.yml
+permissions:
+  contents: read
+jobs:
+  check-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      REQUESTED_SHA: 72bbd8cf185d1f33fca33188e1c3c721b5aa2743
+    steps:
+      - name: Read exact private build state and artifact names without exposing credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,urllib.request,urllib.parse,urllib.error
+          token=os.environ.get("CIRCLECI_READ_TOKEN","")
+          if not token:
+              print("PR128_CIRCLECI_STATUS_READ_SECRET_UNAVAILABLE")
+              raise SystemExit(0)
+          base="https://circleci.com/api/v2"
+          headers={
+              "Circle-Token":token,
+              "Accept":"application/json",
+              "User-Agent":"weex-pr128-readonly-private-build-status"
+          }
+          def read(path):
+              with urllib.request.urlopen(urllib.request.Request(
+                  base+path,headers=headers
+              ),timeout=24) as response:
+                  return json.load(response)
+          branch="repair/weex-continuous-profit-floor-isolated-20261119"
+          project="/project/gh/wilitohtc24-jpg/weex-auto-trader-android"
+          pipelines=read(project+"/pipeline?"+urllib.parse.urlencode({"branch":branch}))
+          matches=[p for p in pipelines.get("items",[])
+                   if (p.get("vcs") or {}).get("revision")==os.environ["REQUESTED_SHA"]]
+          print("PR128_CIRCLECI_MATCHING_PIPELINE_COUNT="+str(len(matches)))
+          if not matches:
+              print("PR128_PRIVATE_BUILD_NOT_FOUND")
+              raise SystemExit(0)
+          for pipeline in matches[:2]:
+              print("PR128_PRIVATE_PIPELINE_NUMBER="+str(pipeline.get("number","")))
+              print("PR128_PRIVATE_PIPELINE_STATE="+str(pipeline.get("state","unknown")))
+              workflows=read("/pipeline/"+pipeline["id"]+"/workflow").get("items",[])
+              for workflow in workflows:
+                  if workflow.get("name")!="pr128_circleci_one_private":continue
+                  print("PR128_PRIVATE_CIRCLE_WORKFLOW_ID="+workflow["id"])
+                  print("PR128_PRIVATE_CIRCLE_WORKFLOW_STATUS="+str(workflow.get("status")))
+                  jobs=read("/workflow/"+workflow["id"]+"/job").get("items",[])
+                  for job in jobs:
+                      if job.get("name")!="pr128_circleci_private_candidate":continue
+                      number=job.get("job_number")
+                      print("PR128_PRIVATE_JOB_UUID="+str(job.get("id","")))
+                      print("PR128_PRIVATE_JOB_NUMBER="+str(number))
+                      print("PR128_PRIVATE_JOB_STATUS="+str(job.get("status")))
+                      if number is None:continue
+                      assets=read(project+"/"+str(number)+"/artifacts").get("items",[])
+                      paths=[str(a.get("path","")) for a in assets]
+                      required=(
+                          "private-pr128-circleci-candidate/WEEX-IA-Trader-release.apk",
+                          "private-pr128-circleci-candidate/signing-certificate.txt",
+                          "private-pr128-circleci-candidate/release.json",
+                          "private-pr128-circleci-candidate/apk-sha256.txt",
+                          "private-pr128-circleci-candidate/candidate-provenance.txt"
+                      )
+                      found=set(paths)
+                      print("PR128_PRIVATE_SIGNED_APK_AND_METADATA_PRESENT="+str(all(
+                          any(p.endswith(name) for p in found) for name in required)))
+                      for item in paths:
+                          if item.endswith(".apk") or item.endswith("candidate-provenance.txt"):
+                              print("PR128_PRIVATE_ARTIFACT_NAME="+item[:160])
+          PY

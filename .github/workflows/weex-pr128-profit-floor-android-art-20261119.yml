@@ -266,6 +266,22 @@ jobs:
 
           @RunWith(AndroidJUnit4::class)
           class ArtDexVerifyTest {
+              // Real protection integration is present in the worker, but
+              // ALWAYS unarmed on fresh install until explicit owner action.
+              // This Android test uses no WEEX network, keys or POST.
+              @Test fun freshInstallRealProfitHasNoRemoteAuthority() {
+                  val ctx=InstrumentationRegistry.getInstrumentation().targetContext
+                  val initial=RealContinuousNetProfitActivationStore.current(ctx)
+                  assertFalse(initial.ready)
+                  assertFalse(RealContinuousNetProfitActivationStore
+                      .armFromAuthenticatedOwnerPanel(
+                          ctx,false,1730000000000L,0.005
+                      ))
+                  assertFalse(RealContinuousNetProfitActivationStore.current(ctx).ready)
+                  assertTrue(ContinuousNetProfitPendingWriteGuard.existingWriterMayModify(
+                      ctx,"QA_FRESH_LEGACY_SL_888"
+                  ))
+              }
               private fun qaContinuousIntent() = ContinuousNetProfitStopIntent(
                   accountScope="qa-offline-opaque-account",
                   positionId="QA_CONTINUOUS_STOP_JOURNAL_ART_V1",
@@ -436,6 +452,13 @@ jobs:
             exit 1
           fi
           echo PR128_ANDROID_CONTINUOUS_STOP_JOURNAL_DURABLE_PHASE_RESTART_PASS_NO_REAL_ORDERS_NO_OTA
+          adb shell am instrument -w -r -e class 'com.wilito.weexautotrader.ArtDexVerifyTest#freshInstallRealProfitHasNoRemoteAuthority' com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/pr128-unarmed-owner-real-profit-art.txt
+          if ! grep -q 'OK (1 test)' /tmp/pr128-unarmed-owner-real-profit-art.txt; then
+            echo "::error::PR128_OWNER_REAL_PROFIT_DEFAULT_OFF_OR_LEGACY_PRESERVATION_FAILED"
+            grep -E 'INSTRUMENTATION_STATUS:|FAILURES|AssertionError|Exception' /tmp/pr128-unarmed-owner-real-profit-art.txt | tail -30 || true
+            exit 1
+          fi
+          echo PR128_ANDROID_OWNER_NOT_ARMED_LEGACY_STOP_REMAINS_ACTIVE_NO_ORDERS_NO_OTA
           if adb logcat -d -b main -b crash | grep -E 'FATAL EXCEPTION|VerifyError.*TraderService' > /tmp/weex-pr126-art-crash-matches.txt; then
             echo "::error::ANDROID_ART_CRASH_OR_VERIFYERROR_DETECTED"
             head -15 /tmp/weex-pr126-art-crash-matches.txt

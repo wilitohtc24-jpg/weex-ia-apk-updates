@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 26fc2d2bd314cd0b86b14a3f8f1073a9775b80b3
+          ref: 77254e3fb1f6fcafd16c6772bef08a4e80e851c4
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -37,10 +37,15 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "26fc2d2bd314cd0b86b14a3f8f1073a9775b80b3"
+          test "$(git rev-parse HEAD)" = "77254e3fb1f6fcafd16c6772bef08a4e80e851c4"
           # PR129: restore durable verified opening order identity on ALL
           # accepted/recovered REAL entry paths, with no new live POST.
           python3 ci/test_real_profit_receipt_binding_pr129_v1.py
+          test -s app/src/test/java/com/wilito/weexautotrader/RealContinuousNetProfitRuntimeDiagnosticsTest.kt
+          grep -Fq 'peakNetUsdt < 4.0' app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFloorPolicy.kt
+          grep -Fq '4.0 to 2.50' app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFloorPolicy.kt
+          grep -Fq 'RealContinuousNetProfitRuntimeDiagnostics.record(' app/src/main/java/com/wilito/weexautotrader/RealContinuousNetProfitCoordinator.kt
+          grep -Fq '"minimumNetProfitBeforeRatchetUsdt",4.0' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
           test -f app/src/test/java/com/wilito/weexautotrader/RealProtectiveOrderWriteGateTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
           test -f app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt

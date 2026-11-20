@@ -89,9 +89,9 @@ jobs:
                    "EXPECTING","CONFLICTING OVERLOADS","CANNOT ACCESS",
                    "VAL CANNOT BE REASSIGNED","INFERENCE FAILED")
             for index, e in enumerate(errors[:8],1):
-                m=re.search(r'([A-Za-z][A-Za-z0-9_]{0,80}\\.kt):\\s*\\(?(\\d{1,6})',e)
+                m=re.search(r'([A-Za-z][A-Za-z0-9_]{0,80}\.kt):\s*\(?(\d{1,6})',e)
                 if m is None:
-                    m=re.search(r'([A-Za-z][A-Za-z0-9_]{0,80}\\.kt)\\s*\\((\\d{1,6})',e)
+                    m=re.search(r'([A-Za-z][A-Za-z0-9_]{0,80}\.kt)\s*\((\d{1,6})',e)
                 name=m.group(1) if m else "UNKNOWN_KOTLIN_FILE"
                 line=m.group(2) if m else "0"
                 upper=e.upper()

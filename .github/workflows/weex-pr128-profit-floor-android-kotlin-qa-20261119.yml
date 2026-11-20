@@ -72,6 +72,32 @@ jobs:
           if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/weex-pr128-presign-private.log 2>&1; then
             echo "::error::PR128_PRESIGN_OR_ANDROID_JUNIT_FAILED_NO_APK"
             grep -Eo 'WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=[0-9]+|WEEX_PRESIGN_FIRST_FAILURE_LINE=[0-9]+|WEEX_AUDIT_JUNIT_BUILD_FAILED [0-9]+' /tmp/weex-pr128-presign-private.log | tail -8 || true
+            # PR128_SAFE_KOTLIN_ERROR_LOCATION_V1:
+            # Only public-safe error kind, Kotlin BASENAME, and line number.
+            # Never print signed data, source snippets, files' content or keys.
+            python3 - <<'PY'
+            import re
+            from pathlib import Path
+            p=Path("/tmp/weex-pr128-presign-private.log")
+            data=p.read_text(encoding="utf-8",errors="replace").splitlines()
+            errors=[x.split("WEEX_AUDIT_KOTLIN_FIRST_ERROR:",1)[1].strip()
+                    for x in data if "WEEX_AUDIT_KOTLIN_FIRST_ERROR:" in x]
+            kinds=("UNRESOLVED REFERENCE","TYPE MISMATCH","NO VALUE PASSED",
+                   "TOO MANY ARGUMENTS","ARGUMENT TYPE MISMATCH",
+                   "NONE OF THE FOLLOWING","OVERLOAD RESOLUTION AMBIGUITY",
+                   "SUSPENSION FUNCTIONS","RETURNS ARE NOT ALLOWED",
+                   "EXPECTING","CONFLICTING OVERLOADS","CANNOT ACCESS",
+                   "VAL CANNOT BE REASSIGNED","INFERENCE FAILED")
+            for index, e in enumerate(errors[:8],1):
+                m=re.search(r'([A-Za-z][A-Za-z0-9_]{0,80}\\.kt):\\s*\\(?(\\d{1,6})',e)
+                if m is None:
+                    m=re.search(r'([A-Za-z][A-Za-z0-9_]{0,80}\\.kt)\\s*\\((\\d{1,6})',e)
+                name=m.group(1) if m else "UNKNOWN_KOTLIN_FILE"
+                line=m.group(2) if m else "0"
+                upper=e.upper()
+                kind=next((k.replace(" ","_") for k in kinds if k in upper),"OTHER_KOTLIN_ERROR")
+                print(f"PR128_SAFE_KOTLIN_{index}_LOCATION={name}:{line}:{kind}",flush=True)
+            PY
             # The canonical ERR trap records only line number and exit code.
             # Never expose source snippets from the inner materializer logs.
             grep -Eo 'WEEX_RELEASE_ERRTRAP line=[0-9]+ rc=[0-9]+' /tmp/weex-pr128-presign-private.log | tail -5 || true

@@ -1,0 +1,94 @@
+name: WEEX PR130 exact GLOBAL profit control Android compile + official JUnit (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr130-global-profit-android-junit-20261120.yml
+permissions:
+  contents: read
+jobs:
+  android-junit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact private PR130 source read only
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 3fde88e30959022a0a7736e7b653d40ee3a6b9ed
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Full canonical release materialization + Kotlin compile + JUnit; NO APK
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr130-final-kotlin
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "3fde88e30959022a0a7736e7b653d40ee3a6b9ed"
+          python3 ci/verify_global_profit_control_pr130_v1.py
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK"
+          export ANDROID_HOME="$SDK" ANDROID_SDK_ROOT="$SDK"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          KOTLIN_ZIP=/tmp/pr130-kotlin-2.2.21.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o "$KOTLIN_ZIP"
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 "$KOTLIN_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o "$KOTLIN_ZIP" -d "$HOME/.local"
+          export PATH="$HOME/.local/kotlinc/bin:$PATH"
+          GRADLE_ZIP=/tmp/pr130-gradle-8.10.2.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o "$GRADLE_ZIP"
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 "$GRADLE_ZIP" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o "$GRADLE_ZIP" -d "$HOME/.gradle-dist"
+          export PATH="$HOME/.gradle-dist/gradle-8.10.2/bin:$PATH"
+          export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false"
+          if ! python3 ci/preflight_full_presigning_source_v1.py >/tmp/weex-pr130-android-junit.log 2>&1; then
+            echo "::error::PR130_ANDROID_JUNIT_OR_FINAL_MATERIALIZER_FAILED_NO_APK"
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+          content=Path("/tmp/weex-pr130-android-junit.log").read_text(errors="replace")
+          for name in ("WEEX_AUDIT_KOTLIN_ERROR_COUNT","WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT","WEEX_AUDIT_JUNIT_BUILD_FAILED"):
+              print("PR130_"+name+"="+(re.search(name+r"=([0-9]+)",content).group(1)
+                       if re.search(name+r"=([0-9]+)",content) else "NO_MARKER"))
+          errs=[line for line in content.splitlines() if "WEEX_AUDIT_KOTLIN_FIRST_ERROR:" in line]
+          for raw in errs[:5]:
+              message=raw.split("WEEX_AUDIT_KOTLIN_FIRST_ERROR:",1)[1]
+              m=re.search(r'([A-Za-z][A-Za-z0-9_]+\.kt):\s*\(?(\d+)',message)
+              name,line=(m.group(1),m.group(2)) if m else ("UNKNOWN", "0")
+              upper=message.upper()
+              kinds=("UNRESOLVED REFERENCE","TYPE MISMATCH","EXPECTING","SUSPENSION FUNCTIONS",
+                  "CANNOT ACCESS","NONE OF THE FOLLOWING","NO VALUE PASSED","CONFLICTING OVERLOADS")
+              kind=next((x.replace(" ","_") for x in kinds if x in upper),"OTHER")
+              print("PR130_SAFE_KOTLIN_ERROR="+name+":"+line+":"+kind)
+          tokens=re.findall(r'\b(?:PR130|WEEX|REAL|PRESIGN)_[A-Z0-9_]{5,}\b',content[-8000:])
+          print("PR130_SAFE_LAST_QA_CODES="+",".join(list(dict.fromkeys(tokens))[-30:]))
+          PY
+            exit 1
+          fi
+          grep -Fq "WEEX_AUDIT_JUNIT_PASS" /tmp/weex-pr130-android-junit.log
+          grep -Fq "WEEX_PRESIGN_SOURCE_REPLAY_PASS" /tmp/weex-pr130-android-junit.log
+          ROOT=/tmp/weex-pr130-final-kotlin/main/java/com/wilito/weexautotrader
+          test -s "$ROOT/RealGlobalProfitControlStore.kt"
+          grep -Fq 'RealGlobalProfitControlStore.currentActivation()' "$ROOT/RealContinuousNetProfitActivation.kt"
+          grep -Fq 'cloud.adminSetGlobalProfitProtection(enabling)' "$ROOT/OwnerControlCenterDialog.kt"
+          grep -Fq 'withTimeout(12_000L) { cloud.refreshGlobalProfitProtection() }' "$ROOT/TraderService.kt"
+          grep -Fq 'if (pending == null && (!activation.ready' "$ROOT/RealContinuousNetProfitCoordinator.kt"
+          echo PR130_GLOBAL_REAL_KOTLIN_JUNIT_FINAL_MATERIALIZED_PASS_NO_APK_NO_OTA_NO_WEEX

@@ -139,6 +139,8 @@ jobs:
                   r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([a-fA-F0-9:]+)",
                   data)
               clean={x.replace(":","").lower() for x in matches}
+              print("PR128_SIGNED_CERTIFICATE_EXACT_"+type+"="+",".join(sorted(clean)),flush=True)
+              print("PR128_EXPECTED_CERTIFICATE_SHA256="+os.environ["EXPECTED_SIGNER_SHA256"],flush=True)
               assert clean=={os.environ["EXPECTED_SIGNER_SHA256"]},(
                   "PR128_SIGNED_APK_CERTIFICATE_INCOMPATIBLE",type)
           print("PR128_OLD_AND_NEW_APK_HAVE_SAME_CANONICAL_SIGNER")

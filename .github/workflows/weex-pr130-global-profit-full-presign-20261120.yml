@@ -49,6 +49,17 @@ jobs:
           names=[x for line in ls[-100:] for x in
                  re.findall(r'ci/[A-Za-z0-9_-]+\\.py',line)]
           print('PR130_LAST_SAFE_PYTHON_FILES='+','.join(list(dict.fromkeys(names))[-12:]))
+          summary=[]
+          for raw in ls:
+              if not raw.startswith('PRESIGN_FAILURE_CONTEXT '):
+                  continue
+              value=raw.split('PRESIGN_FAILURE_CONTEXT ',1)[1].strip()
+              if not any(t in value for t in ('FAIL','Assertion','Error','EXCEPTION','Missing')):
+                  continue
+              if any(t in value.upper() for t in ('TOKEN=','PASSWORD=','API_KEY','SECRET=')):
+                  continue
+              summary.append(re.sub(r'[^A-Za-z0-9_ .:+/()\-]','_',value)[:190])
+          print('PR130_SAFE_FAILURE_EXCERPT='+' || '.join(summary[:5]))
           print('PR130_PRESIGN_SAFE_EXCEPTION_TYPES='+','.join(list(dict.fromkeys(
               re.findall(r'\b(?:AssertionError|ValueError|TypeError|FileNotFoundError|SyntaxError)\b',
               '\n'.join(ls[-60:]))))))

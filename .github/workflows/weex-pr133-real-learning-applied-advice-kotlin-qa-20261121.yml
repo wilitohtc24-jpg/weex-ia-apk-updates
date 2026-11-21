@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      SOURCE_SHA: 62a2cd9558c120b5c02ebb59fb30287251ee09dd
+      SOURCE_SHA: d5a4903a488942309c83a1abd8ec0b69f601d178
     steps:
       - name: Checkout EXACT private PR133 branch commit READ ONLY
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 62a2cd9558c120b5c02ebb59fb30287251ee09dd
+          ref: d5a4903a488942309c83a1abd8ec0b69f601d178
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -35,7 +35,8 @@ jobs:
             "RealPositionReversalLearningPolicy.kt","RealAppliedExperienceAdvisor.kt",
             "RealLearnedDecisionApplicationPolicy.kt",
             "RealBotExecutedEntryEvidencePolicy.kt",
-            "RealBotAuthenticatedCloseOrderLinkPolicy.kt"]
+            "RealBotAuthenticatedCloseOrderLinkPolicy.kt",
+            "RealBotClosedExperienceReconciler.kt"]
           text="\n".join((Path(prefix)/n).read_text() for n in names)
           for forbidden in ("modifyTpSlOrder(", "placeProtectedMarketOrder(", "updateIsolatedLeverage(",
             "WeexPositionCloseClient(", "setEmergencyStop(", "tradeEngine.execute("):
@@ -47,6 +48,9 @@ jobs:
           assert "accountScopeProofSha256" in text
           assert "REAL_LEARNED_DECISION_APPLICATION_V1" in text
           assert "PR133_REAL_BOT_AUTHENTICATED_CLOSE_ORDER_LINK_V1" in text
+          assert "PR133_REAL_BOT_SIGNED_CLOSE_TO_APPLIED_EXPERIENCE_V1" in text
+          assert "origin=entry.verifiedSignedBotOrigin" in text
+          assert "CLOSE_FILL_EXACT_ORDER_ID_OR_SIDE_MISMATCH" in text
           assert "Do NOT compare strategies by raw USD PnL" in text
           close_engine=Path(prefix,"RealAIExitEngine.kt").read_text()
           pending=close_engine.index('.putString("close_order_id",receipt.closeOrderId)')
@@ -102,6 +106,7 @@ jobs:
             "$base/RealLearnedDecisionApplicationPolicy.kt" \
             "$base/RealBotExecutedEntryEvidencePolicy.kt" \
             "$base/RealBotAuthenticatedCloseOrderLinkPolicy.kt" \
+            "$base/RealBotClosedExperienceReconciler.kt" \
             "$tests/RealBotClosedLearningPolicyTest.kt" \
             "$tests/RealVerifiedOutcomeLearningPolicyTest.kt" \
             "$tests/RealRoiMilestoneShadowPolicyTest.kt" \
@@ -110,6 +115,7 @@ jobs:
             "$tests/RealLearnedDecisionApplicationPolicyTest.kt" \
             "$tests/RealBotExecutedEntryEvidencePolicyTest.kt" \
             "$tests/RealBotAuthenticatedCloseOrderLinkPolicyTest.kt" \
+            "$tests/RealBotClosedExperienceReconcilerTest.kt" \
             -cp "$cp" -d /tmp/real-learning-qa/classes
           java -cp "/tmp/real-learning-qa/classes:$cp:/tmp/real-learning-qa/kotlinc/lib/*" \
             org.junit.runner.JUnitCore \
@@ -120,5 +126,6 @@ jobs:
             com.wilito.weexautotrader.RealAppliedExperienceAdvisorTest \
             com.wilito.weexautotrader.RealLearnedDecisionApplicationPolicyTest \
             com.wilito.weexautotrader.RealBotExecutedEntryEvidencePolicyTest \
-            com.wilito.weexautotrader.RealBotAuthenticatedCloseOrderLinkPolicyTest
+            com.wilito.weexautotrader.RealBotAuthenticatedCloseOrderLinkPolicyTest \
+            com.wilito.weexautotrader.RealBotClosedExperienceReconcilerTest
           echo PR133_APPLIED_VERIFIED_REAL_LEARNING_KOTLIN_JUNIT_PASS_NO_APK_NO_WEEX_NO_OTA

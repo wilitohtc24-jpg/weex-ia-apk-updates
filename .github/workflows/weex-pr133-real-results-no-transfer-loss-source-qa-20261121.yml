@@ -32,8 +32,13 @@ jobs:
           s=Path("app/src/main/java/com/wilito/weexautotrader/MainActivity.kt").read_text()
           assert "val realTodayClosedNet by produceState<Double?>" in s
           assert "PerformanceDashboardCard(" in s
-          for forbidden in ("WeexPrivateApi(credentials).closePosition(", "modifyTpSlOrder(", "setEmergencyStop("):
-              assert forbidden not in s, "unexpected authority in UI source"
+          # MainActivity already has legitimate emergency-stop UI controls.
+          # Scope the no-order-write check to the NEW result display block.
+          start=s.index("private fun PerformanceDashboardCard(")
+          end=s.index("@Composable",start+1)
+          result_display=s[start:end]
+          for forbidden in ("WeexPrivateApi(", "modifyTpSlOrder(", "setEmergencyStop(", "closePosition(", "RealExecutionEngine("):
+              assert forbidden not in result_display, "trading mutation in REAL result display"
           print("DISPLAY_ONLY_NEW_REAL_RESULTS_NO_ORDER_STOP_MUTATIONS_PASS")
           PY
           test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"

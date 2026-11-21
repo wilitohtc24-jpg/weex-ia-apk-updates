@@ -1,0 +1,94 @@
+name: WEEX PR133 signed REAL learning and adaptive ROI50 offline Kotlin QA (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr133-real-learning-applied-advice-kotlin-qa-20261121.yml
+permissions:
+  contents: read
+jobs:
+  signed-real-learning-kotlin-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      SOURCE_SHA: 665216530aac7137ff4b067c2681cc87d4de8f94
+    steps:
+      - name: Checkout EXACT private PR133 branch commit READ ONLY
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 665216530aac7137ff4b067c2681cc87d4de8f94
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Prove checkout and no trading/STOP source changes
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git fetch --no-tags --depth=1 https://github.com/wilitohtc24-jpg/weex-auto-trader-android.git 31d4eb8fdfa8bc6cd2a0808ef88bc57f37682598 >/dev/null 2>&1 || true
+          python3 - <<'PY'
+          from pathlib import Path
+          prefix="app/src/main/java/com/wilito/weexautotrader/"
+          names=["RealVerifiedOutcomeLearningPolicy.kt","RealRoiMilestoneShadowPolicy.kt",
+            "RealPositionReversalLearningPolicy.kt","RealAppliedExperienceAdvisor.kt"]
+          text="\n".join((Path(prefix)/n).read_text() for n in names)
+          for forbidden in ("modifyTpSlOrder(", "placeProtectedMarketOrder(", "updateIsolatedLeverage(",
+            "WeexPositionCloseClient(", "setEmergencyStop(", "tradeEngine.execute("):
+              assert forbidden not in text, "Unexpected trading authority in standalone advisor"
+          assert "RealVerifiedOutcomeLearningPolicy.admit(" in text
+          assert "permittedForLiveExecution=false" in text
+          print("PR133_PURE_REAL_LEARNING_NO_ORDER_OR_STOP_MUTATION_PASS")
+          PY
+      - name: Java 17 for isolated Kotlin code
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Fetch pinned compiler and isolated JUnit dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/real-learning-qa
+          curl --fail --location --silent --show-error --retry 3 --max-time 240 \
+            https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip \
+            -o /tmp/real-learning-qa/kotlin.zip
+          unzip -q /tmp/real-learning-qa/kotlin.zip -d /tmp/real-learning-qa
+          test -x /tmp/real-learning-qa/kotlinc/bin/kotlinc
+          curl --fail --location --silent --show-error --retry 3 --max-time 120 \
+            https://repo.maven.apache.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar \
+            -o /tmp/real-learning-qa/junit.jar
+          curl --fail --location --silent --show-error --retry 3 --max-time 120 \
+            https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar \
+            -o /tmp/real-learning-qa/hamcrest.jar
+      - name: Compile REAL policy and run true JUnit assertions
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/real-learning-qa/classes
+          base="app/src/main/java/com/wilito/weexautotrader"
+          tests="app/src/test/java/com/wilito/weexautotrader"
+          cp="/tmp/real-learning-qa/junit.jar:/tmp/real-learning-qa/hamcrest.jar"
+          /tmp/real-learning-qa/kotlinc/bin/kotlinc \
+            "$base/RealPositionOriginPolicy.kt" \
+            "$base/RealBotClosedLearningPolicy.kt" \
+            "$base/RealVerifiedOutcomeLearningPolicy.kt" \
+            "$base/RealRoiMilestoneShadowPolicy.kt" \
+            "$base/RealPositionReversalLearningPolicy.kt" \
+            "$base/RealAppliedExperienceAdvisor.kt" \
+            "$tests/RealBotClosedLearningPolicyTest.kt" \
+            "$tests/RealVerifiedOutcomeLearningPolicyTest.kt" \
+            "$tests/RealRoiMilestoneShadowPolicyTest.kt" \
+            "$tests/RealPositionReversalLearningPolicyTest.kt" \
+            "$tests/RealAppliedExperienceAdvisorTest.kt" \
+            -cp "$cp" -d /tmp/real-learning-qa/classes
+          java -cp "/tmp/real-learning-qa/classes:$cp:/tmp/real-learning-qa/kotlinc/lib/*" \
+            org.junit.runner.JUnitCore \
+            com.wilito.weexautotrader.RealBotClosedLearningPolicyTest \
+            com.wilito.weexautotrader.RealVerifiedOutcomeLearningPolicyTest \
+            com.wilito.weexautotrader.RealRoiMilestoneShadowPolicyTest \
+            com.wilito.weexautotrader.RealPositionReversalLearningPolicyTest \
+            com.wilito.weexautotrader.RealAppliedExperienceAdvisorTest
+          echo PR133_APPLIED_VERIFIED_REAL_LEARNING_KOTLIN_JUNIT_PASS_NO_APK_NO_WEEX_NO_OTA

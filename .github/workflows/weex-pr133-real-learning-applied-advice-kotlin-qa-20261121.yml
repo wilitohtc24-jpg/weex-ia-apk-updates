@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      SOURCE_SHA: 665216530aac7137ff4b067c2681cc87d4de8f94
+      SOURCE_SHA: 849ce964d103e2bee7b8ae69fad8a9014d898d4c
     steps:
       - name: Checkout EXACT private PR133 branch commit READ ONLY
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 665216530aac7137ff4b067c2681cc87d4de8f94
+          ref: 849ce964d103e2bee7b8ae69fad8a9014d898d4c
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source

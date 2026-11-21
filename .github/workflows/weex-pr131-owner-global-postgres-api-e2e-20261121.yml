@@ -1,0 +1,157 @@
+name: WEEX PR131 owner global API PostgreSQL 16 E2E - OFFLINE (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr131-owner-global-postgres-api-e2e-20261121.yml
+permissions:
+  contents: read
+jobs:
+  synthetic-owner-global-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: fixture-only
+          POSTGRES_DB: pr131_api_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d pr131_api_only"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: fixture-only
+      PGDATABASE: pr131_api_only
+    steps:
+      - name: Checkout exact frozen private PR131 source (READ ONLY)
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 8e5cd1a76db74cc3d3a0730eaf940e2b32f559b1
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Load unmodified private SQL schema and owner policy into synthetic PostgreSQL
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "8e5cd1a76db74cc3d3a0730eaf940e2b32f559b1"
+          python3 ci/verify_global_profit_control_pr130_v1.py
+          psql -X -v ON_ERROR_STOP=1 -f backend/neon/migrations/20261025_core_schema.sql >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -f backend/neon/migrations/20261120_global_real_profit_control.sql >/dev/null
+          test "$(psql -At -c 'SELECT enabled::text FROM public.global_real_profit_control WHERE singleton_id=1')" = "false"
+      - name: Prove REAL gateway SQL plus signed owner challenge ON/OFF for all fake licenses
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JAVASCRIPT'
+          import assert from 'node:assert/strict';
+          import {createHash, generateKeyPairSync, sign} from 'node:crypto';
+          import postgres from './backend/neon/gateway/vendor/postgres/index.js';
+          import {createGateway} from './backend/neon/gateway/core.mjs';
+          
+          const hash = x => createHash('sha256').update(x).digest('hex');
+          const sql = postgres('postgres://postgres:fixture-only@127.0.0.1:5432/pr131_api_only', {
+            ssl:false, max:2, prepare:false, connect_timeout:5, idle_timeout:5
+          });
+          const query = async (client,statement,params=[]) =>
+            ({rows:Array.from(await client.unsafe(statement,params,{prepare:false}))});
+          const db={
+            query:(statement,params)=>query(sql,statement,params),
+            transaction:fn=>sql.begin(tx=>fn({query:(statement,params)=>query(tx,statement,params)}))
+          };
+          const ownerId='11111111-1111-4111-8111-111111111111';
+          const legacyId='22222222-2222-4222-8222-222222222222';
+          const userId='33333333-3333-4333-8333-333333333333';
+          const ownerToken='O'.repeat(43), legacyToken='L'.repeat(43), userToken='U'.repeat(43);
+          const gateway=createGateway(db);
+          const call=async(action,token,extra={})=>{
+           const response=await gateway.fetch(new Request('https://offline.invalid/',{
+            method:'POST',
+            headers: token?{authorization:'Bearer '+token}: {},
+            body:JSON.stringify({action,...extra})
+           }));
+           return {status:response.status,body:await response.json()};
+          };
+          const check=(response,code)=>assert.equal(response.status,code,JSON.stringify(response.body));
+          try {
+           for(const [id,code,label,admin] of [
+            [ownerId,'x'.repeat(64),'FAKE_OWNER_TEST_ONLY',true],
+            [legacyId,'y'.repeat(64),'FAKE_LEGACY_ADMIN_TEST_ONLY',true],
+            [userId,'z'.repeat(64),'FAKE_STANDARD_USER_TEST_ONLY',false]
+           ])await sql.unsafe('INSERT INTO public.app_licenses(id,code_hash,label,is_admin,active) VALUES($1,$2,$3,$4,true)',[id,code,label,admin]);
+           for(const [id,license,token,deviceHash] of [
+            ['44444444-4444-4444-8444-444444444444',ownerId,ownerToken,'a'.repeat(64)],
+            ['55555555-5555-4555-8555-555555555555',legacyId,legacyToken,'b'.repeat(64)],
+            ['66666666-6666-4666-8666-666666666666',userId,userToken,'c'.repeat(64)]
+           ])await sql.unsafe('INSERT INTO public.app_devices(id,license_id,device_hash,token_hash,active) VALUES($1,$2,$3,$4,true)',
+            [id,license,deviceHash,hash(token)]);
+           await sql.unsafe('UPDATE public.global_real_profit_control SET owner_license_id=$1 WHERE singleton_id=1 AND enabled=false',[ownerId]);
+           let r=await call('profit_protection_status',null);check(r,401);
+           r=await call('profit_protection_status',userToken);check(r,200);
+           assert.equal(r.body.enabled,false); assert.equal(r.body.generation,0);
+           assert.equal(r.body.activatedAtMs,0);
+           r=await call('owner_auth_begin',legacyToken);check(r,403);
+           r=await call('admin_profit_protection_set',userToken,{enabled:true,adminSession:'S'.repeat(43)});check(r,403);
+           r=await call('admin_profit_protection_set',legacyToken,{enabled:true,adminSession:'S'.repeat(43)});check(r,403);
+           r=await call('admin_profit_protection_set',ownerToken,{enabled:true,adminSession:'S'.repeat(43)});check(r,403);
+           // Generate a fresh P-256 owner key and sign a single-use biometric challenge.
+           const {publicKey,privateKey}=generateKeyPairSync('ec',{namedCurve:'prime256v1'});
+           const spki=publicKey.export({format:'der',type:'spki'}).toString('base64');
+           const begin=await call('owner_auth_begin',ownerToken);check(begin,200);
+           const signature=sign('sha256',Buffer.from('WEEX_OWNER_ADMIN_V1:'+begin.body.nonce),
+            {key:privateKey,dsaEncoding:'ieee-p1363'}).toString('base64');
+           const complete=await call('owner_auth_complete',ownerToken,{
+            challengeId:begin.body.challengeId,
+            nonce:begin.body.nonce,
+            publicKeySpki:spki,
+            signatureP1363:signature
+           });check(complete,200);
+           const session=complete.body.adminSession;
+           assert.match(session,/^[A-Za-z0-9_-]{40,64}$/);
+           // Signed challenge is single-use even with a correct signature.
+           r=await call('owner_auth_complete',ownerToken,{
+            challengeId:begin.body.challengeId,nonce:begin.body.nonce,
+            publicKeySpki:spki,signatureP1363:signature
+           });check(r,403);
+           const toggled=await call('admin_profit_protection_set',ownerToken,{enabled:true,adminSession:session});
+           check(toggled,200);assert.equal(toggled.body.enabled,true);assert.equal(toggled.body.generation,1);
+           const firstEpoch=toggled.body.activatedAtMs;
+           assert.ok(firstEpoch>1700000000000);
+           for(const token of [userToken,legacyToken,ownerToken]){
+            r=await call('profit_protection_status',token);check(r,200);
+            assert.equal(r.body.enabled,true);assert.equal(r.body.generation,1);
+            assert.equal(r.body.activatedAtMs,firstEpoch);
+           }
+           r=await call('admin_profit_protection_set',ownerToken,{enabled:true,adminSession:session});check(r,200);
+           assert.equal(r.body.generation,2);assert.equal(r.body.activatedAtMs,firstEpoch);
+           r=await call('admin_profit_protection_set',ownerToken,{enabled:false,adminSession:session});check(r,200);
+           assert.equal(r.body.enabled,false);assert.equal(r.body.generation,3);assert.equal(r.body.activatedAtMs,0);
+           r=await call('profit_protection_status',userToken);check(r,200);assert.equal(r.body.enabled,false);
+           // Force expiry in our synthetic DB only; an expired owner session cannot rearm.
+           await sql.unsafe("UPDATE public.owner_admin_sessions SET expires_at=now()-interval '1 second' WHERE token_hash=$1",[hash(session)]);
+           r=await call('admin_profit_protection_set',ownerToken,{enabled:true,adminSession:session});check(r,403);
+           const finalState=(await sql.unsafe('SELECT enabled,generation,activated_at FROM public.global_real_profit_control WHERE singleton_id=1'))[0];
+           assert.equal(finalState.enabled,false);assert.equal(Number(finalState.generation),3);
+           assert.equal(finalState.activated_at,null);
+           const n=(await sql.unsafe('SELECT count(*)::int as total FROM public.app_licenses'))[0].total;
+           assert.equal(n,3);
+           console.log('PR131_OWNER_REAL_POSTGRES_E2E_PASS owner P256 challenge, one-use, all licenses ON/OFF, repeated ON, expired session');
+           console.log('PR131_E2E_FAKE_FIXTURES_ONLY NO_NEON_NO_WEEX_NO_OTA_NO_USER_DATA');
+          }finally {await sql.end({timeout:2});}
+          JAVASCRIPT

@@ -1,0 +1,85 @@
+name: WEEX PR133 safe FUTURE isolated separated mode pure Kotlin QA (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr133-safe-future-position-mode-offline-qa-20261121.yml
+permissions:
+  contents: read
+jobs:
+  separated-mode-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SOURCE_SHA: 192e4f87edab5d01d9b3d69a9ae4c6a24e8d24ab
+    steps:
+      - name: Checkout exact private feature SHA read-only
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 192e4f87edab5d01d9b3d69a9ae4c6a24e8d24ab
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Prove all future mode policy logic pure, no account mutation
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("app/src/main/java/com/wilito/weexautotrader")
+          s=(root/"RealFutureSeparatedModePreflightPolicy.kt").read_text()
+          for forbidden in ("signedPost(", "modifyTpSlOrder(", "placeProtectedMarketOrder(",
+                            "updateIsolatedLeverage(", "WeexPrivateApi(",
+                            "WeexTradeActionsApi(", "setEmergencyStop(",
+                            "RealExecutionEngine(", "TraderService(",
+                            "closePositions(", "SharedPreferences", "Context("):
+            assert forbidden not in s, "Policy must be pure: "+forbidden
+          for required in ("FUTURE_SEPARATED_ROLLOUT_NOT_APPROVED",
+                           "EXISTING_POSITION_ORDER_OR_JOURNAL_NO_MODE_CHANGE",
+                           "SIGNED_PORTFOLIO_OR_OPEN_ORDERS_INCOMPLETE",
+                           "SIGNED_POSITION_MODE_UNRECOGNIZED",
+                           "authorizesWeexModeChange:Boolean=false",
+                           "authorizesRealOrder:Boolean=false",
+                           "signedReadbackSeparatedType.equals"):
+            assert required in s, "Safety rule missing: "+required
+          print("WEEX_COMBINED_TO_SEPARATED_NO_LIVE_MUTATION_SOURCE_PASS")
+          PY
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compiler Kotlin 2.2.21 and JUnit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pr133-mode
+          curl --fail --location --silent --show-error --retry 3 --max-time 240 \
+            https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip \
+            -o /tmp/pr133-mode/kotlin.zip
+          unzip -q /tmp/pr133-mode/kotlin.zip -d /tmp/pr133-mode
+          curl --fail --location --silent --show-error --retry 3 --max-time 120 \
+            https://repo.maven.apache.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar \
+            -o /tmp/pr133-mode/junit.jar
+          curl --fail --location --silent --show-error --retry 3 --max-time 120 \
+            https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar \
+            -o /tmp/pr133-mode/hamcrest.jar
+      - name: Kotlin/JUnit 13 no-position-mode-mutation regressions
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          root=app/src/main/java/com/wilito/weexautotrader
+          testroot=app/src/test/java/com/wilito/weexautotrader
+          cp=/tmp/pr133-mode/junit.jar:/tmp/pr133-mode/hamcrest.jar
+          mkdir -p /tmp/pr133-mode/classes
+          /tmp/pr133-mode/kotlinc/bin/kotlinc \
+            "$root/RealFutureSeparatedModePreflightPolicy.kt" \
+            "$testroot/RealFutureSeparatedModePreflightPolicyTest.kt" \
+            -cp "$cp" -d /tmp/pr133-mode/classes
+          java -cp "/tmp/pr133-mode/classes:$cp:/tmp/pr133-mode/kotlinc/lib/*" \
+            org.junit.runner.JUnitCore com.wilito.weexautotrader.RealFutureSeparatedModePreflightPolicyTest
+          echo WEEX_PR133_FUTURE_SEPARATED_MODE_13_TESTS_NO_ORDER_NO_APK_PASS

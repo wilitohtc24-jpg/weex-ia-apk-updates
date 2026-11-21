@@ -1,0 +1,61 @@
+name: WEEX PR133 REAL-only episode Kotlin compile and JUnit direct source NO APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr133-real-only-direct-android-kotlin-20261121.yml
+permissions:
+  contents: read
+jobs:
+  direct-real-kotlin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout pinned private source read-only
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 65527637413e389dfaf45edb46b29ae94f9eec6a
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Android SDK 35 and direct Kotlin/JUnit without APK or presign replay
+        working-directory: source
+        shell: bash
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 65527637413e389dfaf45edb46b29ae94f9eec6a
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort -V | tail -1)"
+            test -n "$SDKMANAGER"
+            "$SDKMANAGER" "platforms;android-35" >/dev/null
+          fi
+          if ! gradle --no-daemon --console=plain :app:compileDebugKotlin :app:testDebugUnitTest --tests 'com.wilito.weexautotrader.Real*Learning*Test' > /tmp/pr133-real-direct-qa.log 2>&1; then
+            python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path("/tmp/pr133-real-direct-qa.log").read_text(errors="replace")
+          errs=[x for x in s.splitlines() if x.startswith("e: ") or "FAILURE:" in x or "Execution failed for task" in x]
+          for err in errs[:9]:
+              m=re.search(r"([A-Za-z0-9_]+\.kt)[^\d]*\(?([0-9]+)",err)
+              kind=next((q for q in ("Unresolved reference","Type mismatch","Expecting","Cannot access","Overload resolution ambiguity") if q.lower() in err.lower()),"OTHER")
+              print("PR133_SAFE_DIRECT_ANDROID_ERROR="+(m.group(1)+":"+m.group(2) if m else "UNKNOWN")+":"+kind.replace(" ","_"))
+          print("PR133_SAFE_ERROR_COUNT="+str(len(errs)))
+          PY
+            exit 1
+          fi
+          test -z "$(find app/build/outputs -name '*.apk' -type f -print -quit 2>/dev/null || true)"
+          echo PR133_REAL_DIRECT_ANDROID_KOTLIN_AND_JUNIT_PASS_NO_APK_NO_OTA

@@ -1,0 +1,40 @@
+name: WEEX PR133 REAL results cashflow separate from PnL source QA (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr133-real-results-no-transfer-loss-source-qa-20261121.yml
+permissions:
+  contents: read
+jobs:
+  real-results-no-cashflow-loss:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      SOURCE_SHA: a366c4daa0e4ef4c3f9e0a030881d2aa684adaae
+    steps:
+      - name: Checkout exact private source commit read-only
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: a366c4daa0e4ef4c3f9e0a030881d2aa684adaae
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Verify source SHA and no APK trading path impact
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          python3 ci/verify_real_results_cashflow_not_loss_v1.py
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("app/src/main/java/com/wilito/weexautotrader/MainActivity.kt").read_text()
+          assert "val realTodayClosedNet by produceState<Double?>" in s
+          assert "PerformanceDashboardCard(" in s
+          for forbidden in ("WeexPrivateApi(credentials).closePosition(", "modifyTpSlOrder(", "setEmergencyStop("):
+              assert forbidden not in s, "unexpected authority in UI source"
+          print("DISPLAY_ONLY_NEW_REAL_RESULTS_NO_ORDER_STOP_MUTATIONS_PASS")
+          PY
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
+          echo "NO_APK_NO_OTA_NO_WEEX_ORDERS"

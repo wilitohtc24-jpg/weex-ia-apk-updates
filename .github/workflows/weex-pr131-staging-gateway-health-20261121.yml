@@ -1,4 +1,4 @@
-name: WEEX PR131 isolated Neon gateway startup health (GET ONLY; NO APK)
+name: WEEX PR131 isolated Neon gateway health and anonymous denial (NO APK)
 on:
   push:
     branches: [main]
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Prove only isolated branch gateway boots and reads its database
+      - name: Verify isolated stage DB health and deny anonymous profit status
         shell: bash
         env:
           STAGING_HEALTH: https://br-raspy-frog-b85nzeg5-weexgatewayq.compute.c-14.us-east-1.aws.neon.tech/health
@@ -31,4 +31,16 @@ jobs:
           assert x.get('cutover') is False
           assert x.get('tradingEnabled') is False
           print('WEEX_PR131_STAGING_GATEWAY_HEALTH_VERIFIED_GET_ONLY')
+          PY
+
+          # A read-only action must NEVER reveal global policy without a valid
+          # license/device bearer. No token is provided, no mutation action sent.
+          unauthorized_code="$(curl --silent --show-error --max-time 35 --output /tmp/pr131-anonymous-response.json --write-out '%{http_code}' --header 'content-type: application/json' --data '{"action":"profit_protection_status"}' "${STAGING_HEALTH%/health}/")"
+          test "$unauthorized_code" = "401"
+          python3 - <<'PY'
+          import json
+          with open('/tmp/pr131-anonymous-response.json',encoding='utf-8') as f:
+              x=json.load(f)
+          assert x.get('ok') is False
+          print('WEEX_PR131_ANONYMOUS_GLOBAL_POLICY_DENIED_NO_ORDER_NO_WRITE')
           PY

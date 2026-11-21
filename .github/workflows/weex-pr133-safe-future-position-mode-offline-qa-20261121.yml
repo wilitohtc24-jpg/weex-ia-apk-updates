@@ -89,8 +89,20 @@ jobs:
                   <artifactId>kotlin-maven-plugin</artifactId>
                   <version>2.2.21</version>
                   <executions>
-                    <execution><id>compile</id><phase>compile</phase><goals><goal>compile</goal></goals></execution>
-                    <execution><id>test-compile</id><phase>test-compile</phase><goals><goal>test-compile</goal></goals></execution>
+                    <execution>
+                      <id>compile</id><phase>compile</phase>
+                      <goals><goal>compile</goal></goals>
+                      <configuration>
+                        <sourceDirs><sourceDir>src/main/kotlin</sourceDir></sourceDirs>
+                      </configuration>
+                    </execution>
+                    <execution>
+                      <id>test-compile</id><phase>test-compile</phase>
+                      <goals><goal>test-compile</goal></goals>
+                      <configuration>
+                        <sourceDirs><sourceDir>src/test/kotlin</sourceDir></sourceDirs>
+                      </configuration>
+                    </execution>
                   </executions>
                 </plugin>
                 <plugin>

@@ -1,0 +1,89 @@
+name: WEEX PR133 preserve REAL PnL and SIM history full canonical presign (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr133-safe-real-results-canonical-presign-20261121.yml
+permissions:
+  contents: read
+jobs:
+  canonical-source-presign-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 42
+    env:
+      SOURCE_SHA: 1485c307daac3f37f1abae478ce3c28926f89c25
+    steps:
+      - name: Checkout exact private DRAFT source read-only
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 1485c307daac3f37f1abae478ce3c28926f89c25
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Verify pinned PR and no release permission
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -f ci/preflight_full_presigning_source_v1.py
+          test -f app/src/main/java/com/wilito/weexautotrader/RealBotArchivedEntryToExecutedPolicy.kt
+          test -f app/src/main/java/com/wilito/weexautotrader/RealBotClosedExperienceReconciler.kt
+          echo "READ_ONLY_DRAFT_SOURCE_VERIFIED_NO_APK"
+      - name: Replay canonical pre-sign source validators in disposable copy only
+        working-directory: source
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          WEEX_ALLOW_DIRECT_PUBLISH: 'false'
+        run: |
+          set -euo pipefail
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr133-current-presign-stdout.txt 2>&1; then
+            echo "::error::PR133_CANONICAL_PRESIGN_SOURCE_REPLAY_FAILED_NO_APK"
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+          txt=Path("/tmp/pr133-current-presign-stdout.txt").read_text(errors="replace")
+          lines=txt.splitlines()
+          safe=[line for line in lines if any(s in line for s in (
+              "WEEX_PRESIGN_SOURCE_REPLAY_FAILED",
+              "WEEX_PRESIGN_FIRST_FAILURE_LINE",
+              "WEEX_PRESIGN_SOURCE_REPLAY_REJECTED",
+              "WEEX_PRESIGN_NO_CLASSIFIED_FAILURE",
+              "MISSING_ANCHOR_",
+              "WEEX_PRESIGN_SIM_LOSS_REFRESH_TOTAL",
+              "PR133_"
+          ))]
+          for line in safe[-20:]:
+              if re.search(r"(?i)(TOKEN=|PASSWORD=|API[_ -]?KEY=|SECRET=)",line):
+                  continue
+              print("PR133_PRESIGN_CODE="+re.sub(r'[^A-Za-z0-9_ .:+/()=\-]','_',line)[:260])
+          # Position-only source anchors from the already-failed disposable
+          # worktree. No credentials, money, auth or market fields.
+          for line in lines:
+              if line.startswith("PR133_PROTECTION_SOURCE_PREDICATE "):
+                  print(line[:250])
+              elif line.startswith("PR133_PROTECTION_LINE "):
+                  print(line[:250])
+          # Print a minimal sanitized failure excerpt. Never print full
+          # source files, HTTP headers, credentials, or arbitrary log tails.
+          contexts=[x.split("PRESIGN_FAILURE_CONTEXT ",1)[1].strip()
+              for x in lines if x.startswith("PRESIGN_FAILURE_CONTEXT ")]
+          for x in contexts[:16]:
+              if re.search(r"(?i)(PASSWORD|API[_ -]?KEY|TOKEN|SECRET|AUTHORIZATION|BEARER)",x):
+                  continue
+              if any(t in x.upper() for t in (
+                  "FAIL","ERROR","MISSING","EXPECT","ASSERT","NOT_FOUND","COUNT","SKIPPED")):
+                  safe_line=re.sub(r'[^A-Za-z0-9_ .:+/()=\\-]','_',x)[:180]
+                  print("PR133_SAFE_FIRST_FAILURE_CONTEXT="+safe_line)
+          types=list(dict.fromkeys(re.findall(
+              r'\b(?:AssertionError|ValueError|TypeError|FileNotFoundError|SyntaxError)\b',txt)))
+          print("PR133_PRESIGN_FAILURE_TYPES="+",".join(types[-5:]))
+          print("PR133_PRESIGN_REPLAY_IS_NOT_ANDROID_BUILD_OR_WEEX_ORDER")
+          PY
+            exit 1
+          fi
+          grep -Fq "WEEX_PRESIGN_SOURCE_REPLAY_PASS" /tmp/pr133-current-presign-stdout.txt
+          test -z "$(find app/build/outputs -name '*.apk' -type f -print -quit 2>/dev/null || true)"
+          echo "PR133_CURRENT_CANONICAL_SOURCE_PRESIGN_PASS_NO_APK_NO_OTA_NO_WEEX_ORDER"

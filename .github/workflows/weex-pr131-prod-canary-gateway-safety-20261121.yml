@@ -1,0 +1,40 @@
+name: WEEX PR131 prod-branch ISOLATED canary gateway GET health and anon denial (NO OTA)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr131-prod-canary-gateway-safety-20261121.yml
+permissions:
+  contents: read
+jobs:
+  prod-branch-canary-read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      CANDIDATE_URL: https://br-bitter-tree-b8xf3vsz-weexgatewaynext.compute.c-14.us-east-1.aws.neon.tech
+    steps:
+      - name: Probe only new isolated canary, NOT users' existing gateway
+        run: |
+          set -euo pipefail
+          test "$CANDIDATE_URL" = "https://br-bitter-tree-b8xf3vsz-weexgatewaynext.compute.c-14.us-east-1.aws.neon.tech"
+          status="$(curl --silent --show-error --max-time 40 -o /tmp/pr131-canary-health.json -w '%{http_code}' "$CANDIDATE_URL/health")"
+          test "$status" = 200
+          python3 - <<'PY'
+          import json
+          x=json.load(open('/tmp/pr131-canary-health.json',encoding='utf-8'))
+          assert x.get('ok') is True
+          assert x.get('service') == 'weex-neon-gateway'
+          assert x.get('tradingEnabled') is False
+          assert x.get('cutover') is False
+          print('WEEX_PR131_PROD_ISOLATED_CANARY_GET_HEALTH_PASS')
+          PY
+          # POST of a non-mutating policy request WITHOUT bearer. Must deny.
+          anon="$(curl --silent --show-error --max-time 40 -o /tmp/pr131-anon.json -w '%{http_code}' -H 'Content-Type: application/json' --data '{"action":"profit_protection_status"}' "$CANDIDATE_URL/")"
+          test "$anon" = 401
+          python3 - <<'PY'
+          import json
+          x=json.load(open('/tmp/pr131-anon.json',encoding='utf-8'))
+          assert x.get('ok') is False
+          assert x.get('error') in ('missing_token','unauthorized')
+          print('WEEX_PR131_PROD_ISOLATED_CANARY_ANONYMOUS_POLICY_DENIED_PASS')
+          PY

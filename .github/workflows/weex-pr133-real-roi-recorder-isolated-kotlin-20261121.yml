@@ -127,7 +127,7 @@ jobs:
               val replay=recorder.record(p(9.0),origin(),"signed-A",now-20_000L,now)
               assertEquals("ROI_REPLAY_OR_OUT_OF_ORDER",(replay as RealRoiMilestoneReading.Skipped).reason)
               val stale=recorder.record(p(9.0),origin(),"signed-A",now-150_000L,now)
-              assertEquals("PRICE_SNAPSHOT_STALE",(stale as RealRoiMilestoneReading.Skipped).reason)
+              assertEquals("ROI_READING_STALE",(stale as RealRoiMilestoneReading.Skipped).reason)
             }
           }
           KOTLIN

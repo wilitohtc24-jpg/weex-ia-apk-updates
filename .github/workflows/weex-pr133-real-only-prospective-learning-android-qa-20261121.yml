@@ -1,0 +1,125 @@
+name: WEEX PR133 REAL-only signed learning ingress full Android presign JUnit (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr133-real-only-prospective-learning-android-qa-20261121.yml
+permissions:
+  contents: read
+jobs:
+  real-source-compile-junit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      PINNED_SOURCE_SHA: "65527637413e389dfaf45edb46b29ae94f9eec6a"
+    steps:
+      - name: Checkout exact PR133 private source read-only
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 65527637413e389dfaf45edb46b29ae94f9eec6a
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Prove no exchange order or STOP writer changed
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PINNED_SOURCE_SHA"
+          python3 - <<'PY'
+          import subprocess
+          root="app/src/main/java/com/wilito/weexautotrader/"
+          sensitive=["RealExecutionEngine.kt","RealAIExitEngine.kt",
+            "RealProfitProtectionManager.kt","RealAdaptiveProfitManager.kt",
+            "RealContinuousNetProfitCoordinator.kt","ContinuousNetProfitStopTransaction.kt",
+            "RealDecisionPlanner.kt","RealAIDecisionEngine.kt","WeexPrivateApi.kt"]
+          changed=subprocess.check_output(["git","diff","--name-only",
+            "31d4eb8fdfa8bc6cd2a0808ef88bc57f37682598..HEAD"],text=True).splitlines()
+          for file in sensitive:
+            assert root+file not in changed, "PR133 changed REAL execution or STOP: "+file
+          assert root+"TraderService.kt" in changed
+          from pathlib import Path
+          service=Path(root+"TraderService.kt").read_text()
+          position=service.find("RealPositionOriginResolver(applicationContext,database,api).prove(remotePositions)")
+          ingest=service.find("PR133_REAL_ONLY_PROSPECTIVE_EPISODE_INGEST_V1")
+          protection=service.find("realProfitProtection.manage(position,remotePositions")
+          assert 0 < position < ingest < protection, "REAL signed-origin and priority changed"
+          assert "scope.launch" in service[ingest:protection]
+          assert "signedRealPositionRows=api.positions()" in service
+          assert "realRoiEpisodeLearningBusy.compareAndSet(false,true)" in service
+          observer=Path(root+"RealLiveRoiEpisodeRecorder.kt").read_text()
+          for forbidden in ("WeexPrivateApi(", "modifyTpSlOrder(", "closePosition(",
+            "placeProtectedMarketOrder(", "setEmergencyStop(", "updateIsolatedLeverage("):
+              assert forbidden not in observer, "Observer gained trading authority: "+forbidden
+          print("PR133_REAL_ONLY_SOURCE_NO_ORDER_NO_STOP_DRIFT_PASS")
+          PY
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Canonical source materialization plus Android Kotlin/JUnit NO APK
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr133-final-kotlin
+          WEEX_ALLOW_DIRECT_PUBLISH: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          export ANDROID_HOME="$SDK" ANDROID_SDK_ROOT="$SDK"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          KOTLIN=/tmp/pr133-kotlin-2.2.21.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o "$KOTLIN"
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 "$KOTLIN" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o "$KOTLIN" -d "$HOME/.local"
+          export PATH="$HOME/.local/kotlinc/bin:$PATH"
+          GRADLE=/tmp/pr133-gradle-8.10.2.zip
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o "$GRADLE"
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 "$GRADLE" | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o "$GRADLE" -d "$HOME/.gradle-dist"
+          export PATH="$HOME/.gradle-dist/gradle-8.10.2/bin:$PATH"
+          export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false"
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/weex-pr133-source-android.log 2>&1; then
+            echo "::error::PR133_REAL_ONLY_ANDROID_COMPILE_OR_JUNIT_FAILED_NO_APK"
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+          source=Path("/tmp/weex-pr133-source-android.log").read_text(errors="replace")
+          for pattern in ("WEEX_AUDIT_KOTLIN_ERROR_COUNT","WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT",
+            "WEEX_AUDIT_JUNIT_BUILD_FAILED"):
+              match=re.search(pattern+r"=([0-9]+)",source)
+              print("PR133_"+pattern+"="+(match.group(1) if match else "UNKNOWN"))
+          markers=re.findall(r"\b(?:WEEX|REAL|PR133|PRESIGN)_[A-Z0-9_]{5,}\b",source[-15000:])
+          print("PR133_FINAL_SAFE_MARKERS="+",".join(list(dict.fromkeys(markers))[-28:]))
+          for ln in [x for x in source.splitlines()
+            if "WEEX_AUDIT_KOTLIN_FIRST_ERROR:" in x][-5:]:
+              msg=ln.split("WEEX_AUDIT_KOTLIN_FIRST_ERROR:",1)[1]
+              loc=re.search(r"([A-Za-z0-9_]+\.kt).*?(\d+)",msg)
+              kind=next((k for k in ("UNRESOLVED REFERENCE","TYPE MISMATCH",
+                "EXPECTING","NO VALUE PASSED","CANNOT ACCESS") if k in msg.upper()),"OTHER")
+              print("PR133_SAFE_KOTLIN_ERROR="+
+                (loc.group(1)+":"+loc.group(2) if loc else "UNKNOWN")+
+                ":"+kind.replace(" ","_"))
+          PY
+            exit 1
+          fi
+          grep -Fq "WEEX_AUDIT_JUNIT_PASS" /tmp/weex-pr133-source-android.log
+          grep -Fq "WEEX_PRESIGN_SOURCE_REPLAY_PASS" /tmp/weex-pr133-source-android.log
+          DIR=/tmp/weex-pr133-final-kotlin/main/java/com/wilito/weexautotrader
+          test -f "$DIR/RealLiveRoiEpisodeRecorder.kt"
+          grep -Fq 'realRoiEpisodeLearningBusy.compareAndSet(false,true)' "$DIR/TraderService.kt"
+          grep -Fq 'signedRealPositionRows=api.positions()' "$DIR/TraderService.kt"
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
+          echo PR133_REAL_ONLY_ANDROID_KOTLIN_JUNIT_PASS_NO_APK_NO_WEEX_ORDERS_NO_OTA

@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      SOURCE_SHA: 5bbc7b27e4113ac13c1cece488815b4cfee5758c
+      SOURCE_SHA: ca127d01be3c764bedab10df4639b09933bd1903
     steps:
       - name: Checkout EXACT private PR133 branch commit READ ONLY
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 5bbc7b27e4113ac13c1cece488815b4cfee5758c
+          ref: ca127d01be3c764bedab10df4639b09933bd1903
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -156,3 +156,9 @@ jobs:
             com.wilito.weexautotrader.RealBotAcceptedEntryStudyPolicyTest \
             com.wilito.weexautotrader.RealAppliedExperienceArchivePolicyTest
           echo PR133_APPLIED_VERIFIED_REAL_LEARNING_KOTLIN_JUNIT_PASS_NO_APK_NO_WEEX_NO_OTA
+      - name: Kotlin compile full REAL episode Android store with explicit Android/JSON stubs (NO APK)
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          bash ci/qa_real_applied_experience_archive_kotlin_android_stubs_v1.sh

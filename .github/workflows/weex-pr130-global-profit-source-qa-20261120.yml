@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 4a6d3472c06fbe2e6b6aeb836a01f28c68cfd9d7
+          ref: 40e9357f8287154390a1ad024b3eb4d9eb7714ae
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -29,7 +29,7 @@ jobs:
         working-directory: source
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "4a6d3472c06fbe2e6b6aeb836a01f28c68cfd9d7"
+          test "$(git rev-parse HEAD)" = "40e9357f8287154390a1ad024b3eb4d9eb7714ae"
           python3 ci/verify_global_profit_control_pr130_v1.py
           python3 ci/verify_pr131_global_profit_activation_wiring_v1.py
       - name: Node tests — role and multiple users after owner global switch

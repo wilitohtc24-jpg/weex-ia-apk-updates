@@ -63,4 +63,23 @@ jobs:
           print('PR131_PRIVATE_ARTIFACT_COUNT='+str(len(names)))
           print('PR131_ALL_FIVE_REQUIRED_FILES_PRESENT='+str(expected.issubset(names)))
           print('PR131_PRIVATE_SIGNED_APK_CANDIDATE_READY='+str(j.get('status')=='success' and expected.issubset(names)))
+          # CircleCI V1.1 includes step status when the V2 job omits them.
+          # Print only sanitized step phases: never scripts or captured stdout.
+          req=urllib.request.Request('https://circleci.com/api/v1.1/project/github/wilitohtc24-jpg/weex-auto-trader-android/'+str(n),
+              headers={'Circle-Token':token,'User-Agent':'weex-pr131-step-phase-readonly'})
+          try:
+              with urllib.request.urlopen(req,timeout=35) as response:
+                  legacy=json.load(response)
+              print('PR131_LEGACY_BUILD_STATE='+str(legacy.get('status')))
+              for index,step in enumerate(legacy.get('steps',[])):
+                  for a in (step.get('actions') or []):
+                      name=str(a.get('name',''))
+                      nameSafe=('PR131_RELEASE' if 'PR131 exact private signed APK' in name
+                          else 'ARTIFACT_UPLOAD' if 'Store artifacts' in name
+                          else 'SOURCE_CHECKOUT' if 'Checkout' in name
+                          else 'STEP_'+str(index))
+                      print('PR131_LEGACY_STEP='+nameSafe+' STATUS='+str(a.get('status')))
+          except Exception as error:
+              print('PR131_LEGACY_STEP_STATUS_UNAVAILABLE='+type(error).__name__)
+
           PY

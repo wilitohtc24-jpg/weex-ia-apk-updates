@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      SOURCE_SHA: b42226ef56b8cf67ee13c78e0317ab16a14b2cbb
+      SOURCE_SHA: 6c05ec0f32139911222c11a988b0976dd440d4a4
     steps:
       - name: Checkout EXACT private PR133 branch commit READ ONLY
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: b42226ef56b8cf67ee13c78e0317ab16a14b2cbb
+          ref: 6c05ec0f32139911222c11a988b0976dd440d4a4
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -37,7 +37,8 @@ jobs:
             "RealBotExecutedEntryEvidencePolicy.kt",
             "RealBotAuthenticatedCloseOrderLinkPolicy.kt",
             "RealBotClosedExperienceReconciler.kt",
-            "RealBotAcceptedEntryStudyPolicy.kt"]
+            "RealBotAcceptedEntryStudyPolicy.kt",
+            "RealAppliedExperienceArchivePolicy.kt"]
           text="\n".join((Path(prefix)/n).read_text() for n in names)
           for forbidden in ("modifyTpSlOrder(", "placeProtectedMarketOrder(", "updateIsolatedLeverage(",
             "WeexPositionCloseClient(", "setEmergencyStop(", "tradeEngine.execute("):
@@ -128,6 +129,7 @@ jobs:
             "$base/RealBotAuthenticatedCloseOrderLinkPolicy.kt" \
             "$base/RealBotClosedExperienceReconciler.kt" \
             "$base/RealBotAcceptedEntryStudyPolicy.kt" \
+            "$base/RealAppliedExperienceArchivePolicy.kt" \
             "$tests/RealBotClosedLearningPolicyTest.kt" \
             "$tests/RealVerifiedOutcomeLearningPolicyTest.kt" \
             "$tests/RealRoiMilestoneShadowPolicyTest.kt" \
@@ -138,6 +140,7 @@ jobs:
             "$tests/RealBotAuthenticatedCloseOrderLinkPolicyTest.kt" \
             "$tests/RealBotClosedExperienceReconcilerTest.kt" \
             "$tests/RealBotAcceptedEntryStudyPolicyTest.kt" \
+            "$tests/RealAppliedExperienceArchivePolicyTest.kt" \
             -cp "$cp" -d /tmp/real-learning-qa/classes
           java -cp "/tmp/real-learning-qa/classes:$cp:/tmp/real-learning-qa/kotlinc/lib/*" \
             org.junit.runner.JUnitCore \
@@ -150,5 +153,6 @@ jobs:
             com.wilito.weexautotrader.RealBotExecutedEntryEvidencePolicyTest \
             com.wilito.weexautotrader.RealBotAuthenticatedCloseOrderLinkPolicyTest \
             com.wilito.weexautotrader.RealBotClosedExperienceReconcilerTest \
-            com.wilito.weexautotrader.RealBotAcceptedEntryStudyPolicyTest
+            com.wilito.weexautotrader.RealBotAcceptedEntryStudyPolicyTest \
+            com.wilito.weexautotrader.RealAppliedExperienceArchivePolicyTest
           echo PR133_APPLIED_VERIFIED_REAL_LEARNING_KOTLIN_JUNIT_PASS_NO_APK_NO_WEEX_NO_OTA

@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 42
     env:
-      SOURCE_SHA: c1aab8e25ada1226b37cb1bedb0945770e598be2
+      SOURCE_SHA: f892711aef44eafb34897fd647c685ad785a36b0
     steps:
       - name: Checkout exact private DRAFT source read-only
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: c1aab8e25ada1226b37cb1bedb0945770e598be2
+          ref: f892711aef44eafb34897fd647c685ad785a36b0
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -59,6 +59,13 @@ jobs:
               if re.search(r"(?i)(TOKEN=|PASSWORD=|API[_ -]?KEY=|SECRET=)",line):
                   continue
               print("PR133_PRESIGN_CODE="+re.sub(r'[^A-Za-z0-9_ .:+/()=\-]','_',line)[:260])
+          # Position-only source anchors from the already-failed disposable
+          # worktree. No credentials, money, auth or market fields.
+          for line in lines:
+              if line.startswith("PR133_PROTECTION_SOURCE_PREDICATE "):
+                  print(line[:250])
+              elif line.startswith("PR133_PROTECTION_LINE "):
+                  print(line[:250])
           # Print a minimal sanitized failure excerpt. Never print full
           # source files, HTTP headers, credentials, or arbitrary log tails.
           contexts=[x.split("PRESIGN_FAILURE_CONTEXT ",1)[1].strip()

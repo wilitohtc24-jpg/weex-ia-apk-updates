@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      SOURCE_SHA: 192e4f87edab5d01d9b3d69a9ae4c6a24e8d24ab
+      SOURCE_SHA: e757fc5e5136cae30f82886e277695878c1883c4
     steps:
       - name: Checkout exact private feature SHA read-only
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 192e4f87edab5d01d9b3d69a9ae4c6a24e8d24ab
+          ref: e757fc5e5136cae30f82886e277695878c1883c4
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -45,6 +45,22 @@ jobs:
                            "authorizesRealOrder:Boolean=false",
                            "signedReadbackSeparatedType.equals"):
             assert required in s, "Safety rule missing: "+required
+          parser=(root/"RealWeexSignedFutureSymbolModeParser.kt").read_text()
+          for required in ('JSONArray(authenticatedPayload)',
+                           'rows.length()==1',
+                           'row.getString("symbol")',
+                           'row.getString("marginType")',
+                           'row.getString("separatedType")'):
+            assert required in parser, "Strict authenticated symbolConfig parser missing "+required
+          api=(root/"WeexPrivateApi.kt").read_text()
+          start=api.index("PR133_REAL_WEEX_V3_SYMBOL_CONFIG_READONLY_V1")
+          end=api.index("fun updateIsolatedLeverage(",start)
+          reader=api[start:end]
+          assert 'signedGet(' in reader
+          assert '"/capi/v3/account/symbolConfig"' in reader
+          assert 'signedPost(' not in reader
+          assert 'RealWeexSignedFutureSymbolModeParser.parse(' in reader
+          print("WEEX_PR133_SYMBOL_CONFIG_AUTHENTICATED_READ_ONLY_SOURCE_PASS")
           print("WEEX_COMBINED_TO_SEPARATED_NO_LIVE_MUTATION_SOURCE_PASS")
           PY
       - name: Java 17
@@ -64,7 +80,11 @@ jobs:
           mkdir -p "$temp/src/test/kotlin/com/wilito/weexautotrader"
           cp "$root/RealFutureSeparatedModePreflightPolicy.kt" \
              "$temp/src/main/kotlin/com/wilito/weexautotrader/"
+          cp "$root/RealWeexSignedFutureSymbolModeParser.kt" \
+             "$temp/src/main/kotlin/com/wilito/weexautotrader/"
           cp "$testroot/RealFutureSeparatedModePreflightPolicyTest.kt" \
+             "$temp/src/test/kotlin/com/wilito/weexautotrader/"
+          cp "$testroot/RealWeexSignedFutureSymbolModeParserTest.kt" \
              "$temp/src/test/kotlin/com/wilito/weexautotrader/"
           cat > "$temp/pom.xml" <<'XML'
           <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -81,6 +101,7 @@ jobs:
             <dependencies>
               <dependency><groupId>org.jetbrains.kotlin</groupId><artifactId>kotlin-stdlib</artifactId><version>2.2.21</version></dependency>
               <dependency><groupId>junit</groupId><artifactId>junit</artifactId><version>4.13.2</version><scope>test</scope></dependency>
+              <dependency><groupId>org.json</groupId><artifactId>json</artifactId><version>20240303</version></dependency>
             </dependencies>
             <build>
               <plugins>
@@ -116,7 +137,11 @@ jobs:
           XML
           mvn -B -ntp -f "$temp/pom.xml" test
           if ! grep -R -l 'tests="13"' "$temp/target/surefire-reports/"*.xml; then
-            echo "Expected 13 independently executed tests, not a skipped build" >&2
+            echo "Expected 13 safety policy tests, not a skipped build" >&2
             exit 1
           fi
-          echo WEEX_PR133_FUTURE_SEPARATED_MODE_13_TESTS_NO_ORDER_NO_APK_PASS
+          if ! grep -R -l 'tests="8"' "$temp/target/surefire-reports/"*.xml; then
+            echo "Expected 8 strict JSON parser tests, not a skipped build" >&2
+            exit 1
+          fi
+          echo WEEX_PR133_FUTURE_SEPARATED_MODE_13_AND_READONLY_CONFIG_8_TESTS_NO_APK_PASS

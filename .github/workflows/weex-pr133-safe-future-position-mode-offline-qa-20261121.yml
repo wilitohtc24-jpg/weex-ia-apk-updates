@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      SOURCE_SHA: e757fc5e5136cae30f82886e277695878c1883c4
+      SOURCE_SHA: ff02d9bb584f41f99550dcbdd3cfc06c7be2904e
     steps:
       - name: Checkout exact private feature SHA read-only
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: e757fc5e5136cae30f82886e277695878c1883c4
+          ref: ff02d9bb584f41f99550dcbdd3cfc06c7be2904e
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -40,6 +40,8 @@ jobs:
           for required in ("FUTURE_SEPARATED_ROLLOUT_NOT_APPROVED",
                            "EXISTING_POSITION_ORDER_OR_JOURNAL_NO_MODE_CHANGE",
                            "SIGNED_PORTFOLIO_OR_OPEN_ORDERS_INCOMPLETE",
+                           "signedConditionalOrdersComplete",
+                           "symbolHasAnyOpenConditionalOrder",
                            "SIGNED_POSITION_MODE_UNRECOGNIZED",
                            "authorizesWeexModeChange:Boolean=false",
                            "authorizesRealOrder:Boolean=false",
@@ -136,12 +138,12 @@ jobs:
           </project>
           XML
           mvn -B -ntp -f "$temp/pom.xml" test
-          if ! grep -R -l 'tests="13"' "$temp/target/surefire-reports/"*.xml; then
-            echo "Expected 13 safety policy tests, not a skipped build" >&2
+          if ! grep -R -l 'tests="15"' "$temp/target/surefire-reports/"*.xml; then
+            echo "Expected 15 safety policy tests, not a skipped build" >&2
             exit 1
           fi
           if ! grep -R -l 'tests="8"' "$temp/target/surefire-reports/"*.xml; then
             echo "Expected 8 strict JSON parser tests, not a skipped build" >&2
             exit 1
           fi
-          echo WEEX_PR133_FUTURE_SEPARATED_MODE_13_AND_READONLY_CONFIG_8_TESTS_NO_APK_PASS
+          echo WEEX_PR133_FUTURE_SEPARATED_MODE_15_AND_READONLY_CONFIG_8_TESTS_NO_APK_PASS

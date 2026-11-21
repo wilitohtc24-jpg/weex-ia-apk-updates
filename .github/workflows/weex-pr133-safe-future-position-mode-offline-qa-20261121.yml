@@ -52,34 +52,59 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Compiler Kotlin 2.2.21 and JUnit
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/pr133-mode
-          curl --fail --location --silent --show-error --retry 3 --max-time 240 \
-            https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip \
-            -o /tmp/pr133-mode/kotlin.zip
-          unzip -q /tmp/pr133-mode/kotlin.zip -d /tmp/pr133-mode
-          curl --fail --location --silent --show-error --retry 3 --max-time 120 \
-            https://repo.maven.apache.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar \
-            -o /tmp/pr133-mode/junit.jar
-          curl --fail --location --silent --show-error --retry 3 --max-time 120 \
-            https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar \
-            -o /tmp/pr133-mode/hamcrest.jar
-      - name: Kotlin/JUnit 13 no-position-mode-mutation regressions
+      - name: Maven Central isolated Kotlin compile and JUnit 13 tests (no GitHub binary download)
         shell: bash
         working-directory: source
         run: |
           set -euo pipefail
           root=app/src/main/java/com/wilito/weexautotrader
           testroot=app/src/test/java/com/wilito/weexautotrader
-          cp=/tmp/pr133-mode/junit.jar:/tmp/pr133-mode/hamcrest.jar
-          mkdir -p /tmp/pr133-mode/classes
-          /tmp/pr133-mode/kotlinc/bin/kotlinc \
-            "$root/RealFutureSeparatedModePreflightPolicy.kt" \
-            "$testroot/RealFutureSeparatedModePreflightPolicyTest.kt" \
-            -cp "$cp" -d /tmp/pr133-mode/classes
-          java -cp "/tmp/pr133-mode/classes:$cp:/tmp/pr133-mode/kotlinc/lib/*" \
-            org.junit.runner.JUnitCore com.wilito.weexautotrader.RealFutureSeparatedModePreflightPolicyTest
+          temp=/tmp/weex-pr133-mode-policy
+          mkdir -p "$temp/src/main/kotlin/com/wilito/weexautotrader"
+          mkdir -p "$temp/src/test/kotlin/com/wilito/weexautotrader"
+          cp "$root/RealFutureSeparatedModePreflightPolicy.kt" \
+             "$temp/src/main/kotlin/com/wilito/weexautotrader/"
+          cp "$testroot/RealFutureSeparatedModePreflightPolicyTest.kt" \
+             "$temp/src/test/kotlin/com/wilito/weexautotrader/"
+          cat > "$temp/pom.xml" <<'XML'
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.wilito.test</groupId>
+            <artifactId>pr133-pure-mode</artifactId>
+            <version>1.0.0</version>
+            <properties>
+              <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+              <kotlin.version>2.2.21</kotlin.version>
+            </properties>
+            <dependencies>
+              <dependency><groupId>org.jetbrains.kotlin</groupId><artifactId>kotlin-stdlib</artifactId><version>2.2.21</version></dependency>
+              <dependency><groupId>junit</groupId><artifactId>junit</artifactId><version>4.13.2</version><scope>test</scope></dependency>
+            </dependencies>
+            <build>
+              <plugins>
+                <plugin>
+                  <groupId>org.jetbrains.kotlin</groupId>
+                  <artifactId>kotlin-maven-plugin</artifactId>
+                  <version>2.2.21</version>
+                  <executions>
+                    <execution><id>compile</id><phase>compile</phase><goals><goal>compile</goal></goals></execution>
+                    <execution><id>test-compile</id><phase>test-compile</phase><goals><goal>test-compile</goal></goals></execution>
+                  </executions>
+                </plugin>
+                <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-surefire-plugin</artifactId>
+                  <version>3.3.1</version>
+                </plugin>
+              </plugins>
+            </build>
+          </project>
+          XML
+          mvn -B -ntp -f "$temp/pom.xml" test
+          if ! grep -R -l 'tests="13"' "$temp/target/surefire-reports/"*.xml; then
+            echo "Expected 13 independently executed tests, not a skipped build" >&2
+            exit 1
+          fi
           echo WEEX_PR133_FUTURE_SEPARATED_MODE_13_TESTS_NO_ORDER_NO_APK_PASS

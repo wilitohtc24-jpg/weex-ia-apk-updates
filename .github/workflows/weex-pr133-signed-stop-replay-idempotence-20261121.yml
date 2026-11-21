@@ -1,0 +1,80 @@
+name: WEEX PR133 signed portfolio STOP identity materializer idempotence (NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr133-signed-stop-replay-idempotence-20261121.yml
+permissions:
+  contents: read
+jobs:
+  isolated-stop-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      SOURCE_SHA: eb0f75cdaa6efdf8b521c5f1c4d20fe0ae0ec5e7
+    steps:
+      - name: Checkout pinned private PR133 source READ ONLY
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: eb0f75cdaa6efdf8b521c5f1c4d20fe0ae0ec5e7
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Apply exact signed STOP materializer twice on disposable source
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('app/src/main/java/com/wilito/weexautotrader/TraderService.kt').read_text()
+          for m in ('val signedRealPositionRows=api.positions()',
+                    'val signedRealPositionReadAt=System.currentTimeMillis()',
+                    'val rawPositions=signedRealPositionRows.map { position ->',
+                    'realProtectionStore.reconcile(rawPositions)',
+                    'val remotePositions=rawPositions.map { position ->'):
+            assert s.count(m)==1, 'Source input ambiguous: '+m
+          assert s.count('api.positions()')==1
+          PY
+          python3 ci/patch_real_protection_reconciliation_v1.py
+          python3 ci/verify_real_protection_reconciliation_v1.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          files=('app/src/main/java/com/wilito/weexautotrader/TraderService.kt',
+                 'app/src/main/java/com/wilito/weexautotrader/RealProtectionStore.kt')
+          digest=hashlib.sha256()
+          for path in files:
+            s=Path(path).read_text()
+            digest.update(s.encode())
+            if path.endswith('TraderService.kt'):
+              assert s.count('api.positions()')==1
+              for m in ('val signedRealPositionRows=api.positions()',
+                        'val signedRealPositionReadAt=System.currentTimeMillis()',
+                        'val rawRealPositions=signedRealPositionRows.map { position ->',
+                        'realProtectionStore.reconcile(rawRealPositions)',
+                        'val stored=realProtectionStore.loadBound(position)'):
+                assert s.count(m)==1, 'Signed source damaged: '+m
+              assert s.index('val signedRealPositionRows=api.positions()')<s.index(
+                'val signedRealPositionReadAt=System.currentTimeMillis()')<s.index(
+                'val rawRealPositions=signedRealPositionRows.map { position ->')<s.index(
+                'realProtectionStore.reconcile(rawRealPositions)')<s.index(
+                'val stored=realProtectionStore.loadBound(position)')
+          Path('/tmp/pr133_stop_first.sha').write_text(digest.hexdigest())
+          PY
+          python3 ci/patch_real_protection_reconciliation_v1.py
+          python3 ci/verify_real_protection_reconciliation_v1.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          digest=hashlib.sha256()
+          for path in ('app/src/main/java/com/wilito/weexautotrader/TraderService.kt',
+                       'app/src/main/java/com/wilito/weexautotrader/RealProtectionStore.kt'):
+            digest.update(Path(path).read_text().encode())
+          assert digest.hexdigest()==Path('/tmp/pr133_stop_first.sha').read_text(), (
+            'Second materialization changed STOP source, not idempotent')
+          print('PR133_SIGNED_REAL_STOP_BINDING_IDEMPOTENT_SECOND_RUN_PASS')
+          print('PR133_REAL_POSITION_PROTECTION_EXACT_ID_AND_SINGLE_SIGNED_GET_PASS')
+          PY

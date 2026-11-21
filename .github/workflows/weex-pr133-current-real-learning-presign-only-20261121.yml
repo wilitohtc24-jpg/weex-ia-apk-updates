@@ -72,7 +72,9 @@ jobs:
           # Position-only source anchors from the already-failed disposable
           # worktree. No credentials, money, auth or market fields.
           for line in lines:
-              if line.startswith("PR133_PROTECTION_SOURCE_PREDICATE "):
+              if line.startswith("PR133_SIGNED_MODE_COMPONENTS ") or line.startswith("PR133_SIGNED_MODE_ID_GUARDS "):
+                  print(line[:240])
+              elif line.startswith("PR133_PROTECTION_SOURCE_PREDICATE "):
                   print(line[:250])
               elif line.startswith("PR133_PROTECTION_LINE "):
                   print(line[:250])

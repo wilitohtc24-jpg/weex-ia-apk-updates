@@ -1,0 +1,66 @@
+name: WEEX PR131 CircleCI exact private APK job status and artifact inventory (READ ONLY)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr131-circleci-private-status-readonly-20261121.yml
+permissions:
+  contents: read
+jobs:
+  inspect-pr131-private-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      EXPECTED_AUTH_SHA: 235a0b7793827072b123aad44cb440109078de25
+      EXPECTED_WORKFLOW_ID: 1a477b85-b654-4b66-bc55-4eff5581e8a5
+      EXPECTED_JOB_ID: c1ff95de-594f-49c8-86ec-58d3497ab2d4
+    steps:
+      - name: Inspect exact CircleCI job with read token, print status and safe progress only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,urllib.request
+          token=os.getenv('CIRCLECI_READ_TOKEN','')
+          assert token,'PR131_CIRCLECI_STATUS_READ_TOKEN_MISSING'
+          root='https://circleci.com/api/v2'
+          headers={'Circle-Token':token,'Accept':'application/json','User-Agent':'weex-pr131-exact-job-status'}
+          def get(path):
+              with urllib.request.urlopen(urllib.request.Request(root+path,headers=headers),timeout=35) as response:
+                  return json.load(response)
+          w=get('/workflow/'+os.environ['EXPECTED_WORKFLOW_ID'])
+          print('PR131_WORKFLOW_STATUS='+str(w.get('status')))
+          pipeline=get('/pipeline/'+w['pipeline_id'])
+          vcs=pipeline.get('vcs') or {}
+          assert vcs.get('revision')==os.environ['EXPECTED_AUTH_SHA'],'PR131_WRONG_CIRCLECI_REVISION'
+          assert vcs.get('branch')=='release/pr131-private-profit-stop-20261121','PR131_WRONG_BRANCH'
+          jobs=get('/workflow/'+w['id']+'/job').get('items',[])
+          exact=[j for j in jobs if j.get('id')==os.environ['EXPECTED_JOB_ID'] and j.get('name')=='pr131_circleci_private_candidate']
+          assert len(exact)==1,'PR131_JOB_NOT_FOUND'
+          j=exact[0]
+          print('PR131_JOB_STATUS='+str(j.get('status')))
+          n=j.get('job_number')
+          print('PR131_JOB_NUMBER='+str(n))
+          if n is None:raise SystemExit(0)
+          p='/project/gh/wilitohtc24-jpg/weex-auto-trader-android'
+          d=get(p+'/job/'+str(n))
+          print('PR131_JOB_STARTED_AT='+str(d.get('started_at')))
+          print('PR131_JOB_STOPPED_AT='+str(d.get('stopped_at')))
+          for step in d.get('steps',[])[-20:]:
+              for action in (step.get('actions') or []):
+                  name=str(action.get('name') or '')
+                  category=('PRIVATE_APK_BUILD' if 'PR131 exact private signed' in name
+                      else 'ARTIFACTS' if 'Store artifacts' in name
+                      else 'CHECKOUT' if 'Checkout' in name
+                      else 'OTHER')
+                  print('PR131_SAFE_STEP='+category+' STATUS='+str(action.get('status')))
+          assets=get(p+'/'+str(n)+'/artifacts').get('items',[])
+          names={str(a.get('path')) for a in assets}
+          expected={'private-pr131-circleci-candidate/'+v for v in (
+              'WEEX-IA-Trader-release.apk','signing-certificate.txt','release.json',
+              'apk-sha256.txt','candidate-provenance.txt')}
+          print('PR131_PRIVATE_ARTIFACT_COUNT='+str(len(names)))
+          print('PR131_ALL_FIVE_REQUIRED_FILES_PRESENT='+str(expected.issubset(names)))
+          print('PR131_PRIVATE_SIGNED_APK_CANDIDATE_READY='+str(j.get('status')=='success' and expected.issubset(names)))
+          PY

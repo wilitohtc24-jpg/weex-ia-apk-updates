@@ -94,7 +94,7 @@ jobs:
                               outputEntries=json.load(output)
                           for record in outputEntries[-250:]:
                               message=str(record.get('message',''))
-                              for m in re.findall(r'\\b(?:PR131_[A-Z0-9_]{7,}|WEEX_PRESIGN_SOURCE_REPLAY_PASS|WEEX_AUDIT_JUNIT_PASS|BITRISE_CANONICAL_RELEASE_OK|GLOBAL_RELEASE_VERSION_CODE=\\d+|WEEX_RELEASE_ERRTRAP)\\b',message):
+                              for m in re.findall(r'\b(?:PR131_[A-Z0-9_]{7,}|WEEX_PRESIGN_SOURCE_REPLAY_PASS|WEEX_AUDIT_JUNIT_PASS|BITRISE_CANONICAL_RELEASE_OK|GLOBAL_RELEASE_VERSION_CODE=\d+|WEEX_RELEASE_ERRTRAP)\b',message):
                                   if m.startswith('GLOBAL_RELEASE_VERSION_CODE='):
                                       markers.add('GLOBAL_VERSION_ALLOCATED')
                                   elif m=='WEEX_RELEASE_ERRTRAP':

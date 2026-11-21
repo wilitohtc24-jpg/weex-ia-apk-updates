@@ -1,7 +1,11 @@
 name: WEEX PR131 exact CircleCI private signed APK audit (NO OTA)
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr131-circleci-private-signed-artifact-audit-20261121.yml
   workflow_dispatch:
-  # Push-triggered audit only after CircleCI reports a signed candidate. Never run early.
+  # Build 235a0b77 reached CircleCI SUCCESS before activating this audit.
 permissions:
   contents: read
 jobs:

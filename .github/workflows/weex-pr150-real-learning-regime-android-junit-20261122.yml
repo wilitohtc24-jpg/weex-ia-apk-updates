@@ -190,6 +190,7 @@ jobs:
           grep -Fq 'MarketRegime.values().firstOrNull' "$final/RealLearningRegimeIdentityPolicy.kt"
           grep -Fq 'entryRegime=stableRegime' "$final/RealBotAcceptedEntryStudyRecorder.kt"
           grep -Fq 'context.copy(entryRegime=closeRegime)' "$final/RealAppliedExperienceAdvisor.kt"
-          test -s "$final/RealLearningRegimeIdentityPolicyTest.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealLearningRegimeIdentityPolicyTest.kt
+          echo WEEX_PR150_JUNIT_MATERIALIZED_AND_SOURCE_TEST_PATH_VERIFIED
           test ! -e app/build/outputs/apk/release/app-release.apk
           echo WEEX_PR150_REAL_REGIME_IN_LIVE_ACK_AND_NEXT_ADVICE_JUNIT_PASS_NO_APK_NO_WEEX_NO_OTA

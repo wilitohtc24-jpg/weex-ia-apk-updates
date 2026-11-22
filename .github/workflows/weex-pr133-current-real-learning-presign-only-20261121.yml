@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 42
     env:
-      SOURCE_SHA: 353c970f945b061210279ff205d752ba05b84c2e
+      SOURCE_SHA: 5b10df70e49809001479f1bbe46585dd3148294c
     steps:
       - name: Checkout exact private DRAFT source read-only
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 353c970f945b061210279ff205d752ba05b84c2e
+          ref: 5b10df70e49809001479f1bbe46585dd3148294c
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -51,6 +51,16 @@ jobs:
           set -euo pipefail
           python3 ci/test_pr133_real_sim_financial_isolation_v1.py
           echo "PR133_REAL_SIM_FINANCIAL_ISOLATION_TEST_VERIFIED_NO_APK"
+      - name: Verify signed REAL-to-SIM one-GET family negative cases (NO APK)
+        working-directory: source
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          WEEX_ALLOW_DIRECT_PUBLISH: 'false'
+        run: |
+          set -euo pipefail
+          python3 ci/test_real_to_sim_signed_reads_v1.py
+          echo "PR133_REAL_TO_SIM_SIGNED_PORTFOLIO_VERIFIED_NO_APK"
       - name: Replay canonical pre-sign source validators in disposable copy only
         working-directory: source
         shell: bash

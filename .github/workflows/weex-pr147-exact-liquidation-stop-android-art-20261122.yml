@@ -248,7 +248,7 @@ jobs:
                       liquidationGeometry=RealStopLiquidationGeometryReview(
                           RealStopLiquidationGeometryStatus.STOP_BEFORE_LIQUIDATION_WITH_BUFFER,
                           separationFromLiquidation=0.0095,requiredSeparation=0.00212,
-                          reviewedPositionId=position,
+                          reviewedPositionId=ledger.id,
                           reviewedStopAlgoId=stop,
                           reviewedTriggerPriceType="MARK_PRICE",
                           reviewedStopPrice=0.9738,

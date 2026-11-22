@@ -51,7 +51,6 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLearningRegimeIdentityPolicyTest.kt)" = "fa5f710c8482dada5631708fdc804028070e376c"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisorTest.kt)" = "def59074e652bdaece470e887bcc1e34a5d77874"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicyTest.kt)" = "adfb8c81ddfc6fdbc70ed32236c6bb111b7834db"
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = "900f94931c0a19f0b0f2fa18b57b1c504009b761"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicy.kt)" = "cdba0a1b435c99b99da3046d226865914f46dde8"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicyTest.kt)" = "35fe229d2723cb7c54e43ad579698604697eb13e"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = "d008235f20e7830185a8f6f91fff1c62925ce7ae"

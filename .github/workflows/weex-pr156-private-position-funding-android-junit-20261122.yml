@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 21e7fff0cbb77c6efcf660ad3ab2a7520b26bc45
+      SOURCE_SHA: 4b5680ba00f142105af5a892e9fef9638bde7d4b
       SELECTOR_BLOB: 838d36d93ef7d315b80724674b8e919b6704c066
       FUNNEL_BLOB: bfebb0c4738a13aaa6820dd2445abb91ba563060
       FUNNEL_TEST_BLOB: 356b030edc03bd9749294534cf67a14319fcb426
@@ -56,8 +56,8 @@ jobs:
       POSITION_COST_TEST_BLOB: a0da7143eaad615a4cb46e5a63a2bd82d18cb7db
       ORDER_TIME_POLICY_BLOB: 2451a3a254217451000a6e67bc542d00ecd5bae4
       ORDER_TIME_TEST_BLOB: 086cfafe18a5b6000d296ba39e9e151c23583af0
-      PRIVATE_STREAM_POLICY_BLOB: b30ba1507b94e7f94f4390777360fde887ff09dc
-      PRIVATE_STREAM_TEST_BLOB: 29b9c434b542cbf4fc59822a838fe6b83f96336e
+      PRIVATE_STREAM_POLICY_BLOB: 391e47b954d8d2a9c7a5a5e0e210d8161111a9b8
+      PRIVATE_STREAM_TEST_BLOB: 7209f9f80888cd0bd4b344bc43e314ed48956e0f
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -65,7 +65,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 21e7fff0cbb77c6efcf660ad3ab2a7520b26bc45
+          ref: 4b5680ba00f142105af5a892e9fef9638bde7d4b
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source

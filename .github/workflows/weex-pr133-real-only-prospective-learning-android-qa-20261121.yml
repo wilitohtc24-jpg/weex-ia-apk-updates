@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
           path: source
-      - name: Prove no exchange order or STOP writer changed
+      - name: Prove no direct exchange order or STOP writer drift and audit read-only adapters
         working-directory: source
         shell: bash
         run: |
@@ -30,17 +30,53 @@ jobs:
           test "$(git rev-parse HEAD)" = "$PINNED_SOURCE_SHA"
           python3 - <<'PY'
           import subprocess
-          root="app/src/main/java/com/wilito/weexautotrader/"
-          sensitive=["RealExecutionEngine.kt","RealAIExitEngine.kt",
-            "RealProfitProtectionManager.kt","RealAdaptiveProfitManager.kt",
-            "RealContinuousNetProfitCoordinator.kt","ContinuousNetProfitStopTransaction.kt",
-            "RealDecisionPlanner.kt","RealAIDecisionEngine.kt","WeexPrivateApi.kt"]
-          changed=subprocess.check_output(["git","diff","--name-only",
-            "31d4eb8fdfa8bc6cd2a0808ef88bc57f37682598..HEAD"],text=True).splitlines()
-          for file in sensitive:
-            assert root+file not in changed, "PR133 changed REAL execution or STOP: "+file
-          assert root+"TraderService.kt" in changed
           from pathlib import Path
+          root="app/src/main/java/com/wilito/weexautotrader/"
+          base="31d4eb8fdfa8bc6cd2a0808ef88bc57f37682598..HEAD"
+          unchanged_writers=(
+              "RealExecutionEngine.kt","RealProfitProtectionManager.kt",
+              "RealAdaptiveProfitManager.kt","RealContinuousNetProfitCoordinator.kt",
+              "ContinuousNetProfitStopTransaction.kt","RealAIDecisionEngine.kt"
+          )
+          changed=set(subprocess.check_output(
+              ["git","diff","--name-only",base],text=True).splitlines())
+          for file in unchanged_writers:
+              assert root+file not in changed, "REAL order/STOP writer drift: "+file
+          approved_adapters=("RealAIExitEngine.kt","RealDecisionPlanner.kt","WeexPrivateApi.kt")
+          for file in approved_adapters:
+              assert root+file in changed,"Expected signed REAL adapter not independently audited: "+file
+          dangerous=("modifyTpSlOrder(","setEmergencyStop(",
+              "placeProtectedMarketOrder(","updateIsolatedLeverage(",
+              "realExecutor.execute(","cancelOrder(")
+          for name in approved_adapters:
+              diff=subprocess.check_output(
+                  ["git","diff","--unified=0",base,"--",root+name],text=True)
+              additions=[x[1:] for x in diff.splitlines()
+                  if x.startswith("+") and not x.startswith("+++")]
+              assert additions,"Adapter diff disappeared: "+name
+              assert not any(word in "\n".join(additions) for word in dangerous), (
+                  "Adapter gained direct order/STOP writing: "+name)
+              if name in ("RealAIExitEngine.kt","WeexPrivateApi.kt"):
+                  deleted=[x for x in diff.splitlines()
+                      if x.startswith("-") and not x.startswith("---")]
+                  assert not deleted,"Previously validated close/API writer modified: "+name
+          exit_source=Path(root+"RealAIExitEngine.kt").read_text()
+          durable=exit_source.index('.putString("close_order_id",receipt.closeOrderId)')
+          witness=exit_source.index("PR133_AUTHENTICATED_CLOSE_ORDER_LINK_NON_INTRUSIVE_V1")
+          result=exit_source.index("RealAIExitResult.Closed(",witness)
+          assert durable<witness<result and "runCatching {" in exit_source[witness:result]
+          assert "recordAuthenticatedCloseResponse(" in exit_source[witness:result]
+          api=Path(root+"WeexPrivateApi.kt").read_text()
+          for token in ("internal fun signedProfitFeeSnapshot(",
+                        "internal fun signedApiProfitExitFeeRates(",
+                        "internal fun readOnlyFutureSymbolMode("):
+              assert token in api,"Read-only signed API adapter missing: "+token
+          planner=Path(root+"RealDecisionPlanner.kt").read_text()
+          for token in ("REAL_TRAINING_INDEPENDENT_ADMISSION_V1",
+                        "lossProtection.assessRealAccount(",
+                        "originalEntryRegime=regime","risk.evaluate("):
+              assert token in planner,"REAL planner risk/entry evidence changed: "+token
+          assert root+"TraderService.kt" in changed
           service=Path(root+"TraderService.kt").read_text()
           position=service.find("RealPositionOriginResolver(applicationContext,database,api).prove(remotePositions)")
           ingest=service.find("PR133_REAL_ONLY_PROSPECTIVE_EPISODE_INGEST_V1")
@@ -53,7 +89,7 @@ jobs:
           for forbidden in ("WeexPrivateApi(", "modifyTpSlOrder(", "closePosition(",
             "placeProtectedMarketOrder(", "setEmergencyStop(", "updateIsolatedLeverage("):
               assert forbidden not in observer, "Observer gained trading authority: "+forbidden
-          print("PR133_REAL_ONLY_SOURCE_NO_ORDER_NO_STOP_DRIFT_PASS")
+          print("PR133_REAL_ONLY_WRITERS_UNCHANGED_SIGNED_ADAPTERS_REVIEWED_PASS")
           PY
       - name: Java 17
         uses: actions/setup-java@v4

@@ -167,13 +167,13 @@ jobs:
                   val opening=Class.forName(
                       "com.wilito.weexautotrader.RealBotSignedOpeningReadOnlyCollector")
                   assertTrue(opening.methods.any { it.name=="collect" })
-                  val protected=Class.forName(
+                  val proofGetters=Class.forName(
                       "com.wilito.weexautotrader.RealSignedOpeningReadOnlyEvidence")
                       .declaredMethods.map{it.name}
-                  assertTrue(protected.contains("getPermitsLiveTraining"))
-                  assertTrue(protected.contains("getGrantsStopMutationAuthority"))
-                  assertTrue(protected.contains("getAuthorizesRealEntry"))
-                  assertTrue(protected.contains("getCertifiesCompleteTrade"))
+                  assertTrue(proofGetters.contains("getPermitsLiveTraining"))
+                  assertTrue(proofGetters.contains("getGrantsStopMutationAuthority"))
+                  assertTrue(proofGetters.contains("getAuthorizesRealEntry"))
+                  assertTrue(proofGetters.contains("getCertifiesCompleteTrade"))
               }
               @Test fun exactOrderFillWindowRejectsCrossOrderAndSaturatedSnapshot() {
                   val now=1_800_000_000_000L

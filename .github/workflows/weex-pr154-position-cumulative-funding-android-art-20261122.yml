@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: 020f9295e26aad61391b0cf4cce2e0c0256dae1b
+      SOURCE_SHA: 61bd7e99a8a24e0a0c51bc71045c8f3fc2bdab15
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 020f9295e26aad61391b0cf4cce2e0c0256dae1b
+          ref: 61bd7e99a8a24e0a0c51bc71045c8f3fc2bdab15
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -53,7 +53,7 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicyTest.kt)" = "adfb8c81ddfc6fdbc70ed32236c6bb111b7834db"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicy.kt)" = "cdba0a1b435c99b99da3046d226865914f46dde8"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicyTest.kt)" = "35fe229d2723cb7c54e43ad579698604697eb13e"
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = "18229d58e6aaa341ee2fe1f0d8f35ff6f9f4c35d"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = "06878874d309867af69cca3e2ca4b3c590334967"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt)" = "ad44aa27a806770afede6ed05a3bb12f769042a3"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollectorTest.kt)" = "bd7ae0f037c749b18bd363e2010fedd90c28182e"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt)" = "7552e1767c95b24cae433a7fddc31135ee1bd95f"

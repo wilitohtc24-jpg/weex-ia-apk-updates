@@ -1,0 +1,47 @@
+name: WEEX PR136 integrated REAL HOY withdrawals not trading loss source QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr136-real-hoy-no-withdrawal-loss-qa-20261122.yml
+permissions:
+  contents: read
+jobs:
+  real-results-no-cashflow-loss:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      SOURCE_SHA: e9e53d0a1122c56fe4bd9eb3a0e8c6320217998b
+      EXPECTED_MAIN_BLOB: 48a9ffe8db55114dd99ea2781afbce4d18ce78ab
+    steps:
+      - name: Checkout exact private source commit read-only
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: e9e53d0a1122c56fe4bd9eb3a0e8c6320217998b
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Verify source SHA and no APK trading path impact
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/MainActivity.kt)" = "$EXPECTED_MAIN_BLOB"
+          python3 ci/verify_real_results_cashflow_not_loss_v1.py
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("app/src/main/java/com/wilito/weexautotrader/MainActivity.kt").read_text()
+          assert "val realTodayClosedNet by produceState<Double?>" in s
+          assert "PerformanceDashboardCard(" in s
+          # MainActivity already has legitimate emergency-stop UI controls.
+          # Scope the no-order-write check to the NEW result display block.
+          start=s.index("private fun PerformanceDashboardCard(")
+          end=s.index("@Composable",start+1)
+          result_display=s[start:end]
+          for forbidden in ("WeexPrivateApi(", "modifyTpSlOrder(", "setEmergencyStop(", "closePosition(", "RealExecutionEngine("):
+              assert forbidden not in result_display, "trading mutation in REAL result display"
+          print("DISPLAY_ONLY_NEW_REAL_RESULTS_NO_ORDER_STOP_MUTATIONS_PASS")
+          PY
+          test -z "$(find app/build/outputs -type f -name '*.apk' -print -quit 2>/dev/null || true)"
+          echo "NO_APK_NO_OTA_NO_WEEX_ORDERS"

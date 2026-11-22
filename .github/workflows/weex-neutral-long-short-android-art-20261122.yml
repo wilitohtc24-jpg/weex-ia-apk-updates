@@ -3,7 +3,7 @@ name: WEEX neutral LONG SHORT Android ART DEX offline regression NO OTA
 on:
   push:
     branches: [main]
-    paths: [.github/workflows/weex-neutral-tie-exact-materialized-offline-art-20261122.yml]
+    paths: [.github/workflows/weex-neutral-long-short-android-art-20261122.yml]
 permissions:
   contents: read
 jobs:
@@ -80,7 +80,7 @@ jobs:
           grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/neutral-tie-art-presign.log
           test -s /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
           test -s /tmp/neutral-tie-exact-materialized/build.gradle.kts
-                    grep -Fq 'DIRECTIONAL_NEUTRAL_TIES_STUDY_V1' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/Indicators.kt
+          grep -Fq 'DIRECTIONAL_NEUTRAL_TIES_STUDY_V1' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/Indicators.kt
           echo NEUTRAL_TIE_EXACT_MATERIALIZED_KOTLIN_JUNIT_PASS
       - name: Build disposable debug DEX and offline instrumentation APKs
         working-directory: source

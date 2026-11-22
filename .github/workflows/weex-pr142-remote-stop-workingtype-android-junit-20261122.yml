@@ -1,0 +1,146 @@
+# NO RELEASE. Android/JUnit on exact source after canonical materialization.
+name: WEEX PR142 read-only V3 stop workingType Android JUnit NO APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr142-remote-stop-workingtype-android-junit-20261122.yml
+permissions:
+  contents: read
+jobs:
+  canonical-study-android-junit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      SOURCE_SHA: 5d6617f6febf70dd9744b14c9003489a3b2fba2f
+      SELECTOR_BLOB: 838d36d93ef7d315b80724674b8e919b6704c066
+      FUNNEL_BLOB: bfebb0c4738a13aaa6820dd2445abb91ba563060
+      FUNNEL_TEST_BLOB: 356b030edc03bd9749294534cf67a14319fcb426
+      MARGIN_STUDY_BLOB: 35a945a6729b361ece991d4fd30619c7d3cd2bdb
+      MARGIN_STUDY_TEST_BLOB: 468bb339f7a9eaeb04dcfdbf9730e50b520d7c9d
+      COMBINED_FLAT_BLOB: 1d5d1dc3436776e4730a9adc455b616c23f167a3
+      COMBINED_FLAT_TEST_BLOB: 231f5cddc908cb4ddd4139e2c947268a7bd57bc7
+      COMBINED_LEDGER_BLOB: d0f5f269d9a0c209742f9ed3f31ed1b1329d223b
+      COMBINED_LEDGER_TEST_BLOB: 2096f42f5d7c2be99dd0d19ea6c36a6b51fd00d0
+      COMBINED_TRADES_BLOB: 1f559be6c701e19f6bedd578eb2d8b6f5de526f6
+      COMBINED_TRADES_TEST_BLOB: e6a13994619c6521461e0936ed100136ec0e6907
+      COMBINED_LINK_BLOB: bfb715ce4896d1e3ad11b7980443a31e4a350f36
+      COMBINED_LINK_TEST_BLOB: d58ae90364ff72f840db9bfcbaa372c0aab743c1
+      LIQUIDATION_POLICY_BLOB: dc7cedb407323bbb574fb3507f67fa5e00ffdb0d
+      LIQUIDATION_TEST_BLOB: 5dac540b2937f400733901e6159b291416a5ccc2
+      CONDITIONAL_ORDER_BLOB: ac704cf986c213f0fa9e3d1732261fd093310d6b
+      WEEX_ACTIONS_BLOB: 30bb6cc10905e04ec9c2e0d35a793df2a81a7f76
+      BASIS_PARSER_BLOB: 82a051d196aea8bc314604e35734a26547543290
+      BASIS_TEST_BLOB: d441ba32fc32ab13a99bfafe338126480a8f2d2c
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Fetch exact private research branch without write access
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 5d6617f6febf70dd9744b14c9003489a3b2fba2f
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Validate immutable read-only selector, funnel and test blobs
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt)" = "$SELECTOR_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSelectorFunnelEvidence.kt)" = "$FUNNEL_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSelectorFunnelEvidenceTest.kt)" = "$FUNNEL_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealRiskFeasibleMarginStudyPolicy.kt)" = "$MARGIN_STUDY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealRiskFeasibleMarginStudyPolicyTest.kt)" = "$MARGIN_STUDY_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedProspectiveFlatCheckpointPolicy.kt)" = "$COMBINED_FLAT_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedProspectiveFlatCheckpointPolicyTest.kt)" = "$COMBINED_FLAT_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedLedgerStudyPolicy.kt)" = "$COMBINED_LEDGER_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedLedgerStudyPolicyTest.kt)" = "$COMBINED_LEDGER_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedTradeWindowStudyPolicy.kt)" = "$COMBINED_TRADES_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedTradeWindowStudyPolicyTest.kt)" = "$COMBINED_TRADES_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedProspectiveBotOrderLinkStudyPolicy.kt)" = "$COMBINED_LINK_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedProspectiveBotOrderLinkStudyPolicyTest.kt)" = "$COMBINED_LINK_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealStopLiquidationEvidencePolicy.kt)" = "$LIQUIDATION_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealStopLiquidationEvidencePolicyTest.kt)" = "$LIQUIDATION_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealConditionalOrder.kt)" = "$CONDITIONAL_ORDER_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexTradeActionsApi.kt)" = "$WEEX_ACTIONS_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealWeexTriggerBasisFieldPolicy.kt)" = "$BASIS_PARSER_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealWeexTriggerBasisFieldPolicyTest.kt)" = "$BASIS_TEST_BLOB"
+          test ! -e app/weex-ia-signing.jks
+          echo WEEX_DIRECTION_FUNNEL_EXACT_SHA_AND_BLOBS_VERIFIED
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare pinned Kotlin 2.2.21 and Gradle 8.10.2 with Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          test -d "$SDK"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o /tmp/tie-kotlin.zip
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 /tmp/tie-kotlin.zip | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o /tmp/tie-kotlin.zip -d "$HOME/.local"
+          echo "$HOME/.local/kotlinc/bin" >> "$GITHUB_PATH"
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o /tmp/tie-gradle.zip
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 /tmp/tie-gradle.zip | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o /tmp/tie-gradle.zip -d "$HOME/.gradle-dist"
+          echo "$HOME/.gradle-dist/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+          echo 'GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false' >> "$GITHUB_ENV"
+      - name: Replay canonical pre-sign and full Android Gradle JUnit (NO APK)
+        shell: bash
+        working-directory: source
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr138-margin-materialized
+        run: |
+          set -euo pipefail
+          if ! python3 ci/preflight_full_presigning_source_v1.py >/tmp/tie-presign.log 2>&1; then
+            echo "::error::WEEX_NEUTRAL_TIE_ANDROID_PRESIGN_OR_JUNIT_FAILED_NO_RELEASE"
+            grep -E 'WEEX_PRESIGN_FIRST_FAILURE_LINE|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT|WEEX_AUDIT_KOTLIN_ERROR_COUNT' /tmp/tie-presign.log | tail -10 || true
+            exit 1
+          fi
+          grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/tie-presign.log
+          grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/tie-presign.log
+          final=/tmp/weex-pr138-margin-materialized/main/java/com/wilito/weexautotrader
+          test -s "$final/RealAIMarketSelector.kt"
+          test -s "$final/RealSelectorFunnelEvidence.kt"
+          grep -Fq 'REAL_DIRECTION_FUNNEL_READONLY_V1' "$final/RealAIMarketSelector.kt"
+          grep -Fq 'technicalLong=technicalLong' "$final/RealAIMarketSelector.kt"
+          grep -Fq 'technicalLong:Int=0' "$final/RealSelectorFunnelEvidence.kt"
+          grep -Fq 'selectedDirection=chosen' "$final/RealAIMarketSelector.kt"
+          test -s "$final/RealRiskFeasibleMarginStudyPolicy.kt"
+          grep -Fq 'permitsRealEntry: Boolean = false' "$final/RealRiskFeasibleMarginStudyPolicy.kt"
+          grep -Fq 'MAX_STUDIED_RISK_PCT = 20.0' "$final/RealRiskFeasibleMarginStudyPolicy.kt"
+          test -s "$final/RealCombinedProspectiveFlatCheckpointPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedProspectiveFlatCheckpointPolicy.kt"
+          test -s "$final/RealCombinedSignedLedgerStudyPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedSignedLedgerStudyPolicy.kt"
+          test -s "$final/RealCombinedSignedTradeWindowStudyPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedSignedTradeWindowStudyPolicy.kt"
+          test -s "$final/RealCombinedProspectiveBotOrderLinkStudyPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedProspectiveBotOrderLinkStudyPolicy.kt"
+          test -s "$final/RealStopLiquidationEvidencePolicy.kt"
+          grep -Fq 'STOP_AT_OR_BEYOND_LIQUIDATION' "$final/RealStopLiquidationEvidencePolicy.kt"
+          grep -Fq 'REMOTE_POSITION_OR_PRICE_BASIS_UNVERIFIED' "$final/RealStopLiquidationEvidencePolicy.kt"
+          test -s "$final/RealWeexTriggerBasisFieldPolicy.kt"
+          test -s "$final/WeexTradeActionsApi.kt"
+          grep -Fq 'READ_ONLY_TRIGGER_BASIS_V1' "$final/WeexTradeActionsApi.kt"
+          grep -Fq 'workingType' "$final/WeexTradeActionsApi.kt"
+          grep -Fq 'openTpslParentOrderId' "$final/RealConditionalOrder.kt"
+          # Existing raw V3 POST unchanged: no release can claim safe STOP amendment.
+          grep -Fq 'put("triggerPriceType","MARK_PRICE")' "$final/WeexTradeActionsApi.kt"
+          test ! -e app/build/outputs/apk/release/app-release.apk
+          echo WEEX_PR142_REMOTE_STOP_WORKINGTYPE_READONLY_ANDROID_JUNIT_PASS_NO_APK_NO_WEEX_NO_OTA

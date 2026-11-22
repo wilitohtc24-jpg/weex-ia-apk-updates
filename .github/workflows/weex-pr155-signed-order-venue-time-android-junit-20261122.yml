@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 4032f728677abc978c81b49eb6ce6c02c96564d1
+      SOURCE_SHA: 35a5f045465ba74f5ade9c9cc3faec41c3a83927
       SELECTOR_BLOB: 838d36d93ef7d315b80724674b8e919b6704c066
       FUNNEL_BLOB: bfebb0c4738a13aaa6820dd2445abb91ba563060
       FUNNEL_TEST_BLOB: 356b030edc03bd9749294534cf67a14319fcb426
@@ -54,7 +54,7 @@ jobs:
       OPEN_COLLECTOR_TEST_BLOB: 135fc398f1226772c17f08f85e25834d388c3647
       POSITION_COST_POLICY_BLOB: 62844156d08dd4638b6fd1cb1f41a7fbeeb9f2b0
       POSITION_COST_TEST_BLOB: a0da7143eaad615a4cb46e5a63a2bd82d18cb7db
-      ORDER_TIME_POLICY_BLOB: 995ce644a09e90e6302abdb9ec7968cc5e4a96af
+      ORDER_TIME_POLICY_BLOB: 2451a3a254217451000a6e67bc542d00ecd5bae4
       ORDER_TIME_TEST_BLOB: 086cfafe18a5b6000d296ba39e9e151c23583af0
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
@@ -63,7 +63,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 4032f728677abc978c81b49eb6ce6c02c96564d1
+          ref: 35a5f045465ba74f5ade9c9cc3faec41c3a83927
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source

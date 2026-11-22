@@ -1,0 +1,83 @@
+# Actual live ACK path source proof only; never builds, signs, or places orders.
+name: WEEX PR150 prove real planner-to-ACK learning regime wiring NO APK
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/weex-pr150-actual-real-ack-regime-source-proof-20261122.yml]
+permissions:
+  contents: read
+jobs:
+  verify-real-ack-regime-path:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SOURCE_SHA: 57d28400988a7903da77926253d15b5dd92ee3d9
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+    steps:
+      - name: Checkout pinned private code read-only
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 57d28400988a7903da77926253d15b5dd92ee3d9
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Prove actual accepted REAL execution -> plan regime -> archive code
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test ! -e app/weex-ia-signing.jks
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("app/src/main/java/com/wilito/weexautotrader")
+          def read(n): return (root/n).read_text(encoding="utf-8")
+          plan=read("RealDecisionPlanner.kt")
+          service=read("TraderService.kt")
+          recorder=read("RealBotAcceptedEntryStudyRecorder.kt")
+          gate=read("RealBotAcceptedEntryStudyPolicy.kt")
+          regimes=read("RealLearningRegimeIdentityPolicy.kt")
+          advice=read("RealAppliedExperienceAdvisor.kt")
+          verified=read("RealVerifiedOutcomeLearningPolicy.kt")
+          checks={
+            "PLANNER_OUTPUT_IS_LOCALIZED_REGIME":
+              'val regime=completeGate.intelligence.regime.label' in plan and
+              'originalEntryRegime=regime' in plan,
+            "REAL_ACCEPTED_ORDER_INVOCATION":
+              'is RealExecutionResult.Accepted ->' in service and
+              'RealBotAcceptedEntryStudyRecorder(applicationContext)' in service and
+              'originalEntryRegime=' in service and
+              'plan.candidate.originalEntryRegime' in service,
+            "REGIME_INVALID_BEFORE_FIX":
+              'validRegime.matches(input.entryRegime)' in gate and
+              'Regex("^[A-Z0-9_]{1,32}$")' in gate,
+            "NOW_STABLE_BEFORE_DURABLE_RECORD":
+              'RealLearningRegimeIdentityPolicy.canonical(originalEntryRegime)' in recorder and
+              'entryRegime=stableRegime' in recorder and
+              'append(stableRegime)' in recorder,
+            "ADVISOR_AND_CLOSED_LEARNING_USE_SAME_CANONICAL_ID":
+              'context.copy(entryRegime=closeRegime)' in advice and
+              'RealLearningRegimeIdentityPolicy.canonical(regime)' in advice and
+              'RealLearningRegimeIdentityPolicy.canonical(context.entryRegime)' in verified,
+            "EXACT_DECLARED_CODES_NOT_TRANSLATED_AS_FREE_TEXT":
+              'MarketRegime.values().firstOrNull' in regimes and
+              'return normalized.takeIf { code.matches(it) }' in regimes,
+            "STILL_NO_UNVERIFIED_REAL_ENTRY_PROMOTION":
+              'permittedForLiveExecution=false' in advice and
+              'RealLearnedDecisionApplicationPolicy.choose(' not in service,
+          }
+          for key,valid in checks.items():
+              print("WEEX_PR150_"+key+"="+str(valid).upper())
+          if not all(checks.values()):
+              raise SystemExit("BLOCKED: P0 accepted order regime path was changed")
+          summary=Path(__import__("os").environ["GITHUB_STEP_SUMMARY"])
+          summary.write_text(
+              "## PR150 REAL ACK REGIME SOURCE FIX DETECTED — NOT AN APK RELEASE\n\n"
+              "Pinned source proves the running REAL maker ACK callback records the "
+              "original planner regime through stable code. Unit/Android tests "
+              "are separate. Real close ingestion and owner-approved learning "
+              "choice still must be integrated; signed orders and STOP unchanged.\n"
+          )
+          print("WEEX_PR150_REAL_ACK_REGIME_WIRING_SOURCE_PROVEN_NO_RELEASE_NO_ORDERS")
+          PY

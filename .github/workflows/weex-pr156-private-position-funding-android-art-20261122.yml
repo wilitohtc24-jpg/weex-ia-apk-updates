@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: 21e7fff0cbb77c6efcf660ad3ab2a7520b26bc45
+      SOURCE_SHA: 4b5680ba00f142105af5a892e9fef9638bde7d4b
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 21e7fff0cbb77c6efcf660ad3ab2a7520b26bc45
+          ref: 4b5680ba00f142105af5a892e9fef9638bde7d4b
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -67,8 +67,8 @@ jobs:
           grep -Fq 'api.signedHistoricalOrderForEvidence(orderId)' app/src/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt
           grep -Fq 'api.signedHistoricalOrderForEvidence(orderId)' app/src/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt
           grep -Fq 'updatedAt=j.optLong("updateTime",System.currentTimeMillis())' app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicy.kt)" = "b30ba1507b94e7f94f4390777360fde887ff09dc"
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicyTest.kt)" = "29b9c434b542cbf4fc59822a838fe6b83f96336e"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicy.kt)" = "391e47b954d8d2a9c7a5a5e0e210d8161111a9b8"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicyTest.kt)" = "7209f9f80888cd0bd4b344bc43e314ed48956e0f"
           test -f ci/preflight_full_presigning_source_v1.py
           echo NEUTRAL_TIE_ART_SOURCE_AUTHENTIC_PIN_VERIFIED
       - name: Java 17

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 020f9295e26aad61391b0cf4cce2e0c0256dae1b
+      SOURCE_SHA: 61bd7e99a8a24e0a0c51bc71045c8f3fc2bdab15
       SELECTOR_BLOB: 838d36d93ef7d315b80724674b8e919b6704c066
       FUNNEL_BLOB: bfebb0c4738a13aaa6820dd2445abb91ba563060
       FUNNEL_TEST_BLOB: 356b030edc03bd9749294534cf67a14319fcb426
@@ -45,7 +45,7 @@ jobs:
       REAL_ACK_POLICY_TEST_BLOB: adfb8c81ddfc6fdbc70ed32236c6bb111b7834db
       REAL_REGIME_POLICY_BLOB: 8bac464848217a732ea0e0fd2294afce4c4d6b88
       REAL_REGIME_TEST_BLOB: fa5f710c8482dada5631708fdc804028070e376c
-      ORDER_FILL_API_BLOB: 18229d58e6aaa341ee2fe1f0d8f35ff6f9f4c35d
+      ORDER_FILL_API_BLOB: 06878874d309867af69cca3e2ca4b3c590334967
       CLOSE_COLLECTOR_BLOB: ad44aa27a806770afede6ed05a3bb12f769042a3
       CLOSE_COLLECTOR_TEST_BLOB: bd7ae0f037c749b18bd363e2010fedd90c28182e
       ORDER_FILL_POLICY_BLOB: cdba0a1b435c99b99da3046d226865914f46dde8
@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 020f9295e26aad61391b0cf4cce2e0c0256dae1b
+          ref: 61bd7e99a8a24e0a0c51bc71045c8f3fc2bdab15
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source

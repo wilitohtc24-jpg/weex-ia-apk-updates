@@ -1,0 +1,99 @@
+# Exact-source canonical replay + Android Kotlin/JUnit only.
+# Production credentials, signing, assemble APK, WEEX orders and OTA are prohibited.
+name: WEEX bounded FUTURES V3 WS probe and parser Android JUnit NO APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-futures-v3-probe-parser-android-20261122.yml
+permissions:
+  contents: read
+jobs:
+  canonical-source-kotlin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      SOURCE_SHA: 6ed17408ece7acea62a421e01a66121310ea2d53
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+      GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false
+    steps:
+      - name: Checkout immutable private repair source
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 6ed17408ece7acea62a421e01a66121310ea2d53
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Verify exact source and absence of signing keystore
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test ! -e app/weex-ia-signing.jks
+          grep -Fq 'gramManualFullPositionStopBlocksCandidateEvenIfPairFlagSaysUnique' app/src/test/java/com/wilito/weexautotrader/RealBotTpSlParentOrderStudyPolicyTest.kt
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+      - name: Hash-verified Kotlin 2.2.21 and Android SDK 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          test -d "$SDK"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o /tmp/saga-kt.zip
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 /tmp/saga-kt.zip | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o /tmp/saga-kt.zip -d "$HOME/.local"
+          echo "$HOME/.local/kotlinc/bin" >> "$GITHUB_PATH"
+      - name: Canonical full presign materializer and Android Kotlin JUnit, no APK
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: /tmp/saga-gram-exact-materialized
+        run: |
+          set -euo pipefail
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/saga-canonical.log 2>&1; then
+            echo "::error::SAGA_CANONICAL_SOURCE_OR_ANDROID_JUNIT_FAILED"
+            grep -E 'WEEX_PRESIGN_FIRST_FAILURE_LINE|WEEX_AUDIT_KOTLIN_FIRST_ERROR|WEEX_AUDIT_JUNIT_BUILD_FAILED|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT|WEEX_PRESIGN_SOURCE_REPLAY_REJECTED|WEEX_AUDIT_JUNIT_SOURCE_COMPILE_REJECTED|WEEX_PRESIGN_SOURCE_REPLAY_FAILED' /tmp/saga-canonical.log | tail -16 || true
+            python3 - <<'PY'
+          from pathlib import Path
+          import re
+          a=Path("/tmp/saga-canonical.log").read_text(errors="replace").splitlines()
+          lines=[]
+          for x in a:
+              m=re.search(r'WEEX_PRESIGN_FIRST_FAILURE_LINE=(\d+)',x)
+              if m: lines.append(int(m.group(1))-1)
+          n=lines[-1] if lines else -1
+          for at in ([n] if n>=0 else []):
+              print("WEEX_FIRST_FAILURE_CONTEXT_BEGIN")
+              for i in range(max(0,at-24),min(len(a),at+35)):
+                  print("SOURCE_GATE_LINE_"+str(i+1)+" "+a[i][:600])
+              print("WEEX_FIRST_FAILURE_CONTEXT_END")
+          words=("AssertionError","Traceback","error:","FAIL:","FAILED","Source verifier","FileNotFoundError")
+          matches=[(i,x) for i,x in enumerate(a) if any(w.lower() in x.lower() for w in words)]
+          for i,x in matches[:14]:print("WEEX_FAILURE_FOCUS_"+str(i+1)+" "+x[:450])
+          PY
+            exit 1
+          fi
+          grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/saga-canonical.log
+          grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/saga-canonical.log
+          test -s /tmp/saga-gram-exact-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          test ! -e app/weex-ia-signing.jks
+          test -z "$(find app/build/outputs -name '*.apk' -type f -print -quit 2>/dev/null || true)"
+          echo SAGA_GRAM_CANONICAL_ANDROID_KOTLIN_JUNIT_PASS_NO_APK_NO_OTA

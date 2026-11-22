@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 42
     env:
-      SOURCE_SHA: 5486fa80b96b5e3b99460f7c1578bac738b772dd
+      SOURCE_SHA: 80d3efc014817ba8cac054d1c048d6109d536474
     steps:
       - name: Checkout exact private DRAFT source read-only
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 5486fa80b96b5e3b99460f7c1578bac738b772dd
+          ref: 80d3efc014817ba8cac054d1c048d6109d536474
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -124,6 +124,15 @@ jobs:
           for line in source_errors[-10:]:
               if not re.search(r"(?i)(PASSWORD|API[_ -]?KEY|TOKEN|SECRET|AUTHORIZATION|BEARER)",line):
                   print("PR133_SANITIZED_SOURCE_GATE="+re.sub(r'[^A-Za-z0-9_ .:+/()=\\-]','_',line)[:200])
+          # Extract traceback script BASENAME/line only, never local paths.
+          # No source/code/account material is printed to the workflow log.
+          frames=[]
+          for line in contexts:
+              match=re.search(r'File "[^"]*/(ci/[^/"]+\.py)", line (\d+)',line)
+              if match:
+                  frames.append(match.group(1)+":"+match.group(2))
+          for frame in frames[-8:]:
+              print("PR133_SAFE_TRACEBACK_FRAME="+frame)
           types=list(dict.fromkeys(re.findall(
               r'\b(?:AssertionError|ValueError|TypeError|FileNotFoundError|SyntaxError)\b',txt)))
           print("PR133_PRESIGN_FAILURE_TYPES="+",".join(types[-5:]))

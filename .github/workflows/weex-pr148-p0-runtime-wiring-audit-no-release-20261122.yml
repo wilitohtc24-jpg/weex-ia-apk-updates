@@ -1,0 +1,81 @@
+# READ-ONLY RELEASE-READINESS AUDIT. A successful audit is NOT release approval.
+name: WEEX PR148 P0 runtime blockers audit (NOT A RELEASE TEST)
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/weex-pr148-p0-runtime-wiring-audit-no-release-20261122.yml]
+permissions:
+  contents: read
+jobs:
+  p0-runtime-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SOURCE_SHA: a24f85d49b7770ca344b3d8a90f95997bfb115a9
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+    steps:
+      - name: Checkout exact source with read-only token
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: a24f85d49b7770ca344b3d8a90f95997bfb115a9
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Inspect actual entry, close-learning and combined STOP runtime wiring
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test ! -e app/weex-ia-signing.jks
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("app/src/main/java/com/wilito/weexautotrader")
+          def read(name):
+              return (root/name).read_text(encoding="utf-8")
+          origin=read("RealPositionOriginResolver.kt")
+          policy=read("RealPositionOriginPolicy.kt")
+          manager=read("RealProfitProtectionManager.kt")
+          selector=read("RealAIMarketSelector.kt")
+          planner=read("RealDecisionPlanner.kt")
+          service=read("TraderService.kt")
+          advisor=read("RealAppliedExperienceAdvisor.kt")
+          learning=read("RealLearnedDecisionApplicationPolicy.kt")
+          archive=read("RealAppliedExperienceArchiveStore.kt")
+          reconciler=read("RealBotClosedExperienceReconciler.kt")
+          observed=[]
+          observed.append(("COMBINED_REAL_ORIGIN_NOT_WIRED",
+              'position.separatedMode.uppercase()!="SEPARATED"' in origin
+              and '!= "SEPARATED"' not in policy))
+          observed.append(("VERIFIED_REAL_ADVICE_NOT_ENABLED",
+              'permittedForLiveExecution=false' in advisor))
+          live_entry=service+"\n"+selector+"\n"+planner
+          observed.append(("LEARNED_CHOICE_NOT_USED_BY_LIVE_ENTRY",
+              "RealLearnedDecisionApplicationPolicy.choose(" not in live_entry))
+          observed.append(("VERIFIED_REAL_CLOSE_NOT_INGESTED_BY_TRADER_LOOP",
+              "RealBotClosedExperienceReconciler.reconcile(" not in service))
+          observed.append(("COMBINED_STOP_STUDY_NOT_LIVE_STOP_MANAGER",
+              "RealCombinedProfitSafetyBridgeStudyPolicy.inspect(" not in manager
+              and "RealCombinedProfitSafetyBridgeStudyPolicy.inspect(" not in service))
+          observed.append(("ADVICE_AND_ARCHIVE_EXIST_FOR_FUTURE_WIRING",
+              'fun nextAdvice(' in advisor
+              and 'fun readAccountProof(' in archive
+              and 'fun reconcile(' in reconciler
+              and 'fun choose(' in learning))
+          for k,v in observed: print(f"P0_AUDIT_{k}={str(v).upper()}")
+          if not all(v for _,v in observed):
+              raise SystemExit("P0 AUDIT BASELINE CHANGED: re-inspect source, DO NOT claim readiness")
+          summary=Path(__import__("os").environ["GITHUB_STEP_SUMMARY"])
+          summary.write_text(
+              "## WEEX P0 — NOT RELEASE READY\n\n"
+              "The audit succeeded at identifying unresolved production wiring on a pinned source. "
+              "**This is not an APK approval, nor a signed/live test.**\n\n"
+              "- COMBINED bot origin: live resolver still accepts only SEPARATED.\n"
+              "- Applied REAL learning: advice defaults to execution-disabled; live selector/planner/service do not call the learned choice.\n"
+              "- Signed close ingestion: pure reconciler exists; TraderService does not invoke it.\n"
+              "- Safe signed COMBINED STOP: read-only bridge is not the live manager.\n"
+              "- Outcome: retain OTA v30205252 and keep release blocked pending issue #135.\n"
+          )
+          print("WEEX_P0_EXPECTED_UNWIRED_RUNTIME_CONFIRMED_NO_APK_NO_ORDERS")
+          PY

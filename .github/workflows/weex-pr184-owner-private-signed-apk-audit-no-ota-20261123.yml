@@ -124,7 +124,7 @@ jobs:
           from pathlib import Path
           s=Path("/tmp/pr184-verified-signer.txt").read_text()
           values={v.replace(":","").lower() for v in re.findall(
-              r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([a-f0-9:]+)\s*$",s,re.I)}
+              r"(?mi)^\s*(?:Signer\s+#\d+|V\d+(?:\.\d+)?\s+Signer:)\s+certificate\s+SHA-256\s+digest:\s*([a-f0-9:]+)\s*$",s,re.I)}
           # A certificate digest is public metadata, not a signing key.
           for ln in s.splitlines():
               if "certificate sha-256 digest" in ln.lower():

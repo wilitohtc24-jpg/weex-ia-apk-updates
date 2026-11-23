@@ -247,6 +247,7 @@ jobs:
           grep -Fq 'context.copy(entryRegime=closeRegime)' "$final/RealAppliedExperienceAdvisor.kt"
           test -s app/src/test/java/com/wilito/weexautotrader/RealLearningRegimeIdentityPolicyTest.kt
           echo WEEX_PR150_JUNIT_MATERIALIZED_AND_SOURCE_TEST_PATH_VERIFIED
+          set -x # QA diagnostic: identify exact failing source assertion without weakening gates
           test -s "$final/RealOrderScopedSignedFillsPolicy.kt"
           grep -Fq 'fun signedExactOrderFillsWindow(' "$final/WeexPrivateApi.kt"
           grep -Fq '"&startTime="+window.start' "$final/WeexPrivateApi.kt"

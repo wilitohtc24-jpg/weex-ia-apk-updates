@@ -125,6 +125,11 @@ jobs:
           s=Path("/tmp/pr184-verified-signer.txt").read_text()
           values={v.replace(":","").lower() for v in re.findall(
               r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([a-f0-9:]+)\s*$",s,re.I)}
+          # A certificate digest is public metadata, not a signing key.
+          for ln in s.splitlines():
+              if "certificate sha-256 digest" in ln.lower():
+                  print("PR184_APKSIGNER_PUBLIC_CERT_LINE="+ln.strip()[:230],flush=True)
+          print("PR184_APKSIGNER_PARSED_DIGEST_COUNT="+str(len(values)),flush=True)
           assert values=={os.environ["EXPECTED_SIGNER"]},"PR184_APKSIGNER_ORIGINAL_CERT_MISMATCH"
           print("PR184_PRIVATE_SIGNED_APK_INDEPENDENT_APKSIGNER_PASS_NO_OTA")
           PY

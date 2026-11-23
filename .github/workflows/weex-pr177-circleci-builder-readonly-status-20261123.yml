@@ -1,0 +1,76 @@
+name: WEEX PR177 exact CircleCI private APK builder connection (READ ONLY NO APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr177-circleci-builder-readonly-status-20261123.yml
+permissions:
+  contents: read
+jobs:
+  verify-ci-hook:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      EXPECTED_BRANCH: repair/weex-pr177-private-apk-builder-probe-20261123
+      EXACT_SOURCE_HEAD: 0e2c0061b65b520314915e1492ff37d7d904ea51
+    steps:
+      - name: Query only branch pipeline metadata; NEVER retrieve credentials or private artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,urllib.request,urllib.parse,urllib.error
+          token=os.environ.get("CIRCLECI_READ_TOKEN","")
+          if not token:
+              print("PR177_CIRCLECI_READ_TOKEN_NOT_AVAILABLE")
+              raise SystemExit(0)
+          endpoint="https://circleci.com/api/v2/project/gh/wilitohtc24-jpg/weex-auto-trader-android/pipeline"
+          branch=os.environ["EXPECTED_BRANCH"]
+          source=os.environ["EXACT_SOURCE_HEAD"]
+          request=urllib.request.Request(
+              endpoint+"?"+urllib.parse.urlencode({"branch":branch}),
+              headers={"Circle-Token":token,"Accept":"application/json",
+                       "User-Agent":"weex-pr177-connection-readonly"})
+          try:
+              with urllib.request.urlopen(request,timeout=27) as response:
+                  data=json.load(response)
+          except urllib.error.HTTPError as error:
+              print("PR177_CIRCLECI_METADATA_HTTP_"+str(error.code))
+              raise SystemExit(0)
+          except Exception as error:
+              print("PR177_CIRCLECI_METADATA_UNAVAILABLE_"+type(error).__name__)
+              raise SystemExit(0)
+          items=data.get("items",[])
+          exact=[p for p in items if (p.get("vcs") or {}).get("revision")==source]
+          print("PR177_CIRCLECI_BRANCH_PIPELINE_COUNT="+str(len(items)))
+          print("PR177_CIRCLECI_EXACT_SOURCE_PIPELINES="+str(len(exact)))
+          if not exact:
+              print("PR177_NO_VERIFIED_BUILDER_CONNECTION_YET_NO_APK")
+              raise SystemExit(0)
+          base="https://circleci.com/api/v2"
+          for p in exact[:2]:
+              print("PR177_PIPELINE_NUMBER="+str(p.get("number")))
+              print("PR177_PIPELINE_STATE="+str(p.get("state")))
+              req=urllib.request.Request(
+                  base+"/pipeline/"+p["id"]+"/workflow",
+                  headers={"Circle-Token":token,"Accept":"application/json",
+                           "User-Agent":"weex-pr177-workflows-readonly"})
+              with urllib.request.urlopen(req,timeout=27) as resp:
+                  flows=json.load(resp).get("items",[])
+              for wf in flows[:10]:
+                  print("PR177_WORKFLOW_NAME="+str(wf.get("name"))[:100])
+                  print("PR177_WORKFLOW_STATUS="+str(wf.get("status"))[:50])
+                  if wf.get("name")!="pr177_private_apk_builder_connection_only":
+                      continue
+                  req=urllib.request.Request(
+                      base+"/workflow/"+wf["id"]+"/job",
+                      headers={"Circle-Token":token,"Accept":"application/json",
+                               "User-Agent":"weex-pr177-jobs-readonly"})
+                  with urllib.request.urlopen(req,timeout=27) as resp:
+                      jobs=json.load(resp).get("items",[])
+                  for job in jobs[:10]:
+                      print("PR177_PROBE_JOB_STATUS="+str(job.get("status"))[:50])
+                      print("PR177_PROBE_JOB_NAME="+str(job.get("name"))[:100])
+          print("PR177_CIRCLECI_PROBE_IS_SOURCE_ONLY_NOT_A_SIGNED_APK")
+          PY

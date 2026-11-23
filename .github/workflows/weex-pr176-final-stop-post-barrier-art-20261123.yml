@@ -56,7 +56,7 @@ jobs:
           grep -Fq 'FinalPostBarrierPolicy.maySendExactlyOneModify' app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt
           grep -Fq 'certifiesCurrentRemoteStop: Boolean get() = false' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLeasePreviewTest.kt)" = "2b6c05e1b6a43c7ea8d033b31b4bbe1746554e6c"
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt)" = "855ecfe06ae4edcf1e5e7ce7f58526ee51be1146"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt)" = "2aa0837b413fc579d69535850e3a1a9c2c76eb87"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealContinuousNetProfitCoordinator.kt)" = "dc351b9ac7074294580c2c6fa59144cf8f911f24"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopWeexTimebaseTest.kt)" = "5bf0aec718d64ad902f9511c61a86571d6dfacc6"
           grep -Fq 'timestampMs = { WeexPublicClock.shared.nowMs() }' app/src/main/java/com/wilito/weexautotrader/WeexTradeActionsApi.kt

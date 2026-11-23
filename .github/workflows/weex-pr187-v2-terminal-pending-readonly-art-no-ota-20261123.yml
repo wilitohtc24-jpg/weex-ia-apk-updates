@@ -1,0 +1,825 @@
+# PR136 integrated PR133 plus neutral direction QA, immutable source; disposable offline debug only, no release/OTA/orders.
+name: WEEX PR187 v2 terminal FILLED pending skip Android ART DEX NO OTA
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/weex-pr187-v2-terminal-pending-readonly-art-no-ota-20261123.yml]
+permissions:
+  contents: read
+jobs:
+  offline-art:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    env:
+      SOURCE_SHA: e71598aa8efccc5e78c829d142ad68fdc1d509af
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout immutable, privately verified source
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: e71598aa8efccc5e78c829d142ad68fdc1d509af
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Confirm source SHA, no production key, required signed STOP contracts
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/EntryNoTradeTriagePolicy.kt)" = "0fc7ae45fa3e204c745227944268675f4d722cad"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/EntryNoTradeTriagePolicyTest.kt)" = "1d6c30b9841f3b0eff12b7d65fee36b6eeefaa56"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt)" = "7011496c898ea5a4815029917942a070d46283fb"
+          test ! -e app/weex-ia-signing.jks
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt)" = "7ec0b530d4743198fe138f0565b8563f964a3dfa"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStore.kt)" = "e9f3d4fb66588caee710f2746b6097e2498fbb24"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStoreTest.kt)" = "514b55a4cd74618f8f89ca4a45207bd72f832282"
+          grep -Fq 'RealCombinedBotPreSubmitAckLinkStore(context)' app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotAckSignedEntryReadOnlyCollector.kt)" = "2898cd69382338753d073f9cd768cb5b2c5f87e9"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotAckSignedEntryReadOnlyCollectorTest.kt)" = "6aee0072a0eb964728ebcb1b49174a6f67dcfe28"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollector.kt)" = "28ecdc155642beaa1f27bbd217795c7ba4958880"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollectorTest.kt)" = "8f8422c83d4a80dcd64f797b8e4a4a6a0a2540c7"
+          grep -Fq 'signedAllPositionsForCombinedStudy()' app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedAllTradesReadOnlyCollector.kt)" = "a698c5101bcea9d61fbcd5d88438b9f81ca8ec88"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedAllTradesReadOnlyCollectorTest.kt)" = "b309b83ed960de9b2c3c5be3fab47ccbafcfc38f"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedProtectionPairReadOnlyCollector.kt)" = "2da1675cee22f5976d71b069445954fe3a056af9"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedProtectionPairReadOnlyCollectorTest.kt)" = "3d467ad63a0ede88a58d35ffc60346203224feb0"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedLiquidationReadOnlyCollector.kt)" = "8e65a1fbabf49ae7c0ee16bd0f7c6f5db324a2a2"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedLiquidationReadOnlyCollectorTest.kt)" = "523c887dfa1f0e3d8f24b29945bc5c976bae2adb"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicy.kt)" = "fe901543e73e6f3797817256002744b902033fc4"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicyTest.kt)" = "be6c5bdf8908ad27d1538f72ed78e8b64d771e07"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedStopLeasePreview.kt)" = "86cccec1910ae06998fb5f5f9458302a97abe9ae"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt)" = "383b0bf1d6fb86353d85950a84b94a8773daabef"
+          grep -Fq 'real_combined_signed_stop_observation_v1' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFinalPostBarrierPolicy.kt)" = "38f4b15e60945949bce849d925aeea9302c215d1"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt)" = "56d489a9ef0a6432ee845a9c67e8998d99eddf8d"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "1724dfccf006d69d390755aa227b3e02c212a769"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPortContractTest.kt)" = "e65bb4c6d751a6904dc31c52cf27acd1d3a3c034"
+          grep -Fq 'RealProtectiveOrderWriteGate.heldByCurrentThread' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
+          grep -Fq 'SIGNED_TRIGGER_MATCHED_STUDY_ONLY' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitFinalPostBarrierPolicyTest.kt)" = "e3e2c7e04d24dca97290813f9f444f71573d9c13"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt)" = "2aa0837b413fc579d69535850e3a1a9c2c76eb87"
+          grep -Fq 'FinalPostBarrierPolicy.maySendExactlyOneModify' app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt
+          grep -Fq 'certifiesCurrentRemoteStop: Boolean get() = false' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLeasePreviewTest.kt)" = "2b6c05e1b6a43c7ea8d033b31b4bbe1746554e6c"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt)" = "2aa0837b413fc579d69535850e3a1a9c2c76eb87"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealContinuousNetProfitCoordinator.kt)" = "dc351b9ac7074294580c2c6fa59144cf8f911f24"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopWeexTimebaseTest.kt)" = "5bf0aec718d64ad902f9511c61a86571d6dfacc6"
+          grep -Fq 'timestampMs = { WeexPublicClock.shared.nowMs() }' app/src/main/java/com/wilito/weexautotrader/WeexTradeActionsApi.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionReader.kt)" = "db481bae6abccabad62c7c3db0c0c85dc8974852"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt)" = "2af3c9c7539810de1685930dd0cb42e4bd94706d"
+          grep -Fq 'val begunAtMs = runCatching { api.exchangeClockMs() }' app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionReader.kt
+          grep -Fq 'val checkedAtMs = runCatching { api.exchangeClockMs() }' app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionReader.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt)" = "33af93be920e26db488ebb1828606be61bf9a198"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceAssemblerTest.kt)" = "e517d973907517322c8f8ecb46c3c19b2dbee340"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedVenueRuleStudyPolicy.kt)" = "3af4e553e227f5e11d420c0fe8b81874b6157629"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedVenueRuleStudyPolicyTest.kt)" = "91a2b2df133b0b136ee8ce1dfabeb4b5f66e4063"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = "53d71b9ea22fa9afd73b242ac18fa4d77f4b86f8"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedStopIntentIdentityStudyPolicy.kt)" = "1e19a72dbf1b23b3c7d0db7f9fae02e64adfcebd"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedExactOriginCandidateReadOnly.kt)" = "c496153974336825cd22a023d8cd945fa72f4f33"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedStopLeasePreview.kt)" = "86cccec1910ae06998fb5f5f9458302a97abe9ae"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt)" = "383b0bf1d6fb86353d85950a84b94a8773daabef"
+          grep -Fq 'real_combined_signed_stop_observation_v1' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFinalPostBarrierPolicy.kt)" = "38f4b15e60945949bce849d925aeea9302c215d1"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt)" = "56d489a9ef0a6432ee845a9c67e8998d99eddf8d"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "1724dfccf006d69d390755aa227b3e02c212a769"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPortContractTest.kt)" = "e65bb4c6d751a6904dc31c52cf27acd1d3a3c034"
+          grep -Fq 'RealProtectiveOrderWriteGate.heldByCurrentThread' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
+          grep -Fq 'SIGNED_TRIGGER_MATCHED_STUDY_ONLY' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitFinalPostBarrierPolicyTest.kt)" = "e3e2c7e04d24dca97290813f9f444f71573d9c13"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt)" = "2aa0837b413fc579d69535850e3a1a9c2c76eb87"
+          grep -Fq 'FinalPostBarrierPolicy.maySendExactlyOneModify' app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt
+          grep -Fq 'certifiesCurrentRemoteStop: Boolean get() = false' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLeasePreviewTest.kt)" = "2b6c05e1b6a43c7ea8d033b31b4bbe1746554e6c"
+          grep -Fq 'market.exchangeNowMs-rawSecond.currentExchangeNowMs>5_000L' app/src/main/java/com/wilito/weexautotrader/RealCombinedStopLeasePreview.kt
+          grep -Fq 'COMBINED_CANDIDATE_CROSS_POSITION_JOIN' app/src/main/java/com/wilito/weexautotrader/RealCombinedExactOriginCandidateReadOnly.kt
+          grep -Fq 'STUDY_CONSISTENT_BUT_NO_WRITE_AUTHORITY' app/src/main/java/com/wilito/weexautotrader/RealCombinedStopIntentIdentityStudyPolicy.kt
+          grep -Fq 'exactPublicExchangeInfoForCombinedStudy(symbol)' app/src/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt
+          grep -Fq 'COMBINED_ASSEMBLY_VENUE_RULES_CHANGED' app/src/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt
+          grep -Fq 'WeexCombinedSignedAllTradesReadPort(api)' app/src/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt
+          grep -Fq 'DIRECTIONAL_NEUTRAL_TIES_STUDY_V1' app/src/main/java/com/wilito/weexautotrader/Indicators.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Indicators.kt)" = "63c055d9dc3d5541e24b160053be4e2a35ce4272"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/IndicatorDirectionalNeutralTieStudyTest.kt)" = "a5f08274fcc347eca6a7dca32c84e195815f36dc"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt)" = "838d36d93ef7d315b80724674b8e919b6704c066"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSelectorFunnelEvidence.kt)" = "bfebb0c4738a13aaa6820dd2445abb91ba563060"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSelectorFunnelEvidenceTest.kt)" = "356b030edc03bd9749294534cf67a14319fcb426"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealRiskFeasibleMarginStudyPolicy.kt)" = "35a945a6729b361ece991d4fd30619c7d3cd2bdb"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealRiskFeasibleMarginStudyPolicyTest.kt)" = "468bb339f7a9eaeb04dcfdbf9730e50b520d7c9d"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotTpSlParentOrderStudyPolicy.kt)" = "6a1df7565509d967ff6c5999242cf646182cebf6"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotTpSlParentOrderStudyPolicyTest.kt)" = "3c37261a1b93760b628a77f0bfa667cb56f0b415"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealStopTriggerBasisStudyPolicy.kt)" = "0dc423c14ed5cf086f4d5577666af3172e167397"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealStopTriggerBasisStudyPolicyTest.kt)" = "9db9c673454a72c9a0960132db7a2f4d283ee52d"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedProfitSafetyBridgeStudyPolicy.kt)" = "373fc6249255702bebd4989afa507076d6c84ae3"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedProfitSafetyBridgeStudyPolicyTest.kt)" = "5207100e7a4244a690f2b8271798754ed6f107df"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningRegimeIdentityPolicy.kt)" = "8bac464848217a732ea0e0fd2294afce4c4d6b88"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt)" = "7ec0b530d4743198fe138f0565b8563f964a3dfa"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisor.kt)" = "b9b56a1a1020624b7fdda85f563be40e3b9cd421"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealVerifiedOutcomeLearningPolicy.kt)" = "a8308e5a6c372f65e904b0400d55a1532ea47a4f"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLearningRegimeIdentityPolicyTest.kt)" = "fa5f710c8482dada5631708fdc804028070e376c"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisorTest.kt)" = "def59074e652bdaece470e887bcc1e34a5d77874"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicyTest.kt)" = "adfb8c81ddfc6fdbc70ed32236c6bb111b7834db"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicy.kt)" = "cdba0a1b435c99b99da3046d226865914f46dde8"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicyTest.kt)" = "35fe229d2723cb7c54e43ad579698604697eb13e"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = "53d71b9ea22fa9afd73b242ac18fa4d77f4b86f8"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt)" = "531509e99d2d994f2159f9b8ae7633d3cc822c97"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollectorTest.kt)" = "bd7ae0f037c749b18bd363e2010fedd90c28182e"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt)" = "7c952d22205f78f2a446745236e632f064d068f2"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollectorTest.kt)" = "135fc398f1226772c17f08f85e25834d388c3647"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' app/src/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedPositionCumulativeCostsStudyPolicy.kt)" = "0d8def0d01c5ce910799c4c5805bfd2dd835da46"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSignedPositionCumulativeCostsStudyPolicyTest.kt)" = "4d0d7bbe8d0da1754da48c9d720126e105ce5d70"
+          grep -Fq 'fun signedActivePositionCumulativeCosts(' app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedOrderVenueTimestampPolicy.kt)" = "2451a3a254217451000a6e67bc542d00ecd5bae4"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSignedOrderVenueTimestampPolicyTest.kt)" = "086cfafe18a5b6000d296ba39e9e151c23583af0"
+          grep -Fq 'api.signedHistoricalOrderForEvidence(orderId)' app/src/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt
+          grep -Fq 'api.signedHistoricalOrderForEvidence(orderId)' app/src/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt
+          grep -Fq 'updatedAt=j.optLong("updateTime",System.currentTimeMillis())' app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicy.kt)" = "391e47b954d8d2a9c7a5a5e0e210d8161111a9b8"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicyTest.kt)" = "7209f9f80888cd0bd4b344bc43e314ed48956e0f"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedProvenanceJoinStudyPolicy.kt)" = "4c6891ed259d536cb10c7513e44540662f7b4064"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedProvenanceJoinStudyPolicyTest.kt)" = "fcf29bbfd5fb2e5075696d98b9d1cb2566ff1a68"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedProvenanceJoinStudyPolicy.kt
+          grep -Fq 'val authorizesRealClose:Boolean get()=false' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedProvenanceJoinStudyPolicy.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedPreSubmitFlatEvidenceStore.kt)" = "17d20f97b8d28e9a51020c0518bc6120df8fd16a"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedPreSubmitFlatEvidenceStoreTest.kt)" = "bd94c147b93e4b220954e86e1f2194abc83b6c62"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt)" = "86d2191b8b469973d3a69fa0184fa57d26b75493"
+          grep -Fq 'RealCombinedPreSubmitFlatEvidenceStore(context).bestEffortRecord(' app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt
+          test -f ci/preflight_full_presigning_source_v1.py
+          echo NEUTRAL_TIE_ART_SOURCE_AUTHENTIC_PIN_VERIFIED
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install verified Gradle and Kotlin 2.2.21
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          test -d "$SDK"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o /tmp/neutral-tie-kt.zip
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 /tmp/neutral-tie-kt.zip | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o /tmp/neutral-tie-kt.zip -d "$HOME/.local"
+          echo "$HOME/.local/kotlinc/bin" >> "$GITHUB_PATH"
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o /tmp/neutral-tie-gradle.zip
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 /tmp/neutral-tie-gradle.zip | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o /tmp/neutral-tie-gradle.zip -d "$HOME/.gradle-dist"
+          echo "$HOME/.gradle-dist/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+          echo "GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false" >> "$GITHUB_ENV"
+      - name: Independently replay full canonical pre-sign + Kotlin/JUnit before any APK
+        working-directory: source
+        shell: bash
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: /tmp/neutral-tie-exact-materialized
+        run: |
+          set -euo pipefail
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/neutral-tie-art-presign.log 2>&1; then
+            echo "::error::NEUTRAL_TIE_PRESIGN_OR_ANDROID_JUNIT_FAILED_NO_ART_BUILD"
+            grep -E 'WEEX_PRESIGN_FIRST_FAILURE_LINE|PRESIGN_FAILURE_CONTEXT|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP|WEEX_PREFLIGHT_BLOCKED|WEEX_AUDIT_JUNIT_BUILD_FAILED|WEEX_AUDIT_KOTLIN_ERROR_COUNT|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT|AUDIT_JUNIT_FAILED|AUDIT_JUNIT_STACK' /tmp/neutral-tie-art-presign.log | tail -70 || true
+            exit 1
+          fi
+          grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/neutral-tie-art-presign.log
+          grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/neutral-tie-art-presign.log
+          test -s /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          test -s /tmp/neutral-tie-exact-materialized/build.gradle.kts
+          grep -Fq 'DIRECTIONAL_NEUTRAL_TIES_STUDY_V1' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/Indicators.kt
+          grep -Fq 'REAL_DIRECTION_FUNNEL_READONLY_V1' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt
+          grep -Fq 'technicalLong:Int=0' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/RealSelectorFunnelEvidence.kt
+          test -s /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/RealRiskFeasibleMarginStudyPolicy.kt
+          grep -Fq 'permitsRealEntry: Boolean = false' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/RealRiskFeasibleMarginStudyPolicy.kt
+          grep -Fq 'MAX_STUDIED_RISK_PCT = 20.0' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/RealRiskFeasibleMarginStudyPolicy.kt
+          grep -Fq 'x.stopReadback.confirmedStopAlgoId != x.parentOrderPair.signedStopAlgoId' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/RealCombinedProfitSafetyBridgeStudyPolicy.kt
+          grep -Fq 'x.stopTriggerBasis.signedStopAlgoId != x.parentOrderPair.signedStopAlgoId' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/RealCombinedProfitSafetyBridgeStudyPolicy.kt
+          echo PR145_EXACT_STOP_SIGNED_ALGO_ID_MATERIALIZED_JUNIT_PASS
+      - name: Build disposable debug DEX and offline instrumentation APKs
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf app/src/main
+          cp -a /tmp/neutral-tie-exact-materialized/main app/src/main
+          cp /tmp/neutral-tie-exact-materialized/build.gradle.kts app/build.gradle.kts
+          test ! -e app/weex-ia-signing.jks
+          keytool -genkeypair -keystore app/weex-ia-signing.jks -storepass android -keypass android -alias weexia -keyalg RSA -keysize 2048 -validity 1 -dname 'CN=OFFLINE-ART-NEUTRAL_TIE,OU=DISPOSABLE,O=NO-RELEASE' >/dev/null 2>&1
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("app/build.gradle.kts")
+          s=p.read_text()
+          original='abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))'
+          assert s.count(original)==1
+          s=s.replace(original,'abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))')
+          needle='    defaultConfig {'
+          assert s.count(needle)==1
+          s=s.replace(needle,needle+'\n        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"',1)
+          dep='    testImplementation("junit:junit:4.13.2")'
+          assert s.count(dep)==1
+          s=s.replace(dep,dep+'\n    androidTestImplementation("androidx.test:runner:1.6.2")\n    androidTestImplementation("androidx.test.ext:junit:1.2.1")',1)
+          p.write_text(s)
+          PY
+          mkdir -p app/src/androidTest/java/com/wilito/weexautotrader
+          cat > app/src/androidTest/java/com/wilito/weexautotrader/NeutralTieArtVerifyTest.kt <<'KOTLIN'
+          package com.wilito.weexautotrader
+          import androidx.test.ext.junit.runners.AndroidJUnit4
+          import androidx.test.platform.app.InstrumentationRegistry
+          import org.junit.Assert.assertNotNull
+          import org.junit.Assert.assertTrue
+          import org.junit.Assert.assertEquals
+          import android.content.Context
+          import org.junit.Test
+          import org.junit.runner.RunWith
+
+          @RunWith(AndroidJUnit4::class)
+          class NeutralTieArtVerifyTest {
+              @Test fun realBotSignedCloseReadOnlyCollectorNeverPromotesLiveTraining() {
+                  val clazz=Class.forName(
+                      "com.wilito.weexautotrader.RealBotSignedCloseReadOnlyCollector")
+                  assertTrue(clazz.methods.any { it.name=="collect" })
+                  val names=Class.forName(
+                      "com.wilito.weexautotrader.RealSignedCloseReadOnlyEvidence")
+                      .declaredMethods.map{it.name}
+                  assertTrue(names.contains("getPermitsLiveTraining"))
+                  assertTrue(names.contains("getGrantsStopMutationAuthority"))
+                  assertTrue(names.contains("getAuthorizesRealEntry"))
+                  val opening=Class.forName(
+                      "com.wilito.weexautotrader.RealBotSignedOpeningReadOnlyCollector")
+                  assertTrue(opening.methods.any { it.name=="collect" })
+                  val proofGetters=Class.forName(
+                      "com.wilito.weexautotrader.RealSignedOpeningReadOnlyEvidence")
+                      .declaredMethods.map{it.name}
+                  assertTrue(proofGetters.contains("getPermitsLiveTraining"))
+                  assertTrue(proofGetters.contains("getGrantsStopMutationAuthority"))
+                  assertTrue(proofGetters.contains("getAuthorizesRealEntry"))
+                  assertTrue(proofGetters.contains("getCertifiesCompleteTrade"))
+                  val positionCost=Class.forName(
+                      "com.wilito.weexautotrader.RealSignedPositionCumulativeCostsStudyPolicy")
+                  assertTrue(positionCost.declaredMethods.any{it.name=="inspect"})
+                  val costs=Class.forName(
+                      "com.wilito.weexautotrader.RealSignedPositionCumulativeCostSnapshot")
+                      .declaredMethods.map{it.name}
+                  assertTrue(costs.contains("getProvesFinalTradeFunding"))
+                  assertTrue(costs.contains("getGrantsLiveTrainingAuthority"))
+                  assertTrue(costs.contains("getGrantsStopMutationAuthority"))
+                  val strict=Class.forName(
+                      "com.wilito.weexautotrader.RealSignedOrderVenueTimestampPolicy")
+                  assertTrue(strict.declaredMethods.any {
+                      it.name=="requiredUpdateTimeMs"
+                  })
+                  val stream=Class.forName(
+                      "com.wilito.weexautotrader.RealPrivatePositionStreamEvidencePolicy")
+                  assertTrue(stream.declaredMethods.any { it.name=="inspect" })
+                  val streamEvidence=Class.forName(
+                      "com.wilito.weexautotrader.RealPrivatePositionStreamObservation")
+                      .declaredMethods.map{it.name}
+                  assertTrue(streamEvidence.contains("getPermitsLiveTraining"))
+                  val combinedJoin=Class.forName(
+                      "com.wilito.weexautotrader.RealCombinedSignedProvenanceJoinStudyPolicy")
+                  assertTrue(combinedJoin.declaredMethods.any{it.name=="inspect"})
+                  val combinedObserved=Class.forName(
+                      "com.wilito.weexautotrader.RealCombinedSignedProvenanceJoinObservation")
+                      .declaredMethods.map{it.name}
+                  assertTrue(combinedObserved.contains("getGrantsStopMutationAuthority"))
+                  assertTrue(combinedObserved.contains("getAuthorizesRealClose"))
+                  assertTrue(combinedObserved.contains("getPermitsLiveTraining"))
+                  val flatCapture=Class.forName(
+                      "com.wilito.weexautotrader.RealCombinedPreSubmitCapturePolicy")
+                  assertTrue(flatCapture.declaredMethods.any{it.name=="assess"})
+                  val flatStore=Class.forName(
+                      "com.wilito.weexautotrader.RealCombinedPreSubmitFlatEvidenceStore")
+                  assertTrue(flatStore.declaredMethods.any{it.name=="bestEffortRecord"})
+                  val realExecutor=Class.forName(
+                      "com.wilito.weexautotrader.RealExecutionEngine")
+                  assertNotNull(realExecutor)
+                  assertTrue(streamEvidence.contains("getGrantsStopMutationAuthority"))
+                  assertTrue(streamEvidence.contains("getProvesFinalPositionFunding"))
+              }
+              @Test fun exactOrderFillWindowRejectsCrossOrderAndSaturatedSnapshot() {
+                  val now=1_800_000_000_000L
+                  val orderId="702345678901234580"
+                  val window=RealOrderScopedSignedFillsPolicy.requestWindow(
+                      orderId,"BTCUSDT",now-10_000L,now-1_000L,now)
+                  val x=RealTradeFill(
+                      tradeId="801234567890123501",orderId=orderId,
+                      executedAt=now-5_000L,symbol="BTCUSDT",side="BUY",
+                      positionSide="SHORT",price=69500.0,quantity=0.01,
+                      commission=0.1,realizedPnl=1.0)
+                  RealOrderScopedSignedFillsPolicy.verifyPage(
+                      orderId,"BTCUSDT",window,listOf(x))
+                  var rejected=false
+                  try {
+                      RealOrderScopedSignedFillsPolicy.verifyPage(
+                          orderId,"BTCUSDT",window,
+                          listOf(x.copy(orderId="999999999999999999")))
+                  } catch (_:IllegalStateException) { rejected=true }
+                  assertTrue(rejected)
+                  assertTrue(WeexFillWindowPolicy.splitSaturated(window,100).size==2)
+              }
+              @Test fun localizedRegimesReachVerifiedRealLearningWithoutTrading() {
+                  assertEquals("TREND_UP",
+                      RealLearningRegimeIdentityPolicy.canonical("TENDENCIA ALCISTA"))
+                  assertEquals("TREND_DOWN",
+                      RealLearningRegimeIdentityPolicy.canonical("TENDENCIA BAJISTA"))
+                  assertEquals("HIGH_VOLATILITY",
+                      RealLearningRegimeIdentityPolicy.canonical("ALTA VOLATILIDAD"))
+                  assertEquals("SIDEWAYS",
+                      RealLearningRegimeIdentityPolicy.canonical("LATERAL"))
+                  assertEquals("TREND",
+                      RealLearningRegimeIdentityPolicy.canonical("TREND"))
+                  assertTrue(RealLearningRegimeIdentityPolicy.canonical(
+                      "texto desconocido") == null)
+                  val account=RealAppliedExperienceAdvisor.scopeHash("example-account-A")
+                  val result=RealAppliedExperienceAdvisor.nextAdvice(
+                      historical=emptyList(),symbol="BTCUSDT",
+                      timeframe="4h",side="SHORT",regime="TENDENCIA ALCISTA",
+                      beforeMs=1_800_000_000_000L,
+                      accountScopeProofSha256=account)
+                  assertEquals(0,result.verifiedClosedTrades)
+                  assertTrue(!result.permittedForLiveExecution)
+              }
+              @Test fun neutralIndicatorsNeverManufactureShort() {
+                  val neutral=IndicatorSnapshot(emaFast=100.0,emaSlow=100.0,rsi=50.0,
+                      atr=1.0,momentumPct=0.0,volumeRatio=1.0,
+                      macd=0.0,macdSignal=0.0,adx=35.0,
+                      vwap=100.0,bollingerMiddle=100.0,
+                      stochasticK=50.0,stochasticD=50.0)
+                  assertEquals("WAIT",neutral.signal().action)
+                  assertEquals("WAIT",neutral.copy(adx=12.0).signal().action)
+              }
+              @Test fun directionalLongAndShortRemainBothReachable() {
+                  val base=IndicatorSnapshot(emaFast=100.0,emaSlow=100.0,
+                      rsi=50.0,atr=1.0,momentumPct=0.0,volumeRatio=1.30,
+                      vwap=100.0,bollingerMiddle=100.0)
+                  val bullish=base.copy(emaFast=101.0,emaSlow=100.0,rsi=60.0,
+                      momentumPct=0.30,macd=0.20,macdSignal=0.10,
+                      stochasticK=65.0,stochasticD=40.0,obvTrend=0.10,cci=100.0,williamsR= -30.0)
+                  val bearish=base.copy(emaFast=99.0,emaSlow=100.0,rsi=40.0,
+                      momentumPct= -0.30,macd= -0.20,macdSignal= -0.10,
+                      stochasticK=35.0,stochasticD=60.0,obvTrend= -0.10,cci= -100.0,williamsR= -70.0)
+                  assertEquals("LONG",bullish.signal().action)
+                  assertEquals("SHORT",bearish.signal().action)
+                  assertEquals(bullish.signal().confidence,bearish.signal().confidence,1e-9)
+              }
+              @Test fun verifyWorkerDexWithoutStartingTradingService() {
+                  val loader=InstrumentationRegistry.getInstrumentation().targetContext.classLoader
+                  val nested=listOf("TraderService","onCreate","launchTraderLoop","workerJob","1").joinToString("$")
+                  val clazz=Class.forName("com.wilito.weexautotrader."+nested,true,loader)
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealBotAckSignedEntryReadOnlyCollector",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedSignedPositionLedgerReadOnlyCollector",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedSignedAllTradesReadOnlyCollector",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedSignedProtectionPairReadOnlyCollector",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedSignedLiquidationReadOnlyCollector",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedSignedEvidenceStudyPolicy",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedStopLeasePreview",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.ContinuousNetProfitAndroidStopPort",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.ContinuousNetProfitSignedPositionReader",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedSignedEvidenceAssembler",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedWeexSignedAssemblyPort",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedWeexStopPreviewReadPort",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealContinuousNetProfitCoordinator",true,loader))
+                  assertNotNull(clazz.getDeclaredMethod("invokeSuspend",Any::class.java))
+                  assertTrue(clazz.declaredMethods.any { it.name=="invokeSuspend" })
+              }
+              @Test fun verifyRealOnlyDirectionalFunnelWithoutOrderAuthority() {
+                  val previous=RealSelectorFunnelEvidenceState.snapshot.value
+                  try {
+                      RealSelectorFunnelEvidenceState.snapshot.value=RealSelectorFunnelEvidence(
+                          generatedAt=2_000_000L, publicMarkets=6,
+                          technicalLong=2,technicalShort=1,technicalWait=3,
+                          strategyLong=1,strategyShort=2,strategyWait=3,
+                          approvedLong=1,approvedShort=1,
+                          rankedLong=0,rankedShort=1,selectedDirection="SHORT")
+                      val note=RealSelectorFunnelEvidenceState.currentNote(TradingMode.REAL,2_001_000L)
+                      assertTrue(note.contains("técnica L2/S1/W3"))
+                      assertTrue(note.contains("estrategia L1/S2/W3"))
+                      assertTrue(note.contains("aprobadas L1/S1"))
+                      assertTrue(note.contains("ranking L0/S1"))
+                      assertTrue(note.contains("elegida SHORT"))
+                      assertTrue(RealSelectorFunnelEvidenceState.currentNote(
+                          TradingMode.SIMULATION,2_001_000L).isBlank())
+                  } finally { RealSelectorFunnelEvidenceState.snapshot.value=previous }
+              }
+              @Test fun marginStudyNeverPermitsTradingOrStopMutation() {
+                  val research=RealRiskFeasibleMarginStudyPolicy.study(
+                      accountEquityUsd=70.0, verifiedAvailableMarginUsd=70.0,
+                      side="SHORT", entryPrice=100.0, stopLossPrice=102.5,
+                      leverage=20, existingStopRiskCeilingPct=20.0,
+                      conservativeStopCostsPctOfNotional=0.6,
+                      minimumMeaningfulMarginUsd=20.0)
+                  assertEquals(RealRiskFeasibleMarginStudyStatus.PARTIAL_MARGIN_WITHIN_RISK_STUDY,research.status)
+                  assertEquals(22.58,research.studiedMarginUsd,0.000001)
+                  assertTrue(research.estimatedStopLossWithCostsUsd <= research.hardStopLossBudgetUsd)
+                  assertTrue(!research.permitsRealEntry)
+                  assertTrue(!research.permitsStopModification)
+                  val unknown=RealRiskFeasibleMarginStudyPolicy.study(
+                      accountEquityUsd=70.0, verifiedAvailableMarginUsd=70.0,
+                      side="SHORT", entryPrice=100.0, stopLossPrice=102.5,
+                      leverage=20, existingStopRiskCeilingPct=20.0,
+                      conservativeStopCostsPctOfNotional=null,
+                      minimumMeaningfulMarginUsd=20.0)
+                  assertEquals(RealRiskFeasibleMarginStudyStatus.INPUT_NOT_VERIFIED,unknown.status)
+                  assertTrue(!unknown.permitsRealEntry)
+              }
+              @Test fun combinedParentReadbackAndTriggerAllMustNameSameStopAlgo() {
+                  val now=1_795_301_000_000L
+                  val stop="812345678901234567"
+                  val pair=RealBotTpSlParentStudyResult(
+                      RealBotTpSlParentStudyStatus.CANDIDATE_FOR_POSITION_ORIGIN_PROOF,
+                      signedStopAlgoId=stop,
+                      signedTargetAlgoId="812345678901234568",
+                      signedParentOrderId="702345678901234567")
+                  val ledger=RealCombinedSignedLedgerSnapshot(
+                      id="700000000000000101",symbol="GRAMUSDT",side="SHORT",
+                      size=java.math.BigDecimal("328"),cumOpenSize=java.math.BigDecimal("328"),
+                      cumCloseSize=java.math.BigDecimal.ZERO,createdMatchSequenceId=100L,
+                      updatedMatchSequenceId=102L,createdTimeMs=now-100_000L,updatedTimeMs=now-5_000L)
+                  val clean=RealCombinedProfitBridgeInput(
+                      expectedSignedAccountScope="signed-key:one",
+                      signedAccountScopeBefore="signed-key:one",
+                      signedAccountScopeAfter="signed-key:one",
+                      expectedPositionId=ledger.id,expectedSymbol="GRAMUSDT",
+                      expectedSide="SHORT",expectedBotOrderId="702345678901234567",
+                      independentBotOrderAndClientProof=true,
+                      fullSignedPortfolioAndTradesFromSameAccount=true,
+                      fullSignedConditionalOrdersFromSameAccount=true,
+                      exchangeNowMs=now,signedPositionObservedAtMs=now-2_000L,
+                      signedTradeHistoryObservedAtMs=now-2_500L,
+                      signedConditionalOrdersObservedAtMs=now-1_000L,
+                      signedLedger=RealCombinedSignedLedgerStudyResult(
+                          RealCombinedSignedLedgerStatus.SIGNED_LEDGER_CONTEXT_ONLY,ledger),
+                      signedTrades=RealCombinedSignedTradeWindowStudyResult(
+                          RealCombinedSignedTradeWindowStatus.BOT_TRADES_CANDIDATE_FOR_INDEPENDENT_PROOF,
+                          totalBotFilledQuantity=java.math.BigDecimal("328")),
+                      parentOrderPair=pair,
+                      stopReadback=ContinuousNetProfitStopReadbackDecision(
+                          true,"SIGNED",confirmedStopAlgoId=stop,confirmedStopPrice=0.9738),
+                      stopTriggerBasis=RealStopTriggerBasisStudyResult(
+                          RealStopTriggerBasisStudyStatus.EXISTING_STOP_MARK_BASIS,
+                          "MARK_PRICE",signedStopAlgoId=stop),
+                      liquidationGeometry=RealStopLiquidationGeometryReview(
+                          RealStopLiquidationGeometryStatus.STOP_BEFORE_LIQUIDATION_WITH_BUFFER,
+                          separationFromLiquidation=0.0095,requiredSeparation=0.00212,
+                          reviewedPositionId=ledger.id,
+                          reviewedAccountScope="signed-key:one",
+                          reviewedStopAlgoId=stop,
+                          reviewedTriggerPriceType="MARK_PRICE",
+                          reviewedStopPrice=0.9738,
+                          reviewedPriceTick=0.0001,
+                          signedObservedAtMs=now-1_000L))
+                  val policy=RealCombinedProfitSafetyBridgeStudyPolicy
+                  val a=policy.inspect(clean)
+                  assertEquals(RealCombinedProfitBridgeStatus.CANDIDATE_FOR_TRANSACTION_AND_FINAL_SIGNED_RECHECK,a.status)
+                  assertTrue(!a.grantsStopMutationAuthority)
+                  val bound=RealStopLiquidationEvidencePolicy.reviewBoundSignedSnapshot(
+                      accountScope="signed-key:one",positionId=ledger.id,
+                      stopAlgoId=stop,stopTriggerPriceType="MARK_PRICE",side="SHORT",
+                      entryPrice=0.9409,signedStopPrice=0.9738,
+                      signedLiquidationPrice=0.9962,priceTick=0.0001,
+                      authenticatedPositionMatch=true,
+                      completeSignedStopReadback=true,
+                      sameMarkAndTriggerPriceBasis=true,
+                      signedObservedAtMs=now-1_000L,exchangeNowMs=now)
+                  assertTrue(bound.geometryPlausible)
+                  assertEquals(RealCombinedProfitBridgeStatus.CANDIDATE_FOR_TRANSACTION_AND_FINAL_SIGNED_RECHECK,
+                      policy.inspect(clean.copy(liquidationGeometry=bound)).status)
+                  assertEquals(RealCombinedProfitBridgeStatus.STOP_LIQUIDATION_GEOMETRY_UNSAFE,
+                      policy.inspect(clean.copy(liquidationGeometry=bound.copy(
+                          reviewedAccountScope="foreign-account"))).status)
+                  assertEquals(RealCombinedProfitBridgeStatus.STOP_LIQUIDATION_GEOMETRY_UNSAFE,
+                      policy.inspect(clean.copy(liquidationGeometry=clean.liquidationGeometry.copy(
+                          reviewedStopAlgoId="999999999999999999"))).status)
+                  assertEquals(RealCombinedProfitBridgeStatus.STOP_LIQUIDATION_GEOMETRY_UNSAFE,
+                      policy.inspect(clean.copy(liquidationGeometry=clean.liquidationGeometry.copy(
+                          reviewedTriggerPriceType="CONTRACT_PRICE"))).status)
+                  assertEquals(RealCombinedProfitBridgeStatus.SIGNED_STOP_READBACK_NOT_CONFIRMED,
+                      policy.inspect(clean.copy(stopReadback=clean.stopReadback.copy(
+                          confirmedStopAlgoId="999999999999999999"))).status)
+                  assertEquals(RealCombinedProfitBridgeStatus.STOP_TRIGGER_BASIS_UNKNOWN,
+                      policy.inspect(clean.copy(stopTriggerBasis=clean.stopTriggerBasis.copy(
+                          signedStopAlgoId="999999999999999999"))).status)
+                  assertEquals(RealCombinedProfitBridgeStatus.STOP_TP_PAIR_OR_BOT_PARENT_NOT_PROVEN,
+                      policy.inspect(clean.copy(parentOrderPair=pair.copy(
+                          signedParentOrderId="999999999999999999"))).status)
+              }
+              @Test fun combinedVenueRulesInDexRemainReadOnly() {
+                  val accepted=RealCombinedVenueRuleStudyPolicy.inspect(
+                      """{"symbols":[{"symbol":"GRAMUSDT","contractType":"PERPETUAL",
+                          "pricePrecision":4,"quantityPrecision":0}]}""","GRAMUSDT")
+                  assertTrue(accepted is RealCombinedVenueRuleDecision.Observed)
+                  val rules=(accepted as RealCombinedVenueRuleDecision.Observed).rules
+                  assertTrue(rules.matchesExactStepAndTick(1.0,0.0001))
+                  assertTrue(!rules.matchesExactStepAndTick(0.1,0.0001))
+                  val rejected=RealCombinedVenueRuleStudyPolicy.inspect(
+                      """{"symbols":[{"symbol":"GRAMUSDT","contractType":"PERPETUAL",
+                          "pricePrecision":4}]}""","GRAMUSDT")
+                  assertTrue(rejected is RealCombinedVenueRuleDecision.Pending)
+                  assertEquals("RealCombinedSignedEvidenceAssembler",
+                      RealCombinedSignedEvidenceAssembler::class.java.simpleName)
+              }
+              @Test fun combinedStopIdentityInDexNeverGrantsRemoteRights() {
+                  val study=RealCombinedStopIntentStudyResult(
+                      RealCombinedStopIntentStudyStatus.STUDY_CONSISTENT_BUT_NO_WRITE_AUTHORITY,
+                      "712345678901234567","702345678901234567")
+                  assertTrue(!study.grantsStopMutationAuthority)
+                  assertTrue(!study.authorizesRealClose)
+                  assertTrue(!study.permitsLiveTraining)
+                  assertTrue(!study.providesCertifiedSignedReadback)
+                  val scope=RealCombinedStopIntentIdentityStudyPolicy
+                      .existingJournalScopeForKey("offline-synthetic-api-key")
+                  assertTrue(scope.startsWith("weex-key:"))
+                  assertEquals(73,scope.length)
+              }
+              @Test fun combinedExactOriginDexNeverGrantsLiveAuthority() {
+                  val evidence=RealCombinedOriginCandidateReadDecision.Pending(
+                      "COMBINED_CANDIDATE_NO_ARCHIVED_BOT_ACK")
+                  assertTrue(evidence is RealCombinedOriginCandidateReadDecision.Pending)
+                  assertEquals("RealCombinedExactOriginCandidateReadOnly",
+                      RealCombinedExactOriginCandidateReadOnly::class.java.simpleName)
+                  assertEquals("RealCombinedOriginCandidateReadDecision",
+                      RealCombinedOriginCandidateReadDecision::class.java.simpleName)
+              }
+              @Test fun combinedSignedThenMarketClockDexHasNoStopAuthority() {
+                  val candidate=RealCombinedStopPreviewResult(
+                      RealCombinedStopPreviewStatus.READONLY_CANDIDATE_NOT_AUTHORITY)
+                  assertTrue(!candidate.grantsStopMutationAuthority)
+                  assertTrue(!candidate.certifiedExchangeStopReadback)
+                  assertEquals("RealCombinedStopLeasePreview",
+                      RealCombinedStopLeasePreview::class.java.simpleName)
+              }
+              @Test fun combinedDurableStopSidecarClassLoadsWithoutWriteAuthority() {
+                  val pure=RealCombinedSignedStopObservation(
+                      accountProofSha256="a".repeat(64),
+                      positionId="712345678901234567",
+                      positionOpenedAtMs=1800000000000L,
+                      openingOrderId="702345678901234567",
+                      botClientOrderId="synthetic-bot",
+                      symbol="GRAMUSDT",side="SHORT",timeframe="15m",
+                      signedEntryPrice="1",signedPositionQuantity="328",
+                      originalStopPrice="1.04",lastSignedStopPrice="1.04",
+                      lastSignedTakeProfitPrice="0.9",
+                      stopAlgoId="801234567890123501",
+                      takeProfitAlgoId="801234567890123502",
+                      signedExchangeAtMs=1800000001000L
+                  )
+                  assertTrue(RealCombinedStopObservationPolicy.intrinsicValid(pure))
+                  assertTrue(!pure.grantsStopMutationAuthority)
+                  assertTrue(!pure.certifiesCurrentRemoteStop)
+                  assertTrue(!pure.authorizesRealClose)
+                  assertEquals("RealCombinedSignedStopObservationStore",
+                      RealCombinedSignedStopObservationStore::class.java.simpleName)
+              }
+              @Test fun combinedDurableSidecarWritesOnlySyntheticReadbackAndRejectsRollback() {
+                  val context=InstrumentationRegistry.getInstrumentation().targetContext
+                  val store=RealCombinedSignedStopObservationStore(context)
+                  val input=RealCombinedSignedStopObservation(
+                      accountProofSha256="f".repeat(64),
+                      positionId="712345678901234899",
+                      positionOpenedAtMs=1800000000000L,
+                      openingOrderId="702345678901234899",
+                      botClientOrderId="offline-sidecar-qa",
+                      symbol="GRAMUSDT",side="SHORT",timeframe="15m",
+                      signedEntryPrice="1",signedPositionQuantity="328",
+                      originalStopPrice="1.04",lastSignedStopPrice="1.04",
+                      lastSignedTakeProfitPrice="0.9",
+                      stopAlgoId="801234567890123899",
+                      takeProfitAlgoId="801234567890123898",
+                      signedExchangeAtMs=1800000001000L
+                  )
+                  assertTrue(store.recordSignedReadOnly(input))
+                  val newer=input.copy(
+                      lastSignedStopPrice="1.03",signedExchangeAtMs=1800000002000L)
+                  assertTrue(store.recordSignedReadOnly(newer))
+                  assertTrue(!store.recordSignedReadOnly(
+                      newer.copy(lastSignedStopPrice="1.05",
+                          signedExchangeAtMs=1800000003000L)))
+                  assertEquals(newer,store.readHistoricalNonAuthority(
+                      input.accountProofSha256,input.positionId))
+                  assertTrue(!newer.certifiesCurrentRemoteStop)
+                  assertTrue(!newer.grantsStopMutationAuthority)
+              }
+              @Test fun combinedDurableSidecarSurvivesReinstallAsHistoryOnly() {
+                  val context=InstrumentationRegistry.getInstrumentation().targetContext
+                  val old=RealCombinedSignedStopObservationStore(context)
+                      .readHistoricalNonAuthority("f".repeat(64),"712345678901234899")
+                  assertNotNull(old)
+                  assertEquals("1.03",old!!.lastSignedStopPrice)
+                  assertTrue(!old.grantsStopMutationAuthority)
+                  assertTrue(!old.certifiesCurrentRemoteStop)
+              }
+              @Test fun finalSignedStopPostPolicyRefusesRevokedOwnerAndStaleEvidence() {
+                  val input=ContinuousNetProfitFinalPostEvidence(
+                      samePositionLeaseOwned=true,
+                      globalOwnerStillArmed=true,
+                      durableAttemptStarted=true,
+                      legacyStopJournalClear=true,
+                      signedBotPositionBefore=true,
+                      signedOldStopAndTpComplete=true,
+                      signedBotPositionAfter=true,
+                      freshMarkAndBookStopSafe=true,
+                      globalOwnerRechecked=true)
+                  assertTrue(ContinuousNetProfitFinalPostBarrierPolicy
+                      .maySendExactlyOneModify(input))
+                  assertTrue(!ContinuousNetProfitFinalPostBarrierPolicy
+                      .maySendExactlyOneModify(input.copy(globalOwnerRechecked=false)))
+                  assertTrue(!ContinuousNetProfitFinalPostBarrierPolicy
+                      .maySendExactlyOneModify(input.copy(signedOldStopAndTpComplete=false)))
+                  assertTrue(!ContinuousNetProfitFinalPostBarrierPolicy
+                      .maySendExactlyOneModify(input.copy(freshMarkAndBookStopSafe=false)))
+                  assertEquals("ContinuousNetProfitAndroidStopPort",
+                      ContinuousNetProfitAndroidStopPort::class.java.simpleName)
+              }
+              @Test fun combinedSignedOldNewReadbackClassLoadsWithoutStopAuthority() {
+                  val study=RealCombinedStopTransactionalReadDecision(
+                      RealCombinedStopTransactionalReadStatus.SIGNED_TRIGGER_MATCHED_STUDY_ONLY,
+                      "712345678901234567","801234567890123501",1800000000000L)
+                  assertTrue(!study.grantsStopMutationAuthority)
+                  assertTrue(!study.certifiesLiveStop)
+                  assertTrue(!study.permitsLiveTraining)
+                  assertEquals("RealCombinedSignedStopTransactionRecheckPolicy",
+                      RealCombinedSignedStopTransactionRecheckPolicy::class.java.simpleName)
+              }
+              @Test fun combinedSingleStopPortClassLoadsButCannotTradeByInstantiating() {
+                  assertTrue(ContinuousNetProfitStopTransactionPort::class.java
+                      .isAssignableFrom(RealCombinedSignedStopTransactionPort::class.java))
+                  val plain=RealCombinedStopTransactionalReadDecision(
+                      RealCombinedStopTransactionalReadStatus.SIGNED_TRIGGER_MATCHED_STUDY_ONLY)
+                  assertTrue(!plain.grantsStopMutationAuthority)
+                  assertTrue(!plain.certifiesLiveStop)
+              }
+              @Test fun writeUpgradeSentinel() {
+                  val context=InstrumentationRegistry.getInstrumentation().targetContext
+                  assertTrue(context.getSharedPreferences("neutral-tie_offline_art",Context.MODE_PRIVATE)
+                      .edit().putString("sentinel","QATIE_PRESERVE").commit())
+              }
+              @Test fun verifyUpgradeSentinel() {
+                  val context=InstrumentationRegistry.getInstrumentation().targetContext
+                  assertEquals("QATIE_PRESERVE",context.getSharedPreferences("neutral-tie_offline_art",
+                      Context.MODE_PRIVATE).getString("sentinel","MISSING"))
+              }
+          }
+          KOTLIN
+          if ! gradle --no-daemon --console=plain :app:assembleDebug :app:assembleDebugAndroidTest > /tmp/neutral-tie-art-build.log 2>&1; then
+            echo "::error::NEUTRAL_TIE_DEBUG_DEX_BUILD_FAILED"
+            grep -E '^e:|error:|FAILURE:|What went wrong:|Execution failed|Could not resolve|Task .* FAILED' /tmp/neutral-tie-art-build.log | tail -16 || true
+            exit 1
+          fi
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          test -s app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          echo NEUTRAL_TIE_DISPOSABLE_ANDROID_DEBUG_APK_NOT_FOR_OTA
+      - name: Enable hardware-accelerated emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Create no-network startup, DEX class-load and in-place upgrade test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/neutral-tie-offline-art-runner.sh <<'RUNNER'
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          pr184_art_failure() {
+            local rc="$?" line="$1"
+            trap - ERR
+            echo "::error::PR184_OFFLINE_ART_FAILED_LINE=${line} exit=${rc}"
+            for file in /tmp/neutral-tie-first-launch.log /tmp/neutral-tie-after-reinstall.log \
+                /tmp/neutral-tie-sentinel-read.log /tmp/weex-pr175-sidecar-reinstall.log; do
+              if [ -f "$file" ]; then
+                echo "PR184_ART_DIAG_FILE=$file"
+                tail -25 "$file" || true
+              fi
+            done
+            echo PR184_ART_OFFLINE_DEVICE_PID_STATUS
+            adb shell pidof com.wilito.weexautotrader || true
+            echo PR184_ART_CRASH_LOGCAT_BEGIN
+            adb logcat -d -b crash | tail -90 || true
+            echo PR184_ART_CRASH_LOGCAT_END
+            exit "$rc"
+          }
+          trap 'pr184_art_failure "$LINENO"' ERR
+          cd "$GITHUB_WORKSPACE/source"
+          adb shell svc wifi disable
+          adb shell svc data disable
+          adb shell settings put global airplane_mode_on 1
+          test "$(adb shell settings get global airplane_mode_on | tr -d '\r')" = "1"
+          APP=app/build/outputs/apk/debug/app-debug.apk
+          TEST=app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb install -r "$APP"
+          adb install -r "$TEST"
+          adb logcat -c
+          adb shell am start -W -n com.wilito.weexautotrader/.LauncherActivity > /tmp/neutral-tie-first-launch.log
+          grep -q 'Status: ok' /tmp/neutral-tie-first-launch.log
+          sleep 12
+          test -n "$(adb shell pidof com.wilito.weexautotrader | tr -d '\r')"
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|VerifyError' >/tmp/neutral-tie-art-first-crashes; then echo "::error::NEUTRAL_TIE_ART_FIRST_LAUNCH_CRASH"; exit 1; fi
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#realBotSignedCloseReadOnlyCollectorNeverPromotesLiveTraining com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr152-signed-close-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr152-signed-close-art.log || { echo "::error::PR156_CLOSE_READONLY_ART_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#exactOrderFillWindowRejectsCrossOrderAndSaturatedSnapshot com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr151-order-fills-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr151-order-fills-art.log || { echo "::error::PR151_ORDER_FILLS_ART_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#localizedRegimesReachVerifiedRealLearningWithoutTrading com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr150-regime-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr150-regime-art.log || { echo "::error::PR150_REAL_REGIME_IDENTITY_ART_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#neutralIndicatorsNeverManufactureShort com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/neutral-tie-direction-neutral.log
+          grep -Fq 'OK (1 test)' /tmp/neutral-tie-direction-neutral.log || { echo "::error::NEUTRAL_TIE_ART_NEUTRAL_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#directionalLongAndShortRemainBothReachable com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/neutral-tie-both-sides.log
+          grep -Fq 'OK (1 test)' /tmp/neutral-tie-both-sides.log || { echo "::error::NEUTRAL_TIE_ART_LONG_SHORT_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#verifyRealOnlyDirectionalFunnelWithoutOrderAuthority com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/neutral-tie-direction-funnel-art.log
+          grep -Fq 'OK (1 test)' /tmp/neutral-tie-direction-funnel-art.log || { echo "::error::PR137_REAL_DIRECTION_FUNNEL_ART_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#marginStudyNeverPermitsTradingOrStopMutation com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/neutral-tie-risk-study-art.log
+          grep -Fq 'OK (1 test)' /tmp/neutral-tie-risk-study-art.log || { echo "::error::PR138_RISK_STUDY_ANDROID_ART_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedParentReadbackAndTriggerAllMustNameSameStopAlgo com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr145-exact-combined-algo-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr145-exact-combined-algo-art.log || { echo "::error::PR145_COMBINED_ALGO_ART_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#verifyWorkerDexWithoutStartingTradingService com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/neutral-tie-worker-art.log
+          grep -Fq 'OK (1 test)' /tmp/neutral-tie-worker-art.log || { echo "::error::NEUTRAL_TIE_WORKER_ART_VERIFY_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedVenueRulesInDexRemainReadOnly com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr171-venue-rules-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr171-venue-rules-art.log || { echo "::error::PR171_VENUE_RULES_DEX_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedStopIdentityInDexNeverGrantsRemoteRights com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr172-identity-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr172-identity-art.log || { echo "::error::PR172_COMBINED_IDENTITY_DEX_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedExactOriginDexNeverGrantsLiveAuthority com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr173-origin-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr173-origin-art.log || { echo "::error::PR173_COMBINED_ORIGIN_DEX_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedSignedThenMarketClockDexHasNoStopAuthority com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr174-clock-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr174-clock-art.log || { echo "::error::PR174_SIGNED_MARKET_CLOCK_DEX_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedDurableStopSidecarClassLoadsWithoutWriteAuthority com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr175-sidecar-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr175-sidecar-art.log || { echo "::error::PR175_DURABLE_SIDECAR_DEX_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedDurableSidecarWritesOnlySyntheticReadbackAndRejectsRollback com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr175-sidecar-write.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr175-sidecar-write.log || { echo "::error::PR175_DURABLE_SIDECAR_WRITE_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#finalSignedStopPostPolicyRefusesRevokedOwnerAndStaleEvidence com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr176-final-post-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr176-final-post-art.log || { echo "::error::PR176_FINAL_POST_GATE_DEX_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedSignedOldNewReadbackClassLoadsWithoutStopAuthority com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr178-signed-readback-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr178-signed-readback-art.log || { echo "::error::PR178_SIGNED_OLD_NEW_DEX_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedSingleStopPortClassLoadsButCannotTradeByInstantiating com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr179-stop-port-art.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr179-stop-port-art.log || { echo "::error::PR179_COMBINED_STOP_PORT_DEX_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#writeUpgradeSentinel com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/neutral-tie-sentinel-write.log
+          grep -Fq 'OK (1 test)' /tmp/neutral-tie-sentinel-write.log || { echo "::error::NEUTRAL_TIE_ART_DATA_WRITE_FAILED"; exit 1; }
+          # Reinstall without uninstall or clearing data.
+          adb install -r "$APP"
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#verifyUpgradeSentinel com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/neutral-tie-sentinel-read.log
+          grep -Fq 'OK (1 test)' /tmp/neutral-tie-sentinel-read.log || { echo "::error::NEUTRAL_TIE_ART_DATA_RETENTION_FAILED"; exit 1; }
+          timeout --signal=TERM --kill-after=10s 75s adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedDurableSidecarSurvivesReinstallAsHistoryOnly com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr175-sidecar-reinstall.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr175-sidecar-reinstall.log || { echo "::error::PR175_DURABLE_SIDECAR_REINSTALL_FAILED"; exit 1; }
+          adb logcat -c
+          adb shell am start -W -n com.wilito.weexautotrader/.LauncherActivity > /tmp/neutral-tie-after-reinstall.log
+          grep -q 'Status: ok' /tmp/neutral-tie-after-reinstall.log
+          sleep 12
+          test -n "$(adb shell pidof com.wilito.weexautotrader | tr -d '\r')"
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|VerifyError' >/tmp/neutral-tie-art-reinstall-crashes; then echo "::error::NEUTRAL_TIE_ART_REINSTALL_CRASH"; exit 1; fi
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt)" = "2c0f5413062d41f126c129d1661a8f8469329f13"
+          grep -Fq 'failedFinalCombinedBarrierAfterStartedMarkerNeverRetriesPost' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          grep -Fq 'changedExternalStopBlocksUnsentJournalUntilOldSignedStopReturns' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostStudyPolicy.kt)" = "98f66bbc5eea4d862fffc56ac218bb215361d03d"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedNetCostStudyPolicyTest.kt)" = "321b9dbf30a79fd322780b45625b543013cea0fb"
+          grep -Fq 'NET_ESTIMATE_ONLY_NO_STOP_AUTHORITY' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostStudyPolicy.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollector.kt)" = "41ca17f84cc41d26fc432907bbb6f38a630ca284"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollectorTest.kt)" = "3a0184facd40d9b84e75a46981816d570376ad56"
+          grep -Fq 'signedActivePositionCumulativeCosts' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollector.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicy.kt)" = "6bdbfa12c33a3db996ca4a32f8490e87e8d12870"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicyTest.kt)" = "ea424c10781eed5b56da22a81dc1e9297a351903"
+          grep -Fq 'CANDIDATE_ONLY_REQUIRES_FULL_SIGNED_ASSEMBLY' app/src/main/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicy.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = "0f7609177a68da41c88efe780f8935d81eb41625"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedStopLiveModePolicy.kt)" = "805224786d52dbf5c562f14acb4deb0ec16c2c03"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLiveModePolicyTest.kt)" = "a7708d66c930b480f209c4505c3fd73f1ab901c4"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "1724dfccf006d69d390755aa227b3e02c212a769"
+          # Preflight intentionally replaces app/src/main with the canonical
+          # materialized tree. Compare precisely what Gradle/ART compiled to
+          # that exported tested tree; the original HEAD blob was pinned
+          # separately BEFORE materialization.
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = "$(git hash-object /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/TraderService.kt)"
+          grep -Fq 'realCombinedNetProfit.schedule(remotePositions)' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'realCombinedNetProfit.schedule(remotePositions)' app/src/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'RealCombinedStopLiveModePolicy.mayStartOrSendNewStop' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt)" = "c7f6f59a729402bff83247cdeab7b73ea5ab99ad"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingTerminalPublicStudyPolicy.kt)" = "381263fb3d79dff10c280140c5f382b84e6f243a"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingTerminalPublicStudyPolicyTest.kt)" = "8cfa1eb770f911ebd52feac66bc36c80d7fa114e"
+          test -s app/src/main/java/com/wilito/weexautotrader/RealPendingTerminalPublicStudyPolicy.kt
+          grep -Fq 'REAL_PENDING_TERMINAL_REQUIERE_CIERRE_FIRMADO' app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealPendingTerminalPublicStudyPolicyTest.kt
+          echo WEEX_PR187_REAL_PENDING_TERMINAL_PUBLIC_SKIP_ART_RETAINED_NO_LIVE_ORDERS
+          test -s app/src/main/java/com/wilito/weexautotrader/EntryNoTradeTriagePolicy.kt
+          grep -Fq 'PR186_WXDG_NO_ENTRY_TRIAGE_READONLY_V1' app/src/main/java/com/wilito/weexautotrader/EntryNoTradeTriagePolicy.kt
+          grep -Fq 'put("entryNoTradeTriage",JSONObject().apply' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          echo WEEX_PR184_EXACT_SOURCE_OWNER_GATED_NO_NEW_ORDERS
+          echo WEEX_PR184_COMBINED_LIVE_OWNER_ART_DEX_PASS_NO_ORDERS_NO_OTA
+          RUNNER
+          bash -n /tmp/neutral-tie-offline-art-runner.sh
+          chmod 700 /tmp/neutral-tie-offline-art-runner.sh
+      - name: Test Android ART and data retention on isolated offline emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 4096M
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          script: bash /tmp/neutral-tie-offline-art-runner.sh

@@ -13,7 +13,7 @@ jobs:
     env:
       CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
       EXPECTED_BRANCH: repair/weex-pr177-private-apk-builder-probe-20261123
-      EXACT_SOURCE_HEAD: 0e2c0061b65b520314915e1492ff37d7d904ea51
+      EXACT_SOURCE_HEAD: ae2a37a54aff99feb56b7b857cc31d5d8cc3c23c
     steps:
       - name: Query only branch pipeline metadata; NEVER retrieve credentials or private artifacts
         shell: bash

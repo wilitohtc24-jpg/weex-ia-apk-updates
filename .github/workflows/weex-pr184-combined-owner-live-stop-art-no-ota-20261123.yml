@@ -685,7 +685,26 @@ jobs:
           set -euo pipefail
           cat > /tmp/neutral-tie-offline-art-runner.sh <<'RUNNER'
           #!/usr/bin/env bash
-          set -euo pipefail
+          set -Eeuo pipefail
+          pr184_art_failure() {
+            local rc="$?" line="$1"
+            trap - ERR
+            echo "::error::PR184_OFFLINE_ART_FAILED_LINE=${line} exit=${rc}"
+            for file in /tmp/neutral-tie-first-launch.log /tmp/neutral-tie-after-reinstall.log \
+                /tmp/neutral-tie-sentinel-read.log /tmp/weex-pr175-sidecar-reinstall.log; do
+              if [ -f "$file" ]; then
+                echo "PR184_ART_DIAG_FILE=$file"
+                tail -25 "$file" || true
+              fi
+            done
+            echo PR184_ART_OFFLINE_DEVICE_PID_STATUS
+            adb shell pidof com.wilito.weexautotrader || true
+            echo PR184_ART_CRASH_LOGCAT_BEGIN
+            adb logcat -d -b crash | tail -90 || true
+            echo PR184_ART_CRASH_LOGCAT_END
+            exit "$rc"
+          }
+          trap 'pr184_art_failure "$LINENO"' ERR
           cd "$GITHUB_WORKSPACE/source"
           adb shell svc wifi disable
           adb shell svc data disable

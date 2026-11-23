@@ -28,14 +28,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Diagnostics for this READ-ONLY source guard; never print any token.
-          set -x
-          echo PR185_SOURCE_HEAD_CHECK="$(git rev-parse HEAD)"
-          echo PR185_LEDGER_SOURCE_BLOB="$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)"
-          echo PR185_LEDGER_TEST_BLOB="$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)"
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)" = "70f1c63ac0f0801b65ff14546fd0c70590b3a60d"
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = "e7495d52b2b583ed6201e187355748f1236cd39"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = "e7495d52b2b583ed6201e187355748f1236cd39b"
           test ! -e app/weex-ia-signing.jks
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt)" = "7ec0b530d4743198fe138f0565b8563f964a3dfa"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStore.kt)" = "e9f3d4fb66588caee710f2746b6097e2498fbb24"

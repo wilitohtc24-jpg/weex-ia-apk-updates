@@ -1,0 +1,38 @@
+name: WEEX PR184 private CircleCI builder source smoke NO APK
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/weex-pr184-private-builder-branch-source-smoke-20261123.yml]
+permissions:
+  contents: read
+jobs:
+  no-signing-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Fetch exact source-only private builder branch
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 017f2d22e06c91a19e0a9a9fa0dcb4f1639ca7db
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Verify no release request, precise source diff and shell syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "017f2d22e06c91a19e0a9a9fa0dcb4f1639ca7db"
+          test ! -e ci/requests/pr184-circleci-one-private.txt
+          bash -n ci/build_private_pr184_circleci_once.sh
+          grep -Fq 'CIRCLECI_PR184_PRIVATE_SIGNED_ONCE_FOR_GREEN_SHA=' ci/build_private_pr184_circleci_once.sh
+          grep -Fq 'WEEX_ALLOW_DIRECT_PUBLISH=false' ci/build_private_pr184_circleci_once.sh
+          grep -Fq 'test "$APK_VERSION" -gt 30205252' ci/build_private_pr184_circleci_once.sh
+          grep -Fq 'pr184_private_signed_candidate:' .circleci/config.yml
+          grep -Fq 'only: build/weex-pr184-owner-private-apk-v2-20261123' .circleci/config.yml
+          python3 - <<'PY'
+          import subprocess
+          green='800be05454697cb4647d60b9d4abb89b0da2701b'
+          changed=set(subprocess.check_output(['git','diff','--name-only',green,'HEAD'],text=True).splitlines())
+          assert changed=={'.circleci/config.yml','ci/build_private_pr184_circleci_once.sh'},changed
+          print('WEEX_PR184_PRIVATE_BUILDER_SOURCE_NO_APK_NO_SIGN_NO_OTA_VERIFIED')
+          PY

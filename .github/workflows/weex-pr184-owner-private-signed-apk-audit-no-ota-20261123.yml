@@ -1,4 +1,4 @@
-name: WEEX PR184 owner PRIVATE signed APK independent audit NO OTA
+name: WEEX PR184 independently audit PRIVATE signed APK bytes and cert NO OTA
 on:
   push:
     branches: [main]
@@ -7,247 +7,124 @@ on:
 permissions:
   contents: read
 jobs:
-  private-only-audit:
+  verify-private-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 28
     env:
       CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
-      # Fail closed until CircleCI actually produces an exact private artifact.
-      EXPECTED_AUTH_SHA: "UNAUTHORIZED"
-      EXPECTED_WORKFLOW_ID: "UNAUTHORIZED"
+      EXPECTED_AUTH_SHA: "bc7c626090e1b1dd6b05f62251fc9becbfe3d2af"
+      EXPECTED_WORKFLOW_ID: "1c707036-e20e-4276-ac91-a354cf03ea9e"
       EXPECTED_GREEN_SHA: "800be05454697cb4647d60b9d4abb89b0da2701b"
       EXPECTED_SIGNER: "5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"
       PREVIOUS_PUBLIC_OTA: "30205252"
     steps:
-      - name: Demand exact private CircleCI builder, no upload or OTA
-        id: gate
+      - name: Verify finished private CircleCI job, provenance, complete artifact, SHA256, certificate
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$EXPECTED_AUTH_SHA" = UNAUTHORIZED ] || [ "$EXPECTED_WORKFLOW_ID" = UNAUTHORIZED ]; then
-            echo PR184_SIGNED_APK_NOT_YET_GENERATED_NO_OTA
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "$EXPECTED_AUTH_SHA" | grep -Eq '^[0-9a-f]{40}$'
-          echo "$EXPECTED_WORKFLOW_ID" | grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
-          echo 'ready=true' >> "$GITHUB_OUTPUT"
-      - name: Audit exact builder identity, signed APK, original cert, hash, private scope
-        if: steps.gate.outputs.ready == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib,json,os,re,urllib.request,urllib.parse
-          base="https://circleci.com/api/v2"
-          project="/project/gh/wilitohtc24-jpg/weex-auto-trader-android"
-          token=os.environ["CIRCLECI_READ_TOKEN"]
-          wid=os.environ["EXPECTED_WORKFLOW_ID"]
-          headers={"Circle-Token":token,"Accept":"application/json",
-                   "User-Agent":"weex-pr184-private-signed-readonly-auditor"}
-          def get(path):
-              with urllib.request.urlopen(
-                  urllib.request.Request(base+path,headers=headers),timeout=35
-              ) as r:return json.load(r)
-          workflow=get("/workflow/"+wid)
-          assert workflow.get("status")=="success","PR184_EXACT_WORKFLOW_NOT_SUCCESS"
-          pipeline=get("/pipeline/"+workflow["pipeline_id"])
-          vcs=pipeline.get("vcs") or {}
-          assert vcs.get("revision")==os.environ["EXPECTED_AUTH_SHA"],"PR184_SIGNER_SOURCE_DIFFERENT"
-          assert vcs.get("branch")=="build/weex-pr184-owner-private-apk-v3-20261123","PR184_WRONG_BUILD_BRANCH"
-          jobs=get("/workflow/"+wid+"/job").get("items",[])
-          matching=[x for x in jobs if x.get("name")=="pr184_private_signed_candidate"
-                    and x.get("status")=="success"]
-          assert len(matching)==1,"PR184_EXACT_PRIVATE_BUILDER_JOB_MISSING"
-          job=str(matching[0]["job_number"])
-          rows=get(project+"/"+job+"/artifacts").get("items",[])
-          assets={a.get("path"):a for a in rows}
-          prefix="private-pr184-circleci-candidate/"
-          required=("WEEX-IA-Trader-release.apk","apk-sha256.txt",
-                    "signing-certificate.txt","release.json","candidate-provenance.txt")
-          assert all(prefix+n in assets for n in required),"PR184_PRIVATE_ARTIFACTS_MISSING"
-          class SafeRedirect(urllib.request.HTTPRedirectHandler):
-              def redirect_request(self,req,fp,code,msg,hdrs,url):
-                  nxt=super().redirect_request(req,fp,code,msg,hdrs,url)
-                  if nxt:
-                      for d in (nxt.headers,nxt.unredirected_hdrs):
-                          for k in list(d):
-                              if k.lower()=="circle-token":del d[k]
-                  return nxt
-          opener=urllib.request.build_opener(SafeRedirect())
-          def open_artifact(name):
-              url=assets[prefix+name].get("url","")
-              parsed=urllib.parse.urlparse(url)
-              assert parsed.scheme=="https" and parsed.hostname in (
-                  "circleci.com","output.circle-artifacts.com"),"UNTRUSTED_DOWNLOAD_HOST"
-              return opener.open(urllib.request.Request(url,headers=headers),timeout=140)
-          def small(name):
-              with open_artifact(name) as r: data=r.read(250001)
-              assert len(data)<=250000,"PR184_METADATA_OVERSIZE"
-              return data.decode("utf8")
-          claimed=small("apk-sha256.txt").split()[0].lower()
-          assert re.fullmatch("[a-f0-9]{64}",claimed)
-          provenance=dict(l.split("=",1) for l in small("candidate-provenance.txt").splitlines() if "=" in l)
-          assert provenance.get("source")==os.environ["EXPECTED_AUTH_SHA"]
-          assert provenance.get("green_source")==os.environ["EXPECTED_GREEN_SHA"]
-          assert provenance.get("private_only")=="true" and provenance.get("ota_publication")=="false"
-          assert provenance.get("previousOTA")==os.environ["PREVIOUS_PUBLIC_OTA"]
-          version=int(provenance["versionCode"])
-          assert int(os.environ["PREVIOUS_PUBLIC_OTA"])<version<=2100000000,"PR184_WRONG_VERSION"
-          manifest=json.loads(small("release.json"))
-          for k in ("versionCode","version_code"):
-              if k in manifest: assert int(manifest[k])==version
-          if "packageName" in manifest:
-              assert manifest["packageName"]=="com.wilito.weexautotrader"
-          cert=small("signing-certificate.txt")
-          digests={d.replace(":","").lower() for d in re.findall(
-              r"(?mi)^\s*(?:Signer\s+#\d+|V\d+(?:\.\d+)?\s+Signer)\s*:?\s*certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",cert
-          )}
-          assert digests=={os.environ["EXPECTED_SIGNER"]},"PR184_SIGNING_CERT_MISMATCH"
-          digest=hashlib.sha256();total=0
-          with open_artifact("WEEX-IA-Trader-release.apk") as inp:
-              with open("/tmp/pr184-owner-private.apk","wb") as out:
-                  first=inp.read(4)
-                  assert first==b"PK\x03\x04","NOT_APK"
-                  out.write(first);digest.update(first);total+=len(first)
-                  while True:
-                      b=inp.read(1024*1024)
-                      if not b:break
-                      total+=len(b)
-                      assert total<200*1024*1024
-                      digest.update(b);out.write(b)
-          assert total>10*1024*1024 and digest.hexdigest()==claimed,"PR184_SHA_MISMATCH"
-          print("PR184_PRIVATE_CIRCLECI_JOB_NUMBER="+job)
-          print("PR184_PRIVATE_APK_VERSION="+str(version))
-          print("PR184_PRIVATE_APK_SHA256="+claimed)
-          print("PR184_PRIVATE_APK_BYTES="+str(total))
-          print("PR184_CIRCLECI_PRIVATE_APK_AUDIT_PASS_NO_OTA")
-          PY
-      - name: Independently verify APK signature with Android apksigner
-        if: steps.gate.outputs.ready == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          signer="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner | sort -V | tail -1)"
-          test -x "$signer"
-          "$signer" verify --verbose --print-certs /tmp/pr184-owner-private.apk > /tmp/pr184-private-apksigner.txt
-          python3 - <<'PY'
-          import os,re
-          from pathlib import Path
-          txt=Path("/tmp/pr184-private-apksigner.txt").read_text()
-          digests={d.replace(":","").lower() for d in re.findall(
-              r"(?mi)^\s*(?:Signer\s+#\d+|V\d+(?:\.\d+)?\s+Signer)\s*:?\s*certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",txt)}
-          assert digests=={os.environ["EXPECTED_SIGNER"]},"PR184_CERTIFICATE_NOT_ORIGINAL"
-          print("PR184_ORIGINAL_APKSIGNER_CONFIRMED_OWNER_PRIVATE_NO_OTA")
-          PY
-
           test -n "$CIRCLECI_READ_TOKEN"
-          echo 'ready=true' >> "$GITHUB_OUTPUT"
-      - name: Audit exact builder identity, signed APK, original cert, hash, private scope
-        if: steps.gate.outputs.ready == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
           python3 - <<'PY'
           import hashlib,json,os,re,urllib.request,urllib.parse
           base="https://circleci.com/api/v2"
           project="/project/gh/wilitohtc24-jpg/weex-auto-trader-android"
           token=os.environ["CIRCLECI_READ_TOKEN"]
           wid=os.environ["EXPECTED_WORKFLOW_ID"]
+          assert re.fullmatch(r"[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}",wid)
           headers={"Circle-Token":token,"Accept":"application/json",
-                   "User-Agent":"weex-pr184-private-signed-readonly-auditor"}
+                   "User-Agent":"pr184-private-signed-independent-audit"}
           def get(path):
-              with urllib.request.urlopen(
-                  urllib.request.Request(base+path,headers=headers),timeout=35
-              ) as r:return json.load(r)
+              req=urllib.request.Request(base+path,headers=headers)
+              with urllib.request.urlopen(req,timeout=35) as r:return json.load(r)
           workflow=get("/workflow/"+wid)
-          assert workflow.get("status")=="success","PR184_EXACT_WORKFLOW_NOT_SUCCESS"
+          assert workflow.get("status")=="success",("WRONG_CIRCLECI_STATUS",workflow.get("status"))
           pipeline=get("/pipeline/"+workflow["pipeline_id"])
           vcs=pipeline.get("vcs") or {}
-          assert vcs.get("revision")==os.environ["EXPECTED_AUTH_SHA"],"PR184_SIGNER_SOURCE_DIFFERENT"
-          assert vcs.get("branch")=="build/weex-pr184-owner-private-apk-v3-20261123","PR184_WRONG_BUILD_BRANCH"
+          assert vcs.get("revision")==os.environ["EXPECTED_AUTH_SHA"],"WRONG_BUILD_SHA"
+          assert vcs.get("branch")=="build/weex-pr184-owner-private-apk-v3-20261123","WRONG_BUILD_BRANCH"
           jobs=get("/workflow/"+wid+"/job").get("items",[])
-          matching=[x for x in jobs if x.get("name")=="pr184_private_signed_candidate"
-                    and x.get("status")=="success"]
-          assert len(matching)==1,"PR184_EXACT_PRIVATE_BUILDER_JOB_MISSING"
-          job=str(matching[0]["job_number"])
+          matches=[j for j in jobs if j.get("name")=="pr184_private_signed_candidate"
+                   and j.get("status")=="success"]
+          assert len(matches)==1,"NO_UNIQUE_SUCCESSFUL_PRIVATE_BUILD_JOB"
+          job=str(matches[0]["job_number"])
           rows=get(project+"/"+job+"/artifacts").get("items",[])
-          assets={a.get("path"):a for a in rows}
           prefix="private-pr184-circleci-candidate/"
-          required=("WEEX-IA-Trader-release.apk","apk-sha256.txt",
-                    "signing-certificate.txt","release.json","candidate-provenance.txt")
-          assert all(prefix+n in assets for n in required),"PR184_PRIVATE_ARTIFACTS_MISSING"
+          assets={x.get("path"):x for x in rows}
+          names=("WEEX-IA-Trader-release.apk","apk-sha256.txt",
+                 "signing-certificate.txt","release.json","candidate-provenance.txt")
+          assert all(prefix+n in assets for n in names),"PR184_PRIVATE_ARTIFACTS_MISSING"
+          print("PR184_SIGNED_PRIVATE_ARTIFACTS_ALL_PRESENT job="+job,flush=True)
           class SafeRedirect(urllib.request.HTTPRedirectHandler):
-              def redirect_request(self,req,fp,code,msg,hdrs,url):
-                  nxt=super().redirect_request(req,fp,code,msg,hdrs,url)
-                  if nxt:
+              def redirect_request(self,req,fp,code,msg,headers,url):
+                  nxt=super().redirect_request(req,fp,code,msg,headers,url)
+                  if nxt is not None:
                       for d in (nxt.headers,nxt.unredirected_hdrs):
-                          for k in list(d):
-                              if k.lower()=="circle-token":del d[k]
+                          for key in list(d):
+                              if key.lower()=="circle-token":
+                                  del d[key]
                   return nxt
           opener=urllib.request.build_opener(SafeRedirect())
-          def open_artifact(name):
+          def remote(name):
               url=assets[prefix+name].get("url","")
               parsed=urllib.parse.urlparse(url)
               assert parsed.scheme=="https" and parsed.hostname in (
-                  "circleci.com","output.circle-artifacts.com"),"UNTRUSTED_DOWNLOAD_HOST"
-              return opener.open(urllib.request.Request(url,headers=headers),timeout=140)
-          def small(name):
-              with open_artifact(name) as r: data=r.read(250001)
-              assert len(data)<=250000,"PR184_METADATA_OVERSIZE"
+                  "circleci.com","output.circle-artifacts.com"),"UNTRUSTED_ARTIFACT_HOST"
+              return opener.open(urllib.request.Request(url,headers={
+                  "Circle-Token":token,"User-Agent":"pr184-private-auditor"}),timeout=150)
+          def small(name,limit=250000):
+              with remote(name) as r:data=r.read(limit+1)
+              assert len(data)<=limit,"OVERSIZED_METADATA"
               return data.decode("utf8")
-          claimed=small("apk-sha256.txt").split()[0].lower()
-          assert re.fullmatch("[a-f0-9]{64}",claimed)
-          provenance=dict(l.split("=",1) for l in small("candidate-provenance.txt").splitlines() if "=" in l)
-          assert provenance.get("source")==os.environ["EXPECTED_AUTH_SHA"]
-          assert provenance.get("green_source")==os.environ["EXPECTED_GREEN_SHA"]
-          assert provenance.get("private_only")=="true" and provenance.get("ota_publication")=="false"
-          assert provenance.get("previousOTA")==os.environ["PREVIOUS_PUBLIC_OTA"]
-          version=int(provenance["versionCode"])
-          assert int(os.environ["PREVIOUS_PUBLIC_OTA"])<version<=2100000000,"PR184_WRONG_VERSION"
+          expected=small("apk-sha256.txt").split()[0].lower()
+          assert re.fullmatch("[a-f0-9]{64}",expected),"INVALID_APK_SHA256"
+          prov=dict(x.split("=",1) for x in small("candidate-provenance.txt").splitlines() if "=" in x)
+          assert prov.get("source")==os.environ["EXPECTED_AUTH_SHA"],"WRONG_SOURCE_PROVENANCE"
+          assert prov.get("green_source")==os.environ["EXPECTED_GREEN_SHA"],"WRONG_GREEN_SHA"
+          assert prov.get("private_only")=="true" and prov.get("ota_publication")=="false","NOT_PRIVATE"
+          assert prov.get("previousOTA")==os.environ["PREVIOUS_PUBLIC_OTA"],"WRONG_OLD_OTA"
+          version=int(prov["versionCode"])
+          assert int(os.environ["PREVIOUS_PUBLIC_OTA"])<version<=2100000000,"NON_INSTALLABLE_VERSION"
           manifest=json.loads(small("release.json"))
           for k in ("versionCode","version_code"):
-              if k in manifest: assert int(manifest[k])==version
+              if k in manifest:assert int(manifest[k])==version,"VERSION_MISMATCH"
           if "packageName" in manifest:
-              assert manifest["packageName"]=="com.wilito.weexautotrader"
+              assert manifest["packageName"]=="com.wilito.weexautotrader","PACKAGE_MISMATCH"
           cert=small("signing-certificate.txt")
-          digests={d.replace(":","").lower() for d in re.findall(
-              r"(?mi)^\s*(?:Signer\s+#\d+|V\d+(?:\.\d+)?\s+Signer)\s*:?\s*certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",cert
-          )}
-          assert digests=={os.environ["EXPECTED_SIGNER"]},"PR184_SIGNING_CERT_MISMATCH"
-          digest=hashlib.sha256();total=0
-          with open_artifact("WEEX-IA-Trader-release.apk") as inp:
-              with open("/tmp/pr184-owner-private.apk","wb") as out:
-                  first=inp.read(4)
-                  assert first==b"PK\x03\x04","NOT_APK"
-                  out.write(first);digest.update(first);total+=len(first)
+          patt=(r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([a-f0-9:]+)\s*$",
+                r"(?mi)^\s*V\d+(?:\.\d+)?\s+Signer:\s+certificate\s+SHA-256\s+digest:\s*([a-f0-9:]+)\s*$")
+          digests={v.replace(":","").lower() for p in patt for v in re.findall(p,cert,re.I)}
+          assert digests=={os.environ["EXPECTED_SIGNER"]},"WRONG_SIGNING_CERTIFICATE"
+          h=hashlib.sha256()
+          total=0
+          with remote("WEEX-IA-Trader-release.apk") as source:
+              with open("/tmp/weex-pr184-private-signed.apk","wb") as output:
+                  first=source.read(4)
+                  assert first==b"PK\x03\x04","NOT_APK_ZIP"
+                  h.update(first);output.write(first);total+=4
                   while True:
-                      b=inp.read(1024*1024)
+                      b=source.read(1024*1024)
                       if not b:break
-                      total+=len(b)
-                      assert total<200*1024*1024
-                      digest.update(b);out.write(b)
-          assert total>10*1024*1024 and digest.hexdigest()==claimed,"PR184_SHA_MISMATCH"
-          print("PR184_PRIVATE_CIRCLECI_JOB_NUMBER="+job)
-          print("PR184_PRIVATE_APK_VERSION="+str(version))
-          print("PR184_PRIVATE_APK_SHA256="+claimed)
-          print("PR184_PRIVATE_APK_BYTES="+str(total))
-          print("PR184_CIRCLECI_PRIVATE_APK_AUDIT_PASS_NO_OTA")
+                      h.update(b);output.write(b);total+=len(b)
+                      assert total<200*1024*1024,"APK_TOO_LARGE"
+          assert total>10*1024*1024 and h.hexdigest()==expected,"SIGNED_APK_SHA256_MISMATCH"
+          print("PR184_PRIVATE_APK_VERSION_CODE="+str(version),flush=True)
+          print("PR184_PRIVATE_APK_SHA256="+expected,flush=True)
+          print("PR184_PRIVATE_APK_SIZE_BYTES="+str(total),flush=True)
+          print("PR184_PRIVATE_APK_CIRCLECI_JOB="+job,flush=True)
+          print("PR184_PRIVATE_APK_BYTE_CERT_PROVENANCE_AUDIT_PASS_NO_OTA",flush=True)
           PY
-      - name: Independently verify APK signature with Android apksigner
-        if: steps.gate.outputs.ready == 'true'
+      - name: Verify APK cryptographic signature with Android apksigner
         shell: bash
         run: |
           set -euo pipefail
-          signer="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner | sort -V | tail -1)"
-          test -x "$signer"
-          "$signer" verify --verbose --print-certs /tmp/pr184-owner-private.apk > /tmp/pr184-private-apksigner.txt
+          BIN="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner | sort -V | tail -1)"
+          test -x "$BIN"
+          "$BIN" verify --verbose --print-certs /tmp/weex-pr184-private-signed.apk > /tmp/pr184-verified-signer.txt
           python3 - <<'PY'
           import os,re
           from pathlib import Path
-          txt=Path("/tmp/pr184-private-apksigner.txt").read_text()
-          digests={d.replace(":","").lower() for d in re.findall(
-              r"(?mi)^\s*(?:Signer\s+#\d+|V\d+(?:\.\d+)?\s+Signer)\s*:?\s*certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",txt)}
-          assert digests=={os.environ["EXPECTED_SIGNER"]},"PR184_CERTIFICATE_NOT_ORIGINAL"
-          print("PR184_ORIGINAL_APKSIGNER_CONFIRMED_OWNER_PRIVATE_NO_OTA")
+          s=Path("/tmp/pr184-verified-signer.txt").read_text()
+          values={v.replace(":","").lower() for v in re.findall(
+              r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([a-f0-9:]+)\s*$",s,re.I)}
+          assert values=={os.environ["EXPECTED_SIGNER"]},"PR184_APKSIGNER_ORIGINAL_CERT_MISMATCH"
+          print("PR184_PRIVATE_SIGNED_APK_INDEPENDENT_APKSIGNER_PASS_NO_OTA")
           PY

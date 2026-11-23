@@ -1,0 +1,50 @@
+name: WEEX PR184 owner artifact job navigation verified READ ONLY NO OTA
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr184-private-owner-artifact-link-readonly-20261123.yml
+permissions:
+  contents: read
+jobs:
+  locate-private-owner-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+    steps:
+      - name: Verify CircleCI exact private build and show ONLY owner login job UI, not signed artifact URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,urllib.request,urllib.parse
+          token=os.environ.get("CIRCLECI_READ_TOKEN")
+          assert token,"MISSING_PRIVATE_CIRCLECI_READ_TOKEN"
+          base="https://circleci.com/api/v2"
+          w_id="1c707036-e20e-4276-ac91-a354cf03ea9e"
+          sha="bc7c626090e1b1dd6b05f62251fc9becbfe3d2af"
+          headers={"Circle-Token":token,"Accept":"application/json","User-Agent":"weex-pr184-owner-artifact-link-verifier"}
+          def get(path):
+              with urllib.request.urlopen(urllib.request.Request(base+path,headers=headers),timeout=30) as r:return json.load(r)
+          w=get("/workflow/"+w_id)
+          assert w.get("status")=="success","PRIVATE_WORKFLOW_NOT_SUCCESS"
+          p=get("/pipeline/"+w["pipeline_id"])
+          assert (p.get("vcs") or {}).get("revision")==sha,"PRIVATE_PIPELINE_SHA_MISMATCH"
+          j=[x for x in get("/workflow/"+w_id+"/job").get("items",[]) if x.get("name")=="pr184_private_signed_candidate"]
+          assert len(j)==1 and j[0].get("status")=="success","PRIVATE_JOB_NOT_SUCCESS"
+          n=j[0]["job_number"]
+          detail=get("/project/gh/wilitohtc24-jpg/weex-auto-trader-android/job/"+str(n))
+          assert detail.get("status")=="success","PRIVATE_JOB_DETAIL_FAILED"
+          artifacts=get("/project/gh/wilitohtc24-jpg/weex-auto-trader-android/"+str(n)+"/artifacts").get("items",[])
+          required="private-pr184-circleci-candidate/WEEX-IA-Trader-release.apk"
+          matching=[x for x in artifacts if x.get("path")==required]
+          assert len(matching)==1,"PRIVATE_APK_PATH_MISSING"
+          # NEVER print CDN/signed URLs, access tokens, auth headers or environment.
+          print("PR184_PRIVATE_OWNER_DOWNLOAD_ARTIFACT_VERIFIED="+required)
+          print("PR184_PRIVATE_JOB_NUMBER="+str(n))
+          print("PR184_PRIVATE_PIPELINE_NUMBER="+str(p.get("number","unknown")))
+          print("PR184_PRIVATE_JOB_UI_URL="+str(detail.get("web_url","")))
+          print("PR184_PRIVATE_ARTIFACT_URL_HOST="+str(urllib.parse.urlparse(matching[0].get("url","")).hostname))
+          print("PR184_PRIVATE_OWNER_NAVIGATION_VERIFIED_NO_PUBLIC_OTA")
+          PY

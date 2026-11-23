@@ -1,0 +1,23 @@
+name: WEEX PR184 chat file reference tiny transport probe NO APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr184-chat-delivery-file-ref-probe-20261123.yml
+permissions:
+  contents: read
+jobs:
+  tiny-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create harmless test data
+        shell: bash
+        run: |
+          mkdir -p /tmp/weex-file-transfer-check
+          printf 'WEEX_TRANSPORT_TEST_NO_APK\n' > /tmp/weex-file-transfer-check/readme.txt
+      - name: Upload harmless reference test artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: weex-chat-file-ref-test-only
+          path: /tmp/weex-file-transfer-check/readme.txt
+          retention-days: 1

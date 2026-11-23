@@ -1,0 +1,25 @@
+name: WEEX PR184 delete temporary encrypted transfer artifacts after verified chat download
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr184-remove-temporary-encrypted-chat-artifacts-20261123.yml
+permissions:
+  actions: write
+  contents: read
+jobs:
+  clean-temporary-ciphertext:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete only exact temporary artifacts (not release, builds, app or OTA)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for id in 14789627631 14789262399; do
+            gh api --method DELETE "repos/$GH_REPO/actions/artifacts/$id"
+            echo "PR184_TEMPORARY_ARTIFACT_DELETED id=$id"
+          done
+          echo PR184_TRANSIENT_CHAT_RELAY_CLEANUP_PASS_NO_OTA_CHANGED

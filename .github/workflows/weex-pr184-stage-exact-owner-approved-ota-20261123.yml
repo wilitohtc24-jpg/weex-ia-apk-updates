@@ -1,0 +1,252 @@
+# Explicit owner approval to publish PR184 via OTA on 2026-11-23.
+# First stage only as DRAFT; public promotion requires separate independent proof.
+name: WEEX PR184 verified original-signed OTA staging (DRAFT ONLY)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr184-stage-exact-owner-approved-ota-20261123.yml
+permissions:
+  contents: write
+concurrency:
+  group: weex-pr184-exact-owner-approved-ota-stage
+  cancel-in-progress: false
+jobs:
+  stage-draft-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      AUTH_SHA: "bc7c626090e1b1dd6b05f62251fc9becbfe3d2af"
+      GREEN_SHA: "800be05454697cb4647d60b9d4abb89b0da2701b"
+      CIRCLE_WORKFLOW_ID: "1c707036-e20e-4276-ac91-a354cf03ea9e"
+      CIRCLE_JOB_UUID: "46dc1f23-0fbd-491e-a1c9-523b6a387a3b"
+      SIGNER_SHA256: "5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"
+      PRIOR_CODE: "30205252"
+      PROOF_RUN: "45109650232"
+      PROOF_HEAD: "81a0dbaac882a762eabaa3f3d56e9d6896742222"
+      EXPECTED_VERSION: "30379864"
+      EXPECTED_SHA: "283754aa6e840234d9c9e87ed09deaaa7ee4e3512ba52bd34a309afd20556769"
+      EXPECTED_BYTES: "63560151"
+      ARTIFACT_AUDIT_RUN: "45109567059"
+      ARTIFACT_AUDIT_HEAD: "07479c770163ba82e2e455050d7740abbca79f22"
+      JUNIT_QA_RUN: "45103785323"
+      JUNIT_QA_HEAD: "e946e33a8cfdb988ab2caa010d35a0428955a312"
+    steps:
+      - name: Verify exact authorized private build, verified in-place install and prior OTA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "wilitohtc24-jpg/weex-ia-apk-updates"
+          test "$GITHUB_REF" = "refs/heads/main" && test "$GITHUB_EVENT_NAME" = "push"
+          test -n "$CIRCLECI_READ_TOKEN"
+          mkdir -p candidate
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PROOF_RUN" > candidate/upgrade-proof.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ARTIFACT_AUDIT_RUN" > candidate/artifact-audit.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$JUNIT_QA_RUN" > candidate/junit.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > candidate/current-latest.json
+          python3 - <<'PY'
+          import json,os
+          proof=json.load(open("candidate/upgrade-proof.json"))
+          prior=json.load(open("candidate/current-latest.json"))
+          assert proof["id"]==int(os.environ["PROOF_RUN"])
+          assert proof["status"]=="completed" and proof["conclusion"]=="success"
+          assert proof["head_sha"]==os.environ["PROOF_HEAD"]
+          for filename,idname,headname in (
+              ("candidate/artifact-audit.json","ARTIFACT_AUDIT_RUN","ARTIFACT_AUDIT_HEAD"),
+              ("candidate/junit.json","JUNIT_QA_RUN","JUNIT_QA_HEAD")):
+              proof2=json.load(open(filename))
+              assert proof2["id"]==int(os.environ[idname])
+              assert proof2["head_sha"]==os.environ[headname]
+              assert proof2["status"]=="completed" and proof2["conclusion"]=="success"
+          print("PR184_INDEPENDENT_SIGNER_AND_JUNIT_PROOFS_PASSED")
+          assert prior["tag_name"]=="v"+os.environ["PRIOR_CODE"]
+          assert prior["draft"] is False and prior["prerelease"] is False
+          apk=[a for a in prior["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(apk)==1 and apk[0]["state"]=="uploaded" and apk[0]["size"]>10000000
+          print("PR184_OWNER_OTA_PREVIOUS_RELEASE_AND_REAL_SIGNED_INPLACE_ART_PASS")
+          PY
+
+      - name: Retrieve exact original-signed CircleCI APK and verify release provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re,urllib.parse,urllib.request
+          from pathlib import Path
+          token=os.environ["CIRCLECI_READ_TOKEN"]
+          base="https://circleci.com/api/v2"
+          def get(route):
+              req=urllib.request.Request(base+route,headers={
+                  "Circle-Token":token,"Accept":"application/json",
+                  "User-Agent":"weex-pr184-exact-owner-ota-stage"})
+              with urllib.request.urlopen(req,timeout=30) as r:
+                  return json.load(r)
+          wf=get("/workflow/"+os.environ["CIRCLE_WORKFLOW_ID"])
+          assert wf["status"]=="success" and wf["id"]==os.environ["CIRCLE_WORKFLOW_ID"]
+          pipe=get("/pipeline/"+wf["pipeline_id"])
+          vcs=pipe.get("vcs") or {}
+          assert vcs.get("revision")==os.environ["AUTH_SHA"]
+          assert vcs.get("branch")=="build/weex-pr184-owner-private-apk-v3-20261123"
+          assert pipe.get("project_slug")=="gh/wilitohtc24-jpg/weex-auto-trader-android"
+          jobs=get("/workflow/"+wf["id"]+"/job").get("items",[])
+          approved=[x for x in jobs if x.get("id")==os.environ["CIRCLE_JOB_UUID"]
+                    and x.get("name")=="pr184_private_signed_candidate"
+                    and x.get("status")=="success"]
+          assert len(approved)==1,"Private CircleCI approval job not confirmed"
+          number=int(approved[0]["job_number"])
+          assert number==53063,"Do not use another APK without new authorization"
+          files=get("/project/gh/wilitohtc24-jpg/weex-auto-trader-android/"+str(number)+"/artifacts").get("items",[])
+          prefix="private-pr184-circleci-candidate/"
+          found={x.get("path"):x for x in files}
+          required=("WEEX-IA-Trader-release.apk","apk-sha256.txt",
+                    "signing-certificate.txt","release.json","candidate-provenance.txt")
+          assert all(prefix+x in found for x in required),"Not a complete private signed build"
+          class Scrub(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,hdrs,url):
+                  nxt=super().redirect_request(req,fp,code,msg,hdrs,url)
+                  if nxt:
+                      for mapping in (nxt.headers,nxt.unredirected_hdrs):
+                          for key in list(mapping):
+                              if key.lower()=="circle-token":del mapping[key]
+                  return nxt
+          opener=urllib.request.build_opener(Scrub())
+          def download(name,limit):
+              uri=found[prefix+name].get("url","")
+              u=urllib.parse.urlparse(uri)
+              assert u.scheme=="https" and (u.hostname or "") in ("output.circle-artifacts.com","circleci.com")
+              req=urllib.request.Request(uri,headers={
+                  "Circle-Token":token,"User-Agent":"weex-pr184-private-ota-staging"})
+              with opener.open(req,timeout=180) as response:
+                  result=response.read(limit+1)
+              assert len(result)<=limit and len(result)>0,"Invalid private build artifact "+name
+              Path("candidate",name).write_bytes(result)
+              return result
+          for item in required:
+              download(item,180*1024*1024 if item.endswith(".apk") else 250000)
+          shaText=Path("candidate/apk-sha256.txt").read_text()
+          expected=shaText.strip().split()[0].lower()
+          assert re.fullmatch("[0-9a-f]{64}",expected)
+          apk=Path("candidate/WEEX-IA-Trader-release.apk")
+          digest=hashlib.sha256(apk.read_bytes()).hexdigest()
+          assert digest==expected and 10*1024*1024<apk.stat().st_size<180*1024*1024
+          assert digest==os.environ["EXPECTED_SHA"] and apk.stat().st_size==int(os.environ["EXPECTED_BYTES"]),"PR184_CANDIDATE_BYTES_CHANGED"
+          provenance=dict(l.split("=",1) for l in Path("candidate/candidate-provenance.txt").read_text().splitlines() if "=" in l)
+          assert provenance.get("source")==os.environ["AUTH_SHA"]
+          assert provenance.get("green_source")==os.environ["GREEN_SHA"]
+          assert provenance.get("private_only")=="true" and provenance.get("ota_publication")=="false"
+          version=int(provenance["versionCode"])
+          assert int(os.environ["PRIOR_CODE"])<version<=2100000000
+          assert version==int(os.environ["EXPECTED_VERSION"]),"PR184_WRONG_PRIVATE_VERSION"
+          manifest=json.loads(Path("candidate/release.json").read_text())
+          for key in ("versionCode","version_code"):
+              if key in manifest:assert int(manifest[key])==version
+          if "sourceCommit" in manifest:assert manifest["sourceCommit"]==os.environ["AUTH_SHA"]
+          assert os.environ["SIGNER_SHA256"] in Path("candidate/signing-certificate.txt").read_text().lower()
+          Path("candidate/version.txt").write_text(str(version))
+          Path("candidate/sha256.txt").write_text(digest)
+          Path("candidate/size.txt").write_text(str(apk.stat().st_size))
+          print("PR184_OWNER_OTA_EXACT_CIRCLECI_PRIVATE_APK_AND_PROVENANCE_PASS")
+          print("PR184_OWNER_OTA_CANDIDATE_VERSION="+str(version))
+          print("PR184_OWNER_OTA_CANDIDATE_BYTES="+str(apk.stat().st_size))
+          print("PR184_OWNER_OTA_CANDIDATE_SHA256="+digest)
+          PY
+
+      - name: Independently validate APK signature, package and version
+        shell: bash
+        run: |
+          set -euo pipefail
+          aapt="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -1)"
+          signer="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -1)"
+          test -x "$aapt" && test -x "$signer"
+          apk="candidate/WEEX-IA-Trader-release.apk"
+          "$signer" verify --verbose --print-certs "$apk" > candidate/apk-signature.txt
+          grep -qi "$SIGNER_SHA256" candidate/apk-signature.txt
+          "$aapt" dump badging "$apk" > candidate/badging.txt
+          version="$(cat candidate/version.txt)"
+          grep -q "package: name='com.wilito.weexautotrader' versionCode='$version'" candidate/badging.txt
+          echo PR184_OWNER_OTA_APK_ORIGINAL_CERTIFICATE_AND_ANDROID_VERSION_PASS
+
+      - name: Stage exact APK as UNPUBLISHED GitHub OTA draft and verify immutable upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "wilitohtc24-jpg/weex-ia-apk-updates"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "v$PRIOR_CODE"
+          version="$(cat candidate/version.txt)"
+          sha="$(cat candidate/sha256.txt)"
+          bytes="$(cat candidate/size.txt)"
+          tag="v$version"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::PR184_OTA_TAG_ALREADY_EXISTS_REFUSE_OVERWRITE"
+            exit 1
+          fi
+          cat > candidate/release-notes.md <<EOF
+          WEEX_OTA_RELEASE_APPROVED_V1
+          WEEX_OTA_PUBLIC_TEST_BETA_V1
+          WEEX_PR184_OWNER_AUTHORIZED_GLOBAL_BETA_20261123_V1
+          
+          WEEX IA Trader PR184 — BETA publica voluntaria v$version.
+          El propietario autorizo expresamente que TODOS los usuarios puedan probarla.
+          Es la MISMA APK firmada que supero pruebas Android y auditoria independiente.
+          Instalar ENCIMA de la anterior sin desinstalar ni borrar datos.
+          
+          Proteccion progresiva de GANANCIAS NETAS desde +4 USDT en posiciones
+          WEEX COMBINED solo cuando el origen del bot y su STOP/TP sean verificables.
+          Control global EXCLUSIVO del propietario en su panel privado. Los demas
+          usuarios NO adquieren acceso al panel ni permisos de propietario.
+          No modificar posiciones manuales ni ordenes de origen incierto.
+          
+          ADVERTENCIA: pruebas sinteticas/offline y emulador, NO demostrado
+          en posiciones WEEX REAL con dinero. SL/TP no garantizan ganancia:
+          puede haber slippage, gaps, comisiones, perdidas y liquidaciones.
+          Uso voluntario. Comprobar primero SIM, y antes de operar REAL verificar
+          saldo, posiciones y STOP/TP directamente en WEEX. No forzar
+          operaciones reales solo como prueba.
+          
+          VersionCode: $version
+          APK SHA-256: $sha
+          Tamano: $bytes bytes
+          Certificado original SHA256: $SIGNER_SHA256
+          Paquete: com.wilito.weexautotrader
+          Build autorizado: $AUTH_SHA
+          Codigo probado: $GREEN_SHA
+          CircleCI private job: #53063
+          Auditoria binaria: https://github.com/$GITHUB_REPOSITORY/actions/runs/$ARTIFACT_AUDIT_RUN
+          Android release in-place: https://github.com/$GITHUB_REPOSITORY/actions/runs/$PROOF_RUN
+          PR DRAFT: https://github.com/wilitohtc24-jpg/weex-auto-trader-android/pull/184
+          EOF
+          gh release create "$tag" \
+            "candidate/WEEX-IA-Trader-release.apk#WEEX-IA-Trader-release.apk" \
+            "candidate/apk-sha256.txt#apk-sha256.txt" \
+            --repo "$GITHUB_REPOSITORY" --target main \
+            --title "WEEX IA Trader BETA de prueba - $tag" \
+            --notes-file candidate/release-notes.md \
+            --draft --prerelease=false --latest=false
+          draft_id="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json databaseId --jq '.databaseId')"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$draft_id" > candidate/draft.json
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path("candidate/draft.json").read_text())
+          version=Path("candidate/version.txt").read_text()
+          sha=Path("candidate/sha256.txt").read_text()
+          bytes=int(Path("candidate/size.txt").read_text())
+          assert r["tag_name"]=="v"+version and r["draft"] is True and not r["prerelease"]
+          assert "WEEX_OTA_RELEASE_APPROVED_V1" in r["body"]
+          assert "WEEX_PR184_OWNER_AUTHORIZED_GLOBAL_BETA_20261123_V1" in r["body"]
+          assets=r["assets"]
+          assert len(assets)==2
+          apk=[a for a in assets if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(apk)==1 and apk[0]["state"]=="uploaded"
+          assert apk[0]["size"]==bytes and apk[0]["digest"]=="sha256:"+sha
+          assert any(a["name"]=="apk-sha256.txt" and a["state"]=="uploaded" for a in assets)
+          print("PR184_OWNER_APPROVED_OTA_DRAFT_STAGED_AND_IMMUTABLY_VERIFIED")
+          print("PR184_OWNER_APPROVED_OTA_DRAFT_RELEASE_ID="+str(r["id"]))
+          print("PR184_OWNER_APPROVED_OTA_DRAFT_VERSION="+version)
+          print("PR184_OWNER_APPROVED_OTA_DRAFT_SHA256="+sha)
+          PY

@@ -1,0 +1,223 @@
+name: WEEX PR184 owner PRIVATE signed APK in-place upgrade from v30205252 ART NO OTA
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr184-signed-private-release-inplace-upgrade-20261123.yml
+permissions:
+  contents: read
+jobs:
+  independent-signed-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      EXPECTED_PRIVATE_AUTH_SHA: "bc7c626090e1b1dd6b05f62251fc9becbfe3d2af"
+      EXPECTED_GREEN_SHA: "800be05454697cb4647d60b9d4abb89b0da2701b"
+      EXPECTED_PRIVATE_CIRCLECI_JOB: "53063"
+      EXPECTED_SIGNER_SHA256: "5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"
+      OLD_VERSION_CODE: "30205252"
+      OLD_EXPECTED_SHA256: "49a58d92ae96dadea58a6a40f6bfecc83cd594ff8a30c7358c949163956d524a"
+      NEW_EXPECTED_SHA256: "283754aa6e840234d9c9e87ed09deaaa7ee4e3512ba52bd34a309afd20556769"
+      NEW_EXPECTED_VERSION: "30379864"
+    steps:
+      - name: Require exact authorized PRIVATE signed APK; otherwise do not install or publish
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EXPECTED_PRIVATE_AUTH_SHA" = "UNAUTHORIZED" ] ||
+             [ "$EXPECTED_PRIVATE_CIRCLECI_JOB" = "0" ]; then
+            echo PR184_SIGNED_ANDROID_UPGRADE_NOT_AUTHORIZED_NO_APK_NO_OTA
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$EXPECTED_PRIVATE_AUTH_SHA" | grep -Eq '^[a-f0-9]{40}$'
+          echo "$EXPECTED_GREEN_SHA" | grep -Eq '^[a-f0-9]{40}$'
+          echo "$EXPECTED_PRIVATE_CIRCLECI_JOB" | grep -Eq '^[1-9][0-9]*$'
+          test -n "$CIRCLECI_READ_TOKEN"
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+      - name: Obtain both exact APKs and compare verified signatures/hashes (never publish)
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/weex-pr184-signed-upgrade
+          python3 - <<'PY'
+          import hashlib,json,os,re,urllib.error,urllib.parse,urllib.request
+          root="/tmp/weex-pr184-signed-upgrade"
+          public="https://github.com/wilitohtc24-jpg/weex-ia-apk-updates/releases/download/v30205252/"
+          ua={"User-Agent":"weex-pr184-private-upgrade-offline"}
+          def public_url(name):
+              return urllib.request.Request(public+name,headers=ua)
+          with urllib.request.urlopen(public_url("apk-sha256.txt"),timeout=35) as r:
+              expected_old=r.read(250).decode().strip().split()[0].lower()
+          assert re.fullmatch("[0-9a-f]{64}",expected_old)
+          assert expected_old==os.environ['OLD_EXPECTED_SHA256'],'PR184_CURRENT_PUBLIC_APK_HASH_CHANGED'
+          old_hash=hashlib.sha256()
+          with urllib.request.urlopen(public_url("WEEX-IA-Trader-release.apk"),timeout=150) as r:
+              with open(root+"/old.apk","wb") as output:
+                  while True:
+                      blob=r.read(1024*1024)
+                      if not blob:break
+                      old_hash.update(blob);output.write(blob)
+          assert old_hash.hexdigest()==expected_old,"PR184_OLD_PUBLIC_APK_CHANGED"
+          print("PR184_CURRENT_PUBLIC_APK_SHA256_VERIFIED")
+          token=os.environ["CIRCLECI_READ_TOKEN"]
+          job=os.environ["EXPECTED_PRIVATE_CIRCLECI_JOB"]
+          base=("https://circleci.com/api/v2/project/gh/"
+                "wilitohtc24-jpg/weex-auto-trader-android/"+job+"/artifacts")
+          request=urllib.request.Request(base,headers={
+              "Circle-Token":token,"Accept":"application/json"})
+          with urllib.request.urlopen(request,timeout=35) as r:
+              assets=json.load(r).get("items",[])
+          prefix="private-pr184-circleci-candidate/"
+          found={x.get("path"):x for x in assets}
+          required=("WEEX-IA-Trader-release.apk","apk-sha256.txt",
+                    "signing-certificate.txt","release.json",
+                    "candidate-provenance.txt")
+          assert all(prefix+x in found for x in required),"PR184_SIGNED_CANDIDATE_SET_INCOMPLETE"
+          class SafeRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,hdrs,url):
+                  nxt=super().redirect_request(req,fp,code,msg,hdrs,url)
+                  if nxt is not None:
+                      for d in (nxt.headers,nxt.unredirected_hdrs):
+                          for key in list(d):
+                              if key.lower()=="circle-token":del d[key]
+                  return nxt
+          opener=urllib.request.build_opener(SafeRedirect())
+          def remote(name):
+              url=found[prefix+name].get("url","")
+              p=urllib.parse.urlparse(url)
+              assert p.scheme=="https" and (p.hostname or "").lower() in (
+                  "output.circle-artifacts.com","circleci.com"),"PR184_UNTRUSTED_ARTIFACT_HOST"
+              return opener.open(urllib.request.Request(url,headers={
+                  "Circle-Token":token,"User-Agent":"weex-pr184-signed-upgrade-offline"}),timeout=150)
+          def small(name,limit=100000):
+              with remote(name) as r:data=r.read(limit+1)
+              assert len(data)<=limit
+              return data.decode()
+          expected_new=small("apk-sha256.txt").strip().split()[0].lower()
+          assert re.fullmatch("[0-9a-f]{64}",expected_new)
+          assert expected_new==os.environ['NEW_EXPECTED_SHA256'],'PR184_PRIVATE_APK_HASH_CHANGED'
+          prov=dict(line.split("=",1) for line in small("candidate-provenance.txt").splitlines()
+                    if "=" in line)
+          assert prov.get("source")==os.environ["EXPECTED_PRIVATE_AUTH_SHA"]
+          assert prov.get("green_source")==os.environ["EXPECTED_GREEN_SHA"]
+          assert prov.get("private_only")=="true"
+          assert prov.get("ota_publication")=="false"
+          version=int(prov["versionCode"])
+          assert version>int(os.environ["OLD_VERSION_CODE"])
+          assert version==int(os.environ["NEW_EXPECTED_VERSION"]),"PR184_PRIVATE_APK_VERSION_CHANGED"
+          assert version<=2100000000
+          release=json.loads(small("release.json"))
+          for k in ("versionCode","version_code"):
+              if k in release:assert int(release[k])==version
+          new_hash=hashlib.sha256()
+          with remote("WEEX-IA-Trader-release.apk") as r:
+              with open(root+"/new.apk","wb") as output:
+                  while True:
+                      blob=r.read(1024*1024)
+                      if not blob:break
+                      new_hash.update(blob);output.write(blob)
+          assert new_hash.hexdigest()==expected_new, "PR184_SIGNED_APK_HASH_MISMATCH"
+          assert os.path.getsize(root+"/new.apk")>10*1024*1024
+          assert os.path.getsize(root+"/new.apk")<200*1024*1024
+          print("PR184_PRIVATE_SIGNED_APK_SHA256_VERIFIED_NO_UPLOAD")
+          with open(root+"/new-version.txt","w") as f:f.write(str(version))
+          PY
+      - name: Verify old/new signing certificate with Android apksigner
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          tool=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner | sort -V | tail -1)
+          test -x "$tool"
+          for type in old new; do
+            "$tool" verify --verbose --print-certs "/tmp/weex-pr184-signed-upgrade/$type.apk" > "/tmp/weex-pr184-signed-upgrade/$type-signer.txt"
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          import os,re
+          for type in ("old","new"):
+              data=Path("/tmp/weex-pr184-signed-upgrade/"+type+"-signer.txt").read_text()
+              matches=re.findall(
+                  r"(?mi)^\s*(?:Signer\s+#\d+|V\d+(?:\.\d+)?\s+Signer)\s*:?\s*certificate\s+SHA-256\s+digest:\s*([a-fA-F0-9:]+)",
+                  data)
+              clean={x.replace(":","").lower() for x in matches}
+              for line in data.splitlines():
+                  if "SHA-256" in line and "certificate" in line.lower():
+                      print("PR184_APKSIGNER_PUBLIC_CERT_LINE_"+type+"="+line.strip()[:230],flush=True)
+              print("PR184_SIGNED_CERTIFICATE_EXACT_"+type+"="+",".join(sorted(clean)),flush=True)
+              print("PR184_EXPECTED_CERTIFICATE_SHA256="+os.environ["EXPECTED_SIGNER_SHA256"],flush=True)
+              assert clean=={os.environ["EXPECTED_SIGNER_SHA256"]},(
+                  "PR184_SIGNED_APK_CERTIFICATE_INCOMPATIBLE",type)
+          print("PR184_OLD_AND_NEW_APK_HAVE_SAME_CANONICAL_SIGNER")
+          PY
+      - name: Prepare offline Android release upgrade script
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/pr184-upgrade-art.sh <<'ART'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          pkg="com.wilito.weexautotrader"
+          oldCode="30205252"
+          newCode="$(cat /tmp/weex-pr184-signed-upgrade/new-version.txt)"
+          # All NETWORK is disabled. Never authenticate to WEEX or send orders.
+          adb shell svc wifi disable
+          adb shell svc data disable
+          adb install /tmp/weex-pr184-signed-upgrade/old.apk | grep -q Success
+          before="$(adb shell dumpsys package "$pkg")"
+          echo "$before" | grep -q "versionCode=$oldCode"
+          firstBefore="$(printf '%s\n' "$before" | grep 'firstInstallTime=' | head -1 | tr -d '\r')"
+          test -n "$firstBefore"
+          adb install -r /tmp/weex-pr184-signed-upgrade/new.apk | grep -q Success
+          after="$(adb shell dumpsys package "$pkg")"
+          echo "$after" | grep -q "versionCode=$newCode"
+          firstAfter="$(printf '%s\n' "$after" | grep 'firstInstallTime=' | head -1 | tr -d '\r')"
+          test "$firstBefore" = "$firstAfter"
+          echo PR184_SIGNED_OTA_STABLE_UPGRADE_INSTALLED_IN_PLACE_SAME_PACKAGE
+          adb logcat -c
+          adb shell am start -W -n "$pkg/.LauncherActivity" > /tmp/pr184-signed-launch.txt
+          grep -q 'Status: ok' /tmp/pr184-signed-launch.txt
+          resumed=0
+          for i in $(seq 1 35); do
+            top="$(adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity|mTopResumedActivity' || true)"
+            if printf '%s' "$top" | grep -q "$pkg/.MainActivity"; then
+              resumed=1
+              break
+            fi
+            sleep 1
+          done
+          test "$resumed" -eq 1
+          test -n "$(adb shell pidof "$pkg" | tr -d '\r')"
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|java.lang.VerifyError' >/tmp/pr184-signed-crashes.txt; then
+            echo "::error::PR184_SIGNED_APP_FATAL_CRASH_OR_VERIFYERROR"
+            head -15 /tmp/pr184-signed-crashes.txt
+            exit 1
+          fi
+          echo PR184_SIGNED_RELEASE_IN_PLACE_LAUNCH_ART_PASS_NO_REAL_ORDERS_NO_OTA
+          ART
+          bash -n /tmp/pr184-upgrade-art.sh
+      - name: Enable KVM
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install stable signed release then private candidate without data wipe, offline
+        if: steps.gate.outputs.ready == 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 4096M
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          script: bash /tmp/pr184-upgrade-art.sh

@@ -469,6 +469,6 @@ jobs:
           grep -Fq 'ContinuousNetProfitStopTransaction(port)' "$final/RealCombinedContinuousNetProfitCoordinator.kt"
           grep -Fq 'if(!liveWriteModeAllowed()' "$final/RealCombinedSignedStopTransactionPort.kt"
           grep -Fq 'return actions.modifyTpSlOrder(intent.stopAlgoId,intent.newStop)' "$final/RealCombinedSignedStopTransactionPort.kt"
-          test -s /tmp/weex-pr158-combined-materialized/test/java/com/wilito/weexautotrader/RealCombinedStopLiveModePolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLiveModePolicyTest.kt
           echo WEEX_PR184_CANONICAL_MATERIALIZED_REAL_STOP_WIRING_VERIFIED_NO_ORDERS_NO_OTA
           echo WEEX_PR184_COMBINED_LIVE_OWNER_JUNIT_PASS_NO_APK_NO_OTA

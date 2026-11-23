@@ -556,6 +556,44 @@ jobs:
                   assertEquals("RealCombinedSignedStopObservationStore",
                       RealCombinedSignedStopObservationStore::class.java.simpleName)
               }
+              @Test fun combinedDurableSidecarWritesOnlySyntheticReadbackAndRejectsRollback() {
+                  val context=InstrumentationRegistry.getInstrumentation().targetContext
+                  val store=RealCombinedSignedStopObservationStore(context)
+                  val input=RealCombinedSignedStopObservation(
+                      accountProofSha256="f".repeat(64),
+                      positionId="712345678901234899",
+                      positionOpenedAtMs=1800000000000L,
+                      openingOrderId="702345678901234899",
+                      botClientOrderId="offline-sidecar-qa",
+                      symbol="GRAMUSDT",side="SHORT",timeframe="15m",
+                      signedEntryPrice="1",signedPositionQuantity="328",
+                      originalStopPrice="1.04",lastSignedStopPrice="1.04",
+                      lastSignedTakeProfitPrice="0.9",
+                      stopAlgoId="801234567890123899",
+                      takeProfitAlgoId="801234567890123898",
+                      signedExchangeAtMs=1800000001000L
+                  )
+                  assertTrue(store.recordSignedReadOnly(input))
+                  val newer=input.copy(
+                      lastSignedStopPrice="1.03",signedExchangeAtMs=1800000002000L)
+                  assertTrue(store.recordSignedReadOnly(newer))
+                  assertTrue(!store.recordSignedReadOnly(
+                      newer.copy(lastSignedStopPrice="1.05",
+                          signedExchangeAtMs=1800000003000L)))
+                  assertEquals(newer,store.readHistoricalNonAuthority(
+                      input.accountProofSha256,input.positionId))
+                  assertTrue(!newer.certifiesCurrentRemoteStop)
+                  assertTrue(!newer.grantsStopMutationAuthority)
+              }
+              @Test fun combinedDurableSidecarSurvivesReinstallAsHistoryOnly() {
+                  val context=InstrumentationRegistry.getInstrumentation().targetContext
+                  val old=RealCombinedSignedStopObservationStore(context)
+                      .readHistoricalNonAuthority("f".repeat(64),"712345678901234899")
+                  assertNotNull(old)
+                  assertEquals("1.03",old!!.lastSignedStopPrice)
+                  assertTrue(!old.grantsStopMutationAuthority)
+                  assertTrue(!old.certifiesCurrentRemoteStop)
+              }
               @Test fun writeUpgradeSentinel() {
                   val context=InstrumentationRegistry.getInstrumentation().targetContext
                   assertTrue(context.getSharedPreferences("neutral-tie_offline_art",Context.MODE_PRIVATE)
@@ -633,12 +671,16 @@ jobs:
           grep -Fq 'OK (1 test)' /tmp/weex-pr174-clock-art.log || { echo "::error::PR174_SIGNED_MARKET_CLOCK_DEX_FAILED"; exit 1; }
           adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedDurableStopSidecarClassLoadsWithoutWriteAuthority com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr175-sidecar-art.log
           grep -Fq 'OK (1 test)' /tmp/weex-pr175-sidecar-art.log || { echo "::error::PR175_DURABLE_SIDECAR_DEX_FAILED"; exit 1; }
+          adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedDurableSidecarWritesOnlySyntheticReadbackAndRejectsRollback com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr175-sidecar-write.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr175-sidecar-write.log || { echo "::error::PR175_DURABLE_SIDECAR_WRITE_FAILED"; exit 1; }
           adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#writeUpgradeSentinel com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/neutral-tie-sentinel-write.log
           grep -Fq 'OK (1 test)' /tmp/neutral-tie-sentinel-write.log || { echo "::error::NEUTRAL_TIE_ART_DATA_WRITE_FAILED"; exit 1; }
           # Reinstall without uninstall or clearing data.
           adb install -r "$APP"
           adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#verifyUpgradeSentinel com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/neutral-tie-sentinel-read.log
           grep -Fq 'OK (1 test)' /tmp/neutral-tie-sentinel-read.log || { echo "::error::NEUTRAL_TIE_ART_DATA_RETENTION_FAILED"; exit 1; }
+          adb shell am instrument -w -e class com.wilito.weexautotrader.NeutralTieArtVerifyTest#combinedDurableSidecarSurvivesReinstallAsHistoryOnly com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > /tmp/weex-pr175-sidecar-reinstall.log
+          grep -Fq 'OK (1 test)' /tmp/weex-pr175-sidecar-reinstall.log || { echo "::error::PR175_DURABLE_SIDECAR_REINSTALL_FAILED"; exit 1; }
           adb logcat -c
           adb shell am start -W -n com.wilito.weexautotrader/.LauncherActivity > /tmp/neutral-tie-after-reinstall.log
           grep -q 'Status: ok' /tmp/neutral-tie-after-reinstall.log

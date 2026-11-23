@@ -1,0 +1,455 @@
+# NO RELEASE. Android/JUnit on exact source after canonical materialization.
+name: WEEX PR183 unique COMBINED bot candidate Android JUnit NO APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr183-unique-combined-origin-junit-no-apk-20261123.yml
+permissions:
+  contents: read
+jobs:
+  canonical-study-android-junit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      SOURCE_SHA: 0a883914584d78838f7064d81fa4cd74a4240b83
+      SELECTOR_BLOB: 838d36d93ef7d315b80724674b8e919b6704c066
+      FUNNEL_BLOB: bfebb0c4738a13aaa6820dd2445abb91ba563060
+      FUNNEL_TEST_BLOB: 356b030edc03bd9749294534cf67a14319fcb426
+      MARGIN_STUDY_BLOB: 35a945a6729b361ece991d4fd30619c7d3cd2bdb
+      MARGIN_STUDY_TEST_BLOB: 468bb339f7a9eaeb04dcfdbf9730e50b520d7c9d
+      COMBINED_FLAT_BLOB: 1d5d1dc3436776e4730a9adc455b616c23f167a3
+      COMBINED_FLAT_TEST_BLOB: 231f5cddc908cb4ddd4139e2c947268a7bd57bc7
+      COMBINED_LEDGER_BLOB: d0f5f269d9a0c209742f9ed3f31ed1b1329d223b
+      COMBINED_LEDGER_TEST_BLOB: 2096f42f5d7c2be99dd0d19ea6c36a6b51fd00d0
+      COMBINED_TRADES_BLOB: 1f559be6c701e19f6bedd578eb2d8b6f5de526f6
+      COMBINED_TRADES_TEST_BLOB: e6a13994619c6521461e0936ed100136ec0e6907
+      COMBINED_LINK_BLOB: bfb715ce4896d1e3ad11b7980443a31e4a350f36
+      COMBINED_LINK_TEST_BLOB: d58ae90364ff72f840db9bfcbaa372c0aab743c1
+      LIQUIDATION_POLICY_BLOB: 5b452d11b18d963935a1887ef98f7b36fe045126
+      LIQUIDATION_TEST_BLOB: e3b1942d59e1c26c3dc0b10aaaea401e48b4389e
+      CONDITIONAL_ORDER_BLOB: ac704cf986c213f0fa9e3d1732261fd093310d6b
+      WEEX_ACTIONS_BLOB: 20db8fb84480b20c124af121992b5f726cbdcad4
+      BASIS_PARSER_BLOB: 82a051d196aea8bc314604e35734a26547543290
+      BASIS_TEST_BLOB: d441ba32fc32ab13a99bfafe338126480a8f2d2c
+      TRIGGER_POLICY_BLOB: 0dc423c14ed5cf086f4d5577666af3172e167397
+      TRIGGER_POLICY_TEST_BLOB: 9db9c673454a72c9a0960132db7a2f4d283ee52d
+      PARENT_POLICY_BLOB: 6a1df7565509d967ff6c5999242cf646182cebf6
+      PARENT_POLICY_TEST_BLOB: 3c37261a1b93760b628a77f0bfa667cb56f0b415
+      BRIDGE_POLICY_BLOB: 373fc6249255702bebd4989afa507076d6c84ae3
+      BRIDGE_POLICY_TEST_BLOB: 5207100e7a4244a690f2b8271798754ed6f107df
+      REAL_ACK_RECORDER_BLOB: 7ec0b530d4743198fe138f0565b8563f964a3dfa
+      BOT_ACK_FLAT_LINK_BLOB: e9f3d4fb66588caee710f2746b6097e2498fbb24
+      BOT_ACK_FLAT_TEST_BLOB: 514b55a4cd74618f8f89ca4a45207bd72f832282
+      SIGNED_OPEN_COLLECTOR_BLOB: 2898cd69382338753d073f9cd768cb5b2c5f87e9
+      SIGNED_OPEN_COLLECTOR_TEST_BLOB: 6aee0072a0eb964728ebcb1b49174a6f67dcfe28
+      COMBINED_LEDGER_READ_BLOB: 28ecdc155642beaa1f27bbd217795c7ba4958880
+      COMBINED_LEDGER_READ_TEST_BLOB: 8f8422c83d4a80dcd64f797b8e4a4a6a0a2540c7
+      COMBINED_ALL_TRADES_READ_BLOB: a698c5101bcea9d61fbcd5d88438b9f81ca8ec88
+      COMBINED_ALL_TRADES_TEST_BLOB: b309b83ed960de9b2c3c5be3fab47ccbafcfc38f
+      COMBINED_STOP_PAIR_BLOB: 2da1675cee22f5976d71b069445954fe3a056af9
+      COMBINED_STOP_PAIR_TEST_BLOB: 3d467ad63a0ede88a58d35ffc60346203224feb0
+      SIGNED_LIQ_READER_BLOB: 8e65a1fbabf49ae7c0ee16bd0f7c6f5db324a2a2
+      SIGNED_LIQ_TEST_BLOB: 523c887dfa1f0e3d8f24b29945bc5c976bae2adb
+      SIGNED_JOIN_POLICY_BLOB: fe901543e73e6f3797817256002744b902033fc4
+      SIGNED_JOIN_TEST_BLOB: be6c5bdf8908ad27d1538f72ed78e8b64d771e07
+      REAL_ADVISOR_BLOB: b9b56a1a1020624b7fdda85f563be40e3b9cd421
+      REAL_CLOSED_POLICY_BLOB: a8308e5a6c372f65e904b0400d55a1532ea47a4f
+      REAL_ADVISOR_TEST_BLOB: def59074e652bdaece470e887bcc1e34a5d77874
+      REAL_ACK_POLICY_TEST_BLOB: adfb8c81ddfc6fdbc70ed32236c6bb111b7834db
+      REAL_REGIME_POLICY_BLOB: 8bac464848217a732ea0e0fd2294afce4c4d6b88
+      REAL_REGIME_TEST_BLOB: fa5f710c8482dada5631708fdc804028070e376c
+      ORDER_FILL_API_BLOB: 53d71b9ea22fa9afd73b242ac18fa4d77f4b86f8
+      CLOSE_COLLECTOR_BLOB: 531509e99d2d994f2159f9b8ae7633d3cc822c97
+      CLOSE_COLLECTOR_TEST_BLOB: bd7ae0f037c749b18bd363e2010fedd90c28182e
+      ORDER_FILL_POLICY_BLOB: cdba0a1b435c99b99da3046d226865914f46dde8
+      ORDER_FILL_TEST_BLOB: 35fe229d2723cb7c54e43ad579698604697eb13e
+      OPEN_COLLECTOR_BLOB: 7c952d22205f78f2a446745236e632f064d068f2
+      OPEN_COLLECTOR_TEST_BLOB: 135fc398f1226772c17f08f85e25834d388c3647
+      POSITION_COST_POLICY_BLOB: 0d8def0d01c5ce910799c4c5805bfd2dd835da46
+      POSITION_COST_TEST_BLOB: 4d0d7bbe8d0da1754da48c9d720126e105ce5d70
+      COMBINED_STOP_LEASE_BLOB: 86cccec1910ae06998fb5f5f9458302a97abe9ae
+      COMBINED_STOP_LEASE_TEST_BLOB: 2b6c05e1b6a43c7ea8d033b31b4bbe1746554e6c
+      WEEX_STOP_ANDROID_PORT_BLOB: 2aa0837b413fc579d69535850e3a1a9c2c76eb87
+      WEEX_STOP_COORDINATOR_BLOB: dc351b9ac7074294580c2c6fa59144cf8f911f24
+      WEEX_STOP_CLOCK_TEST_BLOB: 5bf0aec718d64ad902f9511c61a86571d6dfacc6
+      WEEX_SIGNED_POSITION_READER_BLOB: db481bae6abccabad62c7c3db0c0c85dc8974852
+      WEEX_SIGNED_POSITION_TEST_BLOB: 2af3c9c7539810de1685930dd0cb42e4bd94706d
+      COMBINED_WEEX_ASSEMBLER_BLOB: 33af93be920e26db488ebb1828606be61bf9a198
+      COMBINED_WEEX_ASSEMBLER_TEST_BLOB: e517d973907517322c8f8ecb46c3c19b2dbee340
+      COMBINED_STOP_TRANSACTION_PORT_BLOB: 5cf6c2d2cd228337c2f7eb16eed2c21da128b55b
+      COMBINED_STOP_TRANSACTION_PORT_TEST_BLOB: e65bb4c6d751a6904dc31c52cf27acd1d3a3c034
+      COMBINED_TRANSACTION_READBACK_BLOB: 56d489a9ef0a6432ee845a9c67e8998d99eddf8d
+      FINAL_POST_BARRIER_BLOB: 38f4b15e60945949bce849d925aeea9302c215d1
+      FINAL_POST_BARRIER_TEST_BLOB: e3e2c7e04d24dca97290813f9f444f71573d9c13
+      FINAL_POST_PORT_BLOB: 2aa0837b413fc579d69535850e3a1a9c2c76eb87
+      COMBINED_STOP_SIDECAR_BLOB: 383b0bf1d6fb86353d85950a84b94a8773daabef
+      COMBINED_EXACT_ORIGIN_BLOB: c496153974336825cd22a023d8cd945fa72f4f33
+      COMBINED_STOP_IDENTITY_BLOB: 1e19a72dbf1b23b3c7d0db7f9fae02e64adfcebd
+      COMBINED_VENUE_RULE_BLOB: 3af4e553e227f5e11d420c0fe8b81874b6157629
+      COMBINED_VENUE_RULE_TEST_BLOB: 91a2b2df133b0b136ee8ce1dfabeb4b5f66e4063
+      ORDER_TIME_POLICY_BLOB: 2451a3a254217451000a6e67bc542d00ecd5bae4
+      ORDER_TIME_TEST_BLOB: 086cfafe18a5b6000d296ba39e9e151c23583af0
+      PRIVATE_STREAM_POLICY_BLOB: 391e47b954d8d2a9c7a5a5e0e210d8161111a9b8
+      PRIVATE_STREAM_TEST_BLOB: 7209f9f80888cd0bd4b344bc43e314ed48956e0f
+      JOIN_POLICY_BLOB: 4c6891ed259d536cb10c7513e44540662f7b4064
+      JOIN_TEST_BLOB: fcf29bbfd5fb2e5075696d98b9d1cb2566ff1a68
+      FLAT_CAPTURE_POLICY_BLOB: 17d20f97b8d28e9a51020c0518bc6120df8fd16a
+      FLAT_CAPTURE_TEST_BLOB: bd94c147b93e4b220954e86e1f2194abc83b6c62
+      REAL_EXECUTOR_BLOB: 86d2191b8b469973d3a69fa0184fa57d26b75493
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Fetch exact private research branch without write access
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 0a883914584d78838f7064d81fa4cd74a4240b83
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Validate immutable read-only selector, funnel and test blobs
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt)" = "$SELECTOR_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSelectorFunnelEvidence.kt)" = "$FUNNEL_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSelectorFunnelEvidenceTest.kt)" = "$FUNNEL_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealRiskFeasibleMarginStudyPolicy.kt)" = "$MARGIN_STUDY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealRiskFeasibleMarginStudyPolicyTest.kt)" = "$MARGIN_STUDY_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedProspectiveFlatCheckpointPolicy.kt)" = "$COMBINED_FLAT_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedProspectiveFlatCheckpointPolicyTest.kt)" = "$COMBINED_FLAT_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedLedgerStudyPolicy.kt)" = "$COMBINED_LEDGER_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedLedgerStudyPolicyTest.kt)" = "$COMBINED_LEDGER_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedTradeWindowStudyPolicy.kt)" = "$COMBINED_TRADES_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedTradeWindowStudyPolicyTest.kt)" = "$COMBINED_TRADES_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedProspectiveBotOrderLinkStudyPolicy.kt)" = "$COMBINED_LINK_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedProspectiveBotOrderLinkStudyPolicyTest.kt)" = "$COMBINED_LINK_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealStopLiquidationEvidencePolicy.kt)" = "$LIQUIDATION_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealStopLiquidationEvidencePolicyTest.kt)" = "$LIQUIDATION_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealConditionalOrder.kt)" = "$CONDITIONAL_ORDER_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexTradeActionsApi.kt)" = "$WEEX_ACTIONS_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealWeexTriggerBasisFieldPolicy.kt)" = "$BASIS_PARSER_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealWeexTriggerBasisFieldPolicyTest.kt)" = "$BASIS_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealStopTriggerBasisStudyPolicy.kt)" = "$TRIGGER_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealStopTriggerBasisStudyPolicyTest.kt)" = "$TRIGGER_POLICY_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotTpSlParentOrderStudyPolicy.kt)" = "$PARENT_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotTpSlParentOrderStudyPolicyTest.kt)" = "$PARENT_POLICY_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedProfitSafetyBridgeStudyPolicy.kt)" = "$BRIDGE_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedProfitSafetyBridgeStudyPolicyTest.kt)" = "$BRIDGE_POLICY_TEST_BLOB"
+          for pair in \
+            "app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt:$REAL_ACK_RECORDER_BLOB" \
+            "app/src/main/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisor.kt:$REAL_ADVISOR_BLOB" \
+            "app/src/main/java/com/wilito/weexautotrader/RealVerifiedOutcomeLearningPolicy.kt:$REAL_CLOSED_POLICY_BLOB" \
+            "app/src/test/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisorTest.kt:$REAL_ADVISOR_TEST_BLOB" \
+            "app/src/test/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicyTest.kt:$REAL_ACK_POLICY_TEST_BLOB" \
+            "app/src/main/java/com/wilito/weexautotrader/RealLearningRegimeIdentityPolicy.kt:$REAL_REGIME_POLICY_BLOB" \
+            "app/src/test/java/com/wilito/weexautotrader/RealLearningRegimeIdentityPolicyTest.kt:$REAL_REGIME_TEST_BLOB"
+          do
+            file="${pair%%:*}"; expected="${pair#*:}"
+            test "$(git hash-object "$file")" = "$expected"
+          done
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = "$ORDER_FILL_API_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicy.kt)" = "$ORDER_FILL_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicyTest.kt)" = "$ORDER_FILL_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt)" = "$CLOSE_COLLECTOR_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollectorTest.kt)" = "$CLOSE_COLLECTOR_TEST_BLOB"
+          test ! -e app/weex-ia-signing.jks
+          echo WEEX_DIRECTION_FUNNEL_EXACT_SHA_AND_BLOBS_VERIFIED
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare pinned Kotlin 2.2.21 and Gradle 8.10.2 with Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$ANDROID_HOME"
+          test -d "$SDK"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          curl -fsSL --retry 3 --retry-delay 3 https://github.com/JetBrains/kotlin/releases/download/v2.2.21/kotlin-compiler-2.2.21.zip -o /tmp/tie-kotlin.zip
+          printf '%s  %s\n' a623871f1cd9c938946948b70ef9170879f0758043885bbd30c32f024e511714 /tmp/tie-kotlin.zip | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.local"
+          unzip -q -o /tmp/tie-kotlin.zip -d "$HOME/.local"
+          echo "$HOME/.local/kotlinc/bin" >> "$GITHUB_PATH"
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o /tmp/tie-gradle.zip
+          printf '%s  %s\n' 31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26 /tmp/tie-gradle.zip | sha256sum -c - >/dev/null
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o /tmp/tie-gradle.zip -d "$HOME/.gradle-dist"
+          echo "$HOME/.gradle-dist/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+          echo 'GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx2g -Dorg.gradle.daemon=false' >> "$GITHUB_ENV"
+      - name: Replay canonical pre-sign and full Android Gradle JUnit (NO APK)
+        shell: bash
+        working-directory: source
+        env:
+          WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+          WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+          WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr158-combined-materialized
+        run: |
+          set -euo pipefail
+          trap 'echo "::error::PR176_SOURCE_ASSERTION_FAILED line=$LINENO command=${BASH_COMMAND%% *}"' ERR
+          if ! python3 ci/preflight_full_presigning_source_v1.py >/tmp/tie-presign.log 2>&1; then
+            echo "::error::WEEX_NEUTRAL_TIE_ANDROID_PRESIGN_OR_JUNIT_FAILED_NO_RELEASE"
+            grep -E 'WEEX_PRESIGN_FIRST_FAILURE_LINE|PRESIGN_FAILURE_CONTEXT|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP|WEEX_PREFLIGHT_BLOCKED|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT|AUDIT_JUNIT_FAILED|AUDIT_JUNIT_STACK|WEEX_AUDIT_KOTLIN_ERROR_COUNT|WEEX_AUDIT_JUNIT_BUILD_FAILED|AUDIT_ANDROID|WEEX_AUDIT_KOTLIN_FIRST_ERROR|WEEX_PRESIGN_SOURCE_REPLAY_TIMEOUT' /tmp/tie-presign.log | tail -130 || true
+            exit 1
+          fi
+          grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/tie-presign.log
+          grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/tie-presign.log
+          final=/tmp/weex-pr158-combined-materialized/main/java/com/wilito/weexautotrader
+          test -s "$final/RealAIMarketSelector.kt"
+          test -s "$final/RealSelectorFunnelEvidence.kt"
+          grep -Fq 'REAL_DIRECTION_FUNNEL_READONLY_V1' "$final/RealAIMarketSelector.kt"
+          grep -Fq 'technicalLong=technicalLong' "$final/RealAIMarketSelector.kt"
+          grep -Fq 'technicalLong:Int=0' "$final/RealSelectorFunnelEvidence.kt"
+          grep -Fq 'selectedDirection=chosen' "$final/RealAIMarketSelector.kt"
+          test -s "$final/RealRiskFeasibleMarginStudyPolicy.kt"
+          grep -Fq 'permitsRealEntry: Boolean = false' "$final/RealRiskFeasibleMarginStudyPolicy.kt"
+          grep -Fq 'MAX_STUDIED_RISK_PCT = 20.0' "$final/RealRiskFeasibleMarginStudyPolicy.kt"
+          test -s "$final/RealCombinedProspectiveFlatCheckpointPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedProspectiveFlatCheckpointPolicy.kt"
+          test -s "$final/RealCombinedSignedLedgerStudyPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedSignedLedgerStudyPolicy.kt"
+          test -s "$final/RealCombinedSignedTradeWindowStudyPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedSignedTradeWindowStudyPolicy.kt"
+          test -s "$final/RealCombinedProspectiveBotOrderLinkStudyPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedProspectiveBotOrderLinkStudyPolicy.kt"
+          test -s "$final/RealStopLiquidationEvidencePolicy.kt"
+          grep -Fq 'STOP_AT_OR_BEYOND_LIQUIDATION' "$final/RealStopLiquidationEvidencePolicy.kt"
+          grep -Fq 'REMOTE_POSITION_OR_PRICE_BASIS_UNVERIFIED' "$final/RealStopLiquidationEvidencePolicy.kt"
+          test -s "$final/RealWeexTriggerBasisFieldPolicy.kt"
+          test -s "$final/WeexTradeActionsApi.kt"
+          grep -Fq 'READ_ONLY_TRIGGER_BASIS_V1' "$final/WeexTradeActionsApi.kt"
+          grep -Fq 'workingType' "$final/WeexTradeActionsApi.kt"
+          grep -Fq 'openTpslParentOrderId' "$final/RealConditionalOrder.kt"
+          # Existing raw V3 POST unchanged: no release can claim safe STOP amendment.
+          grep -Fq 'put("triggerPriceType","MARK_PRICE")' "$final/WeexTradeActionsApi.kt"
+          test -s "$final/RealStopTriggerBasisStudyPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealStopTriggerBasisStudyPolicy.kt"
+          test -s "$final/RealBotTpSlParentOrderStudyPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealBotTpSlParentOrderStudyPolicy.kt"
+          test -s "$final/RealCombinedProfitSafetyBridgeStudyPolicy.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedProfitSafetyBridgeStudyPolicy.kt"
+          grep -Fq 'x.stopReadback.confirmedStopAlgoId != x.parentOrderPair.signedStopAlgoId' "$final/RealCombinedProfitSafetyBridgeStudyPolicy.kt"
+          grep -Fq 'x.stopTriggerBasis.signedStopAlgoId != x.parentOrderPair.signedStopAlgoId' "$final/RealCombinedProfitSafetyBridgeStudyPolicy.kt"
+          grep -Fq 'g.reviewedPositionId!=x.expectedPositionId' "$final/RealCombinedProfitSafetyBridgeStudyPolicy.kt"
+          grep -Fq 'g.reviewedStopAlgoId!=x.parentOrderPair.signedStopAlgoId' "$final/RealCombinedProfitSafetyBridgeStudyPolicy.kt"
+          grep -Fq 'g.reviewedTriggerPriceType!=x.stopTriggerBasis.confirmedTriggerPriceType' "$final/RealCombinedProfitSafetyBridgeStudyPolicy.kt"
+          grep -Fq 'g.reviewedAccountScope!=x.expectedSignedAccountScope' "$final/RealCombinedProfitSafetyBridgeStudyPolicy.kt"
+          grep -Fq 'fun reviewBoundSignedSnapshot(' "$final/RealStopLiquidationEvidencePolicy.kt"
+          test -s "$final/RealLearningRegimeIdentityPolicy.kt"
+          grep -Fq 'MarketRegime.values().firstOrNull' "$final/RealLearningRegimeIdentityPolicy.kt"
+          grep -Fq 'entryRegime=stableRegime' "$final/RealBotAcceptedEntryStudyRecorder.kt"
+          grep -Fq 'context.copy(entryRegime=closeRegime)' "$final/RealAppliedExperienceAdvisor.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealLearningRegimeIdentityPolicyTest.kt
+          echo WEEX_PR150_JUNIT_MATERIALIZED_AND_SOURCE_TEST_PATH_VERIFIED
+          set -x # QA diagnostic: identify exact failing source assertion without weakening gates
+          test -s "$final/RealOrderScopedSignedFillsPolicy.kt"
+          grep -Fq 'fun signedExactOrderFillsWindow(' "$final/WeexPrivateApi.kt"
+          grep -Fq '"&startTime="+window.start' "$final/WeexPrivateApi.kt"
+          grep -Fq 'commissionAsset' "$final/WeexPrivateApi.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicyTest.kt
+          test -s "$final/RealBotSignedCloseReadOnlyCollector.kt"
+          grep -Fq 'fun authenticatedAccountProofSha256()' "$final/WeexPrivateApi.kt"
+          grep -Fq 'fun collect(link:RealBotAuthenticatedCloseOrderLink)' "$final/RealBotSignedCloseReadOnlyCollector.kt"
+          grep -Fq 'closeFills.fills.chunked(99)' "$final/RealBotSignedCloseReadOnlyCollector.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollectorTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt)" = "$OPEN_COLLECTOR_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollectorTest.kt)" = "$OPEN_COLLECTOR_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedPositionCumulativeCostsStudyPolicy.kt)" = "$POSITION_COST_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSignedPositionCumulativeCostsStudyPolicyTest.kt)" = "$POSITION_COST_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedOrderVenueTimestampPolicy.kt)" = "$ORDER_TIME_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSignedOrderVenueTimestampPolicyTest.kt)" = "$ORDER_TIME_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicy.kt)" = "$PRIVATE_STREAM_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicyTest.kt)" = "$PRIVATE_STREAM_TEST_BLOB"
+          test -s "$final/RealBotSignedOpeningReadOnlyCollector.kt"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' "$final/RealBotSignedOpeningReadOnlyCollector.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealBotSignedOpeningReadOnlyCollector.kt"
+          grep -Fq 'val authorizesRealEntry:Boolean get()=false' "$final/RealBotSignedOpeningReadOnlyCollector.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollectorTest.kt
+
+          test -s "$final/RealSignedPositionCumulativeCostsStudyPolicy.kt"
+          grep -Fq 'val provesFinalTradeFunding:Boolean get()=false' "$final/RealSignedPositionCumulativeCostsStudyPolicy.kt"
+          grep -Fq 'val grantsLiveTrainingAuthority:Boolean get()=false' "$final/RealSignedPositionCumulativeCostsStudyPolicy.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealSignedPositionCumulativeCostsStudyPolicy.kt"
+          grep -Fq 'fun signedActivePositionCumulativeCosts(' "$final/WeexPrivateApi.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealSignedPositionCumulativeCostsStudyPolicyTest.kt
+
+          test -s "$final/RealSignedOrderVenueTimestampPolicy.kt"
+          grep -Fq 'fun signedHistoricalOrderForEvidence(' "$final/WeexPrivateApi.kt"
+          grep -Fq 'api.signedHistoricalOrderForEvidence(orderId)' "$final/RealBotSignedOpeningReadOnlyCollector.kt"
+          grep -Fq 'api.signedHistoricalOrderForEvidence(orderId)' "$final/RealBotSignedCloseReadOnlyCollector.kt"
+          grep -Fq 'updatedAt=j.optLong("updateTime",System.currentTimeMillis())' "$final/WeexPrivateApi.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealSignedOrderVenueTimestampPolicyTest.kt
+
+          test -s "$final/RealPrivatePositionStreamEvidencePolicy.kt"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' "$final/RealPrivatePositionStreamEvidencePolicy.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealPrivatePositionStreamEvidencePolicy.kt"
+          grep -Fq 'val provesFinalPositionFunding:Boolean get()=false' "$final/RealPrivatePositionStreamEvidencePolicy.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicyTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedProvenanceJoinStudyPolicy.kt)" = "$JOIN_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedProvenanceJoinStudyPolicyTest.kt)" = "$JOIN_TEST_BLOB"
+          test -s "$final/RealCombinedSignedProvenanceJoinStudyPolicy.kt"
+          grep -Fq 'RealCombinedProspectiveBotOrderLinkStudyPolicy.inspect(' "$final/RealCombinedSignedProvenanceJoinStudyPolicy.kt"
+          grep -Fq 'RealCombinedProfitSafetyBridgeStudyPolicy.inspect(bridge)' "$final/RealCombinedSignedProvenanceJoinStudyPolicy.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealCombinedSignedProvenanceJoinStudyPolicy.kt"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' "$final/RealCombinedSignedProvenanceJoinStudyPolicy.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedProvenanceJoinStudyPolicyTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedPreSubmitFlatEvidenceStore.kt)" = "$FLAT_CAPTURE_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedPreSubmitFlatEvidenceStoreTest.kt)" = "$FLAT_CAPTURE_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt)" = "$REAL_EXECUTOR_BLOB"
+          test -s "$final/RealCombinedPreSubmitFlatEvidenceStore.kt"
+          grep -Fq 'RealCombinedPreSubmitFlatEvidenceStore(context).bestEffortRecord(' "$final/RealExecutionEngine.kt"
+          grep -Fq 'val signedFlatPortfolioReadStartedAt=System.currentTimeMillis()' "$final/RealExecutionEngine.kt"
+          grep -Fq 'RealCombinedProspectiveFlatCheckpointPolicy.inspect(' "$final/RealCombinedPreSubmitFlatEvidenceStore.kt"
+          grep -Fq 'grantsStopMutationAuthority' "$final/RealCombinedPreSubmitFlatEvidenceStore.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedPreSubmitFlatEvidenceStoreTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStore.kt)" = "$BOT_ACK_FLAT_LINK_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStoreTest.kt)" = "$BOT_ACK_FLAT_TEST_BLOB"
+          test -s "$final/RealCombinedBotPreSubmitAckLinkStore.kt"
+          grep -Fq 'RealCombinedBotPreSubmitAckLinkStore(context)' "$final/RealBotAcceptedEntryStudyRecorder.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealCombinedBotPreSubmitAckLinkStore.kt"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' "$final/RealCombinedBotPreSubmitAckLinkStore.kt"
+          grep -Fq 'val certifiesExecutedFill:Boolean get()=false' "$final/RealCombinedBotPreSubmitAckLinkStore.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStoreTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotAckSignedEntryReadOnlyCollector.kt)" = "$SIGNED_OPEN_COLLECTOR_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotAckSignedEntryReadOnlyCollectorTest.kt)" = "$SIGNED_OPEN_COLLECTOR_TEST_BLOB"
+          test -s "$final/RealBotAckSignedEntryReadOnlyCollector.kt"
+          grep -Fq 'RealSignedOpeningReadPort' "$final/RealBotAckSignedEntryReadOnlyCollector.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealBotAckSignedEntryReadOnlyCollector.kt"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' "$final/RealBotAckSignedEntryReadOnlyCollector.kt"
+          grep -Fq 'val certifiesCombinedPositionOwnership:Boolean get()=false' "$final/RealBotAckSignedEntryReadOnlyCollector.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealBotAckSignedEntryReadOnlyCollectorTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollector.kt)" = "$COMBINED_LEDGER_READ_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollectorTest.kt)" = "$COMBINED_LEDGER_READ_TEST_BLOB"
+          test -s "$final/RealCombinedSignedPositionLedgerReadOnlyCollector.kt"
+          grep -Fq 'signedAllPositionsForCombinedStudy()' "$final/WeexPrivateApi.kt"
+          grep -Fq 'RealCombinedSignedLedgerStudyPolicy.inspect(' "$final/RealCombinedSignedPositionLedgerReadOnlyCollector.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealCombinedSignedPositionLedgerReadOnlyCollector.kt"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' "$final/RealCombinedSignedPositionLedgerReadOnlyCollector.kt"
+          grep -Fq 'val provesNoManualFills:Boolean get()=false' "$final/RealCombinedSignedPositionLedgerReadOnlyCollector.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollectorTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedAllTradesReadOnlyCollector.kt)" = "$COMBINED_ALL_TRADES_READ_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedAllTradesReadOnlyCollectorTest.kt)" = "$COMBINED_ALL_TRADES_TEST_BLOB"
+          test -s "$final/RealCombinedSignedAllTradesReadOnlyCollector.kt"
+          grep -Fq 'WeexCombinedSignedAllTradesReadPort' "$final/RealCombinedSignedAllTradesReadOnlyCollector.kt"
+          grep -Fq 'api.userTrades(startMs)' "$final/RealCombinedSignedAllTradesReadOnlyCollector.kt"
+          grep -Fq 'RealCombinedSignedTradeWindowStudyPolicy.inspect(' "$final/RealCombinedSignedAllTradesReadOnlyCollector.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealCombinedSignedAllTradesReadOnlyCollector.kt"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' "$final/RealCombinedSignedAllTradesReadOnlyCollector.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedAllTradesReadOnlyCollectorTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedProtectionPairReadOnlyCollector.kt)" = "$COMBINED_STOP_PAIR_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedProtectionPairReadOnlyCollectorTest.kt)" = "$COMBINED_STOP_PAIR_TEST_BLOB"
+          test -s "$final/RealCombinedSignedProtectionPairReadOnlyCollector.kt"
+          grep -Fq 'ContinuousNetProfitConditionalPagingPolicy.collectSigned(' "$final/RealCombinedSignedProtectionPairReadOnlyCollector.kt"
+          grep -Fq 'RealBotTpSlParentOrderStudyPolicy.inspect(' "$final/RealCombinedSignedProtectionPairReadOnlyCollector.kt"
+          grep -Fq 'RealStopTriggerBasisStudyPolicy.inspect(' "$final/RealCombinedSignedProtectionPairReadOnlyCollector.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealCombinedSignedProtectionPairReadOnlyCollector.kt"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' "$final/RealCombinedSignedProtectionPairReadOnlyCollector.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedProtectionPairReadOnlyCollectorTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedLiquidationReadOnlyCollector.kt)" = "$SIGNED_LIQ_READER_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedLiquidationReadOnlyCollectorTest.kt)" = "$SIGNED_LIQ_TEST_BLOB"
+          test -s "$final/RealCombinedSignedLiquidationReadOnlyCollector.kt"
+          grep -Fq 'signedAllPositionsForCombinedStudy()' "$final/RealCombinedSignedLiquidationReadOnlyCollector.kt"
+          grep -Fq 'RealStopLiquidationEvidencePolicy.reviewBoundSignedSnapshot(' "$final/RealCombinedSignedLiquidationReadOnlyCollector.kt"
+          grep -Fq 'COMBINED_LIQ_WEEX_ZERO_NO_ESTIMATE_AVAILABLE' "$final/RealCombinedSignedLiquidationReadOnlyCollector.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealCombinedSignedLiquidationReadOnlyCollector.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedLiquidationReadOnlyCollectorTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicy.kt)" = "$SIGNED_JOIN_POLICY_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicyTest.kt)" = "$SIGNED_JOIN_TEST_BLOB"
+          test -s "$final/RealCombinedSignedEvidenceStudyPolicy.kt"
+          grep -Fq 'CANDIDATE_REQUIRES_FINAL_SIGNED_TRANSACTION_RECHECK' "$final/RealCombinedSignedEvidenceStudyPolicy.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealCombinedSignedEvidenceStudyPolicy.kt"
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' "$final/RealCombinedSignedEvidenceStudyPolicy.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicyTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedStopLeasePreview.kt)" = "$COMBINED_STOP_LEASE_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLeasePreviewTest.kt)" = "$COMBINED_STOP_LEASE_TEST_BLOB"
+          test -s "$final/RealCombinedStopLeasePreview.kt"
+          grep -Fq 'RealProtectiveOrderWriteGate.withLeaseOrNull(positionId)' "$final/RealCombinedStopLeasePreview.kt"
+          grep -Fq 'ContinuousNetProfitFloorPolicy.evaluate(floor)' "$final/RealCombinedStopLeasePreview.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealCombinedStopLeasePreview.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLeasePreviewTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt)" = "$WEEX_STOP_ANDROID_PORT_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealContinuousNetProfitCoordinator.kt)" = "$WEEX_STOP_COORDINATOR_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopWeexTimebaseTest.kt)" = "$WEEX_STOP_CLOCK_TEST_BLOB"
+          grep -Fq 'timestampMs = { WeexPublicClock.shared.nowMs() }' "$final/WeexTradeActionsApi.kt"
+          grep -Fq 'val checkedAtMs = marketApi.exchangeClockMs()' "$final/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'nowMs = api.exchangeClockMs(),' "$final/RealContinuousNetProfitCoordinator.kt"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionReader.kt)" = "$WEEX_SIGNED_POSITION_READER_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSignedPositionProofTest.kt)" = "$WEEX_SIGNED_POSITION_TEST_BLOB"
+          grep -Fq 'val begunAtMs = runCatching { api.exchangeClockMs() }' "$final/ContinuousNetProfitSignedPositionReader.kt"
+          grep -Fq 'val checkedAtMs = runCatching { api.exchangeClockMs() }' "$final/ContinuousNetProfitSignedPositionReader.kt"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt)" = "$COMBINED_WEEX_ASSEMBLER_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceAssemblerTest.kt)" = "$COMBINED_WEEX_ASSEMBLER_TEST_BLOB"
+          test -s "$final/RealCombinedWeexSignedEvidenceAssembler.kt"
+          grep -Fq 'WeexSignedOpeningReadPort(api)' "$final/RealCombinedWeexSignedEvidenceAssembler.kt"
+          grep -Fq 'WeexCombinedSignedPositionLedgerReadPort(api)' "$final/RealCombinedWeexSignedEvidenceAssembler.kt"
+          grep -Fq 'WeexCombinedSignedAllTradesReadPort(api)' "$final/RealCombinedWeexSignedEvidenceAssembler.kt"
+          grep -Fq 'WeexCombinedSignedProtectionPairReadPort(credentials)' "$final/RealCombinedWeexSignedEvidenceAssembler.kt"
+          grep -Fq 'WeexCombinedSignedLiquidationReadPort(api)' "$final/RealCombinedWeexSignedEvidenceAssembler.kt"
+          grep -Fq 'RealGlobalProfitControlStore.currentActivation()' "$final/RealCombinedWeexSignedEvidenceAssembler.kt"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedVenueRuleStudyPolicy.kt)" = "$COMBINED_VENUE_RULE_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedVenueRuleStudyPolicyTest.kt)" = "$COMBINED_VENUE_RULE_TEST_BLOB"
+          test -s "$final/RealCombinedVenueRuleStudyPolicy.kt"
+          grep -Fq 'COMBINED_RULES_PRICE_PRECISION_MISSING' "$final/RealCombinedVenueRuleStudyPolicy.kt"
+          grep -Fq 'COMBINED_ASSEMBLY_VENUE_RULES_UNVERIFIED' "$final/RealCombinedWeexSignedEvidenceAssembler.kt"
+          grep -Fq 'exactPublicExchangeInfoForCombinedStudy(symbol)' "$final/RealCombinedWeexSignedEvidenceAssembler.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealCombinedVenueRuleStudyPolicyTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedStopIntentIdentityStudyPolicy.kt)" = "$COMBINED_STOP_IDENTITY_BLOB"
+          test -s "$final/RealCombinedStopIntentIdentityStudyPolicy.kt"
+          grep -Fq 'STUDY_CONSISTENT_BUT_NO_WRITE_AUTHORITY' "$final/RealCombinedStopIntentIdentityStudyPolicy.kt"
+          grep -Fq 'existingJournalScopeForKey' "$final/RealCombinedStopIntentIdentityStudyPolicy.kt"
+          grep -Fq 'val grantsStopMutationAuthority: Boolean get() = false' "$final/RealCombinedStopIntentIdentityStudyPolicy.kt"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedExactOriginCandidateReadOnly.kt)" = "$COMBINED_EXACT_ORIGIN_BLOB"
+          test -s "$final/RealCombinedExactOriginCandidateReadOnly.kt"
+          grep -Fq 'COMBINED_CANDIDATE_MULTIPLE_PROVEN_ORIGINS' "$final/RealCombinedExactOriginCandidateReadOnly.kt"
+          grep -Fq 'val certifiesExclusiveBotOwnership:Boolean get()=false' "$final/RealCombinedExactOriginCandidateReadOnly.kt"
+          grep -Fq 'RealCombinedWeexSignedAssemblyPort(context,credentials)' "$final/RealCombinedExactOriginCandidateReadOnly.kt"
+          grep -Fq 'market.exchangeNowMs-rawSecond.currentExchangeNowMs>5_000L' "$final/RealCombinedStopLeasePreview.kt"
+          grep -Fq 'market.exchangeNowMs<rawSecond.currentExchangeNowMs' "$final/RealCombinedStopLeasePreview.kt"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt)" = "$COMBINED_STOP_SIDECAR_BLOB"
+          test -s "$final/RealCombinedSignedStopObservationStore.kt"
+          grep -Fq 'real_combined_signed_stop_observation_v1' "$final/RealCombinedSignedStopObservationStore.kt"
+          grep -Fq 'val grantsStopMutationAuthority: Boolean get() = false' "$final/RealCombinedSignedStopObservationStore.kt"
+          grep -Fq 'fun recordSignedReadOnly(' "$final/RealCombinedSignedStopObservationStore.kt"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFinalPostBarrierPolicy.kt)" = "$FINAL_POST_BARRIER_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitFinalPostBarrierPolicyTest.kt)" = "$FINAL_POST_BARRIER_TEST_BLOB"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitAndroidStopPort.kt)" = "$FINAL_POST_PORT_BLOB"
+          test -s "$final/ContinuousNetProfitFinalPostBarrierPolicy.kt"
+          test -s "$final/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'FinalPostBarrierPolicy.maySendExactlyOneModify' "$final/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'RealGlobalProfitControlStore.currentActivation().ready' "$final/ContinuousNetProfitAndroidStopPort.kt"
+          grep -Fq 'val remoteOld = ContinuousNetProfitStopReadbackPolicy.check(' "$final/ContinuousNetProfitAndroidStopPort.kt"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt)" = "$COMBINED_TRANSACTION_READBACK_BLOB"
+          test -s "$final/RealCombinedSignedStopTransactionRecheckPolicy.kt"
+          grep -Fq 'SIGNED_TRIGGER_MATCHED_STUDY_ONLY' "$final/RealCombinedSignedStopTransactionRecheckPolicy.kt"
+          grep -Fq 'val grantsStopMutationAuthority:Boolean get()=false' "$final/RealCombinedSignedStopTransactionRecheckPolicy.kt"
+          grep -Fq 'val certifiesLiveStop:Boolean get()=false' "$final/RealCombinedSignedStopTransactionRecheckPolicy.kt"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "$COMBINED_STOP_TRANSACTION_PORT_BLOB"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPortContractTest.kt)" = "$COMBINED_STOP_TRANSACTION_PORT_TEST_BLOB"
+          test -s "$final/RealCombinedSignedStopTransactionPort.kt"
+          grep -Fq 'ContinuousNetProfitStopTransactionPort {' "$final/RealCombinedSignedStopTransactionPort.kt"
+          grep -Fq 'RealProtectiveOrderWriteGate.heldByCurrentThread' "$final/RealCombinedSignedStopTransactionPort.kt"
+          grep -Fq 'RealCombinedSignedStopTransactionRecheckPolicy.inspect' "$final/RealCombinedSignedStopTransactionPort.kt"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt)" = "2c0f5413062d41f126c129d1661a8f8469329f13"
+          grep -Fq 'failedFinalCombinedBarrierAfterStartedMarkerNeverRetriesPost' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          grep -Fq 'changedExternalStopBlocksUnsentJournalUntilOldSignedStopReturns' app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt
+          test ! -e app/build/outputs/apk/release/app-release.apk
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostStudyPolicy.kt)" = "98f66bbc5eea4d862fffc56ac218bb215361d03d"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedNetCostStudyPolicyTest.kt)" = "321b9dbf30a79fd322780b45625b543013cea0fb"
+          grep -Fq 'PARTIAL_CLOSE_OR_LOT_MIXING_UNSUPPORTED' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostStudyPolicy.kt
+          grep -Fq 'signedShortProfitUsesExecutableAskNotBid' app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedNetCostStudyPolicyTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollector.kt)" = "41ca17f84cc41d26fc432907bbb6f38a630ca284"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollectorTest.kt)" = "3a0184facd40d9b84e75a46981816d570376ad56"
+          grep -Fq 'signedActivePositionCumulativeCosts' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollector.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicy.kt)" = "6bdbfa12c33a3db996ca4a32f8490e87e8d12870"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicyTest.kt)" = "ea424c10781eed5b56da22a81dc1e9297a351903"
+          grep -Fq 'CANDIDATE_ONLY_REQUIRES_FULL_SIGNED_ASSEMBLY' app/src/main/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicy.kt
+          echo WEEX_PR183_UNIQUE_COMBINED_ORIGIN_JUNIT_PASS_NO_APK_NO_OTA

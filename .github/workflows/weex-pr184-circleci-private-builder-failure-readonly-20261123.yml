@@ -43,6 +43,17 @@ jobs:
               detail=get("/project/gh/wilitohtc24-jpg/weex-auto-trader-android/job/"+str(n))
               print("PR184_CIRCLECI_JOB_STATUS="+str(detail.get("status")))
               steps=detail.get("steps") or []
+              print("PR184_CIRCLECI_DETAIL_FIELDS="+",".join(sorted(detail.keys())))
+              print("PR184_CIRCLECI_DETAIL_NO_SECRETS count_steps="+str(len(steps))+
+                    " cancelled="+str(detail.get("canceled"))+
+                    " stopped="+str(detail.get("stopped_at"))+
+                    " duration="+str(detail.get("duration")))
+              for index,s in enumerate(steps):
+                  name=re.sub(r"[^a-zA-Z0-9_ ./:()-]","?",str(s.get("name","")))[:120]
+                  vals=[str(a.get("status"))+"/"+str(a.get("exit_code"))+
+                        "/"+str(a.get("type")) for a in s.get("actions") or []]
+                  print("PR184_CIRCLECI_STEP_"+str(index+1)+"="+name+
+                        " outcomes="+",".join(vals)[:180])
               seen=0
               for s in steps:
                   for a in s.get("actions") or []:

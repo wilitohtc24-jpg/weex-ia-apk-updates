@@ -1,0 +1,74 @@
+name: WEEX PR184 v3 CircleCI private build stage probe READONLY
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr184-v3-private-build-stage-probe-20261123.yml
+permissions:
+  contents: read
+jobs:
+  private-build-stage-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+    steps:
+      - name: Print sanitized progress markers, never private data or artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,re,urllib.request,urllib.parse
+          tok=os.environ.get("CIRCLECI_READ_TOKEN","")
+          assert tok,"PR184_CIRCLECI_READ_TOKEN_UNAVAILABLE"
+          api="https://circleci.com/api/v2"
+          wid="1c707036-e20e-4276-ac91-a354cf03ea9e"
+          expected="bc7c626090e1b1dd6b05f62251fc9becbfe3d2af"
+          headers={"Circle-Token":tok,"Accept":"application/json","User-Agent":"pr184-stage-readonly"}
+          def get(path):
+              with urllib.request.urlopen(urllib.request.Request(api+path,headers=headers),timeout=30) as r:return json.load(r)
+          w=get("/workflow/"+wid)
+          p=get("/pipeline/"+w["pipeline_id"])
+          assert (p.get("vcs") or {}).get("revision")==expected
+          print("PR184_PRIVATE_V3_WORKFLOW_STATE="+str(w.get("status")))
+          jobs=get("/workflow/"+wid+"/job").get("items",[])
+          a=[j for j in jobs if j.get("name")=="pr184_private_signed_candidate"]
+          assert len(a)==1
+          print("PR184_PRIVATE_V3_JOB_STATE="+str(a[0].get("status")))
+          n=a[0]["job_number"]
+          req=urllib.request.Request(
+              "https://circleci.com/api/v1.1/project/github/wilitohtc24-jpg/weex-auto-trader-android/"+str(n),
+              headers=headers)
+          with urllib.request.urlopen(req,timeout=30) as r: info=json.load(r)
+          for item in info.get("steps",[]):
+              for action in item.get("actions",[]):
+                  print("PR184_PRIVATE_V3_STAGE="+str(item.get("name",""))[:100]+
+                        " STATE="+str(action.get("status"))+
+                        " EXIT="+str(action.get("exit_code")))
+                  if action.get("status") not in ("running","failed"):continue
+                  url=action.get("output_url","")
+                  parsed=urllib.parse.urlparse(url)
+                  if parsed.scheme!="https" or not (
+                    (parsed.hostname or "").endswith(".circleci.com") or
+                    (parsed.hostname or "")=="circleci.com" or
+                    (parsed.hostname or "").endswith(".amazonaws.com")):continue
+                  try:
+                      with urllib.request.urlopen(urllib.request.Request(
+                          url,headers={"User-Agent":"pr184-stage-readonly"}),timeout=35) as r:
+                          data=r.read(1000000)
+                      rows=json.loads(data.decode(errors="replace"))
+                      joined="\n".join(x.get("message","") for x in rows if isinstance(x,dict))
+                      marks=[]
+                      for ln in joined.splitlines():
+                          if any(x in ln for x in ("PR184_","WEEX_RELEASE_ERRTRAP",
+                              "GLOBAL_RELEASE_VERSION_CODE=","MANUAL_BUILD_FINAL_TAIL",
+                              "APK_INSTALLABILITY_CANONICAL_V1")):
+                              if re.search(r"(?i)(?:secret|password|passphrase|token|api.key|credential|private.key|access.key)",ln):continue
+                              ln=re.sub(r"(?i)(?:https://[^\s]+)","[REDACTED_URL]",ln)
+                              ln=re.sub(r"(?i)(?:[A-Za-z0-9+/]{64,}={0,2})","[REDACTED_BLOB]",ln)
+                              marks.append(ln[:190])
+                      for ln in marks[-12:]:print("PR184_SAFE_PROGRESS="+ln)
+                  except Exception as e:
+                      print("PR184_OUTPUT_DIAG_UNAVAILABLE="+type(e).__name__)
+          print("PR184_PRIVATE_V3_STAGE_READ_ONLY_DONE_NO_APK_NO_OTA")
+          PY

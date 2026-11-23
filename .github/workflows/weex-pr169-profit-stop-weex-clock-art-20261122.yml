@@ -334,7 +334,8 @@ jobs:
                   assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedSignedLiquidationReadOnlyCollector",true,loader))
                   assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedSignedEvidenceStudyPolicy",true,loader))
                   assertNotNull(Class.forName("com.wilito.weexautotrader.RealCombinedStopLeasePreview",true,loader))
-                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealProfitStopWeexTimebaseTest",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.ContinuousNetProfitAndroidStopPort",true,loader))
+                  assertNotNull(Class.forName("com.wilito.weexautotrader.RealContinuousNetProfitCoordinator",true,loader))
                   assertNotNull(clazz.getDeclaredMethod("invokeSuspend",Any::class.java))
                   assertTrue(clazz.declaredMethods.any { it.name=="invokeSuspend" })
               }

@@ -52,6 +52,21 @@ jobs:
           for p in exact[:2]:
               print("PR177_PIPELINE_NUMBER="+str(p.get("number")))
               print("PR177_PIPELINE_STATE="+str(p.get("state")))
+              detailReq=urllib.request.Request(
+                  base+"/pipeline/"+p["id"],
+                  headers={"Circle-Token":token,"Accept":"application/json",
+                           "User-Agent":"weex-pr177-safe-config-error-read"})
+              with urllib.request.urlopen(detailReq,timeout=27) as resp:
+                  detail=json.load(resp)
+              issues=detail.get("errors") or p.get("errors") or []
+              print("PR177_PIPELINE_CONFIGURATION_ERROR_COUNT="+str(len(issues)))
+              import re
+              for item in issues[:5]:
+                  raw=str(item.get("message",""))
+                  redacted=re.sub(r"(?i)(token|secret|password|authorization|key)\\s*[=:]\\s*\\S+",
+                                  r"\\1=[REDACTED]",raw)
+                  print("PR177_PIPELINE_ERROR_TYPE="+str(item.get("type",""))[:70])
+                  print("PR177_PIPELINE_SAFE_ERROR="+redacted.replace("\\n"," ")[:500])
               req=urllib.request.Request(
                   base+"/pipeline/"+p["id"]+"/workflow",
                   headers={"Circle-Token":token,"Accept":"application/json",

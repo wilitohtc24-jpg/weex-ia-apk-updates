@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: d0b3c35d9e2bf453d5e9ece8318d06c5ae4fd775
+      SOURCE_SHA: 800be05454697cb4647d60b9d4abb89b0da2701b
       SELECTOR_BLOB: 838d36d93ef7d315b80724674b8e919b6704c066
       FUNNEL_BLOB: bfebb0c4738a13aaa6820dd2445abb91ba563060
       FUNNEL_TEST_BLOB: 356b030edc03bd9749294534cf67a14319fcb426
@@ -104,7 +104,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: d0b3c35d9e2bf453d5e9ece8318d06c5ae4fd775
+          ref: 800be05454697cb4647d60b9d4abb89b0da2701b
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -454,7 +454,7 @@ jobs:
           grep -Fq 'CANDIDATE_ONLY_REQUIRES_FULL_SIGNED_ASSEMBLY' app/src/main/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicy.kt
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = "0f7609177a68da41c88efe780f8935d81eb41625"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedStopLiveModePolicy.kt)" = "805224786d52dbf5c562f14acb4deb0ec16c2c03"
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLiveModePolicyTest.kt)" = "04e86b032e739b933061e40615e2412254b4b5a6"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLiveModePolicyTest.kt)" = "a7708d66c930b480f209c4505c3fd73f1ab901c4"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "1724dfccf006d69d390755aa227b3e02c212a769"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = "f085a8d3d97c110f594555d17ef408d1ad95f90f"
           # The release materializer runs dozens of legacy source writers.

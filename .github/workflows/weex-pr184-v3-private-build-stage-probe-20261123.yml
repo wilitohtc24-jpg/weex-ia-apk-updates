@@ -48,6 +48,7 @@ jobs:
                   if action.get("status") not in ("running","failed"):continue
                   url=action.get("output_url","")
                   parsed=urllib.parse.urlparse(url)
+                  print("PR184_PRIVATE_V3_OUTPUT_HOST="+str(parsed.hostname or "NONE")[:90])
                   if parsed.scheme!="https" or not (
                     (parsed.hostname or "").endswith(".circleci.com") or
                     (parsed.hostname or "")=="circleci.com" or

@@ -71,5 +71,8 @@ jobs:
                       for ln in marks[-12:]:print("PR184_SAFE_PROGRESS="+ln)
                   except Exception as e:
                       print("PR184_OUTPUT_DIAG_UNAVAILABLE="+type(e).__name__)
+          # Source SHA and workflow ID are fixed; refresh safely without
+          # exposing credentials or making any release/publication call.
+          print("PR184_PRIVATE_V3_STAGE_MONITOR_REFRESH_CHECK_ONLY")
           print("PR184_PRIVATE_V3_STAGE_READ_ONLY_DONE_NO_APK_NO_OTA")
           PY

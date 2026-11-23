@@ -12,8 +12,8 @@ jobs:
     timeout-minutes: 8
     env:
       CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
-      WID: a8ce870c-fda7-48ed-af31-9b13d4f1dc8b
-      SOURCE_SHA: 99f6afc74795291d0f3acb45b593ea730a5c9d4f
+      WID: 1c707036-e20e-4276-ac91-a354cf03ea9e
+      SOURCE_SHA: bc7c626090e1b1dd6b05f62251fc9becbfe3d2af
     steps:
       - name: Read CircleCI failed job step results, sanitized and limited (NO APK)
         shell: bash

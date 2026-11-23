@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: 6f7e40b1082998d6b44bb58a5fd9fc0c0e3f0077
+      SOURCE_SHA: 1c936c9d7a76c1b211a6a742d5ad6f48d936f039
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 6f7e40b1082998d6b44bb58a5fd9fc0c0e3f0077
+          ref: 1c936c9d7a76c1b211a6a742d5ad6f48d936f039
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -31,6 +31,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)" = "70f1c63ac0f0801b65ff14546fd0c70590b3a60d"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = "e7495d52b2b583ed6201e187355748f1236cd39b"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningSignedCloseResearch.kt)" = "acd938b1439a71d55066062046b1da1f78c434f7"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningSignedCloseResearchTest.kt)" = "99a83c2ab17c315e53f8b0bae6400fbebceb6e88"
           test ! -e app/weex-ia-signing.jks
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt)" = "7ec0b530d4743198fe138f0565b8563f964a3dfa"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStore.kt)" = "e9f3d4fb66588caee710f2746b6097e2498fbb24"
@@ -796,6 +798,11 @@ jobs:
           grep -Fq 'realCombinedNetProfit.schedule(remotePositions)' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
           grep -Fq 'realCombinedNetProfit.schedule(remotePositions)' app/src/main/java/com/wilito/weexautotrader/TraderService.kt
           grep -Fq 'RealCombinedStopLiveModePolicy.mayStartOrSendNewStop' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
+          test -s app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt
+          test -s app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningSignedCloseResearch.kt
+          grep -Fq 'class RealAppliedLearningLedgerCoordinator(' app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt
+          grep -Fq 'fundingAndFullPositionLifecycleProven:Boolean get()=false' app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningSignedCloseResearch.kt
+          echo WEEX_PR185_LATEST_SIGNED_CLOSURE_STUDY_AND_LEDGER_RETAINED_IN_ART_WITHOUT_LIVE_TRADE
           echo WEEX_PR184_EXACT_SOURCE_OWNER_GATED_NO_NEW_ORDERS
           echo WEEX_PR184_COMBINED_LIVE_OWNER_ART_DEX_PASS_NO_ORDERS_NO_OTA
           RUNNER

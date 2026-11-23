@@ -52,7 +52,7 @@ jobs:
           grep -Fq 'real_combined_signed_stop_observation_v1' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFinalPostBarrierPolicy.kt)" = "38f4b15e60945949bce849d925aeea9302c215d1"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt)" = "56d489a9ef0a6432ee845a9c67e8998d99eddf8d"
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "5cf6c2d2cd228337c2f7eb16eed2c21da128b55b"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "1724dfccf006d69d390755aa227b3e02c212a769"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPortContractTest.kt)" = "e65bb4c6d751a6904dc31c52cf27acd1d3a3c034"
           grep -Fq 'RealProtectiveOrderWriteGate.heldByCurrentThread' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
           grep -Fq 'SIGNED_TRIGGER_MATCHED_STUDY_ONLY' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt
@@ -81,7 +81,7 @@ jobs:
           grep -Fq 'real_combined_signed_stop_observation_v1' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFinalPostBarrierPolicy.kt)" = "38f4b15e60945949bce849d925aeea9302c215d1"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt)" = "56d489a9ef0a6432ee845a9c67e8998d99eddf8d"
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "5cf6c2d2cd228337c2f7eb16eed2c21da128b55b"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "1724dfccf006d69d390755aa227b3e02c212a769"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPortContractTest.kt)" = "e65bb4c6d751a6904dc31c52cf27acd1d3a3c034"
           grep -Fq 'RealProtectiveOrderWriteGate.heldByCurrentThread' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
           grep -Fq 'SIGNED_TRIGGER_MATCHED_STUDY_ONLY' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt

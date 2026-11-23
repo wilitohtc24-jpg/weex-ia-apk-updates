@@ -1,0 +1,107 @@
+name: WEEX PR184 ephemeral owner encrypted binary transport NO PUBLIC APK NO OTA
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr184-ephemeral-encrypted-chat-transfer-20261123.yml
+permissions:
+  contents: read
+jobs:
+  transport-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+    steps:
+      - name: Verify exact private signed APK and fetch bytes only into ephemeral runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/weex-pr184-chat
+          python3 - <<'PY'
+          import hashlib,json,os,urllib.request,urllib.parse
+          tok=os.environ.get("CIRCLECI_READ_TOKEN")
+          assert tok, "MISSING_PRIVATE_READ_TOKEN"
+          headers={"Circle-Token":tok,"Accept":"application/json","User-Agent":"weex-owner-private-encrypted-transport"}
+          base="https://circleci.com/api/v2"
+          def get(path):
+              with urllib.request.urlopen(urllib.request.Request(base+path,headers=headers),timeout=40) as f:
+                  return json.load(f)
+          wid="1c707036-e20e-4276-ac91-a354cf03ea9e"
+          run=get("/workflow/"+wid)
+          assert run.get("status")=="success", "SOURCE_WORKFLOW_NOT_SUCCESS"
+          p=get("/pipeline/"+run["pipeline_id"])
+          assert (p.get("vcs") or {}).get("revision")=="bc7c626090e1b1dd6b05f62251fc9becbfe3d2af", "SOURCE_MISMATCH"
+          js=get("/workflow/"+wid+"/job")["items"]
+          js=[j for j in js if j.get("name")=="pr184_private_signed_candidate" and j.get("status")=="success"]
+          assert len(js)==1 and js[0]["job_number"]==53063,"WRONG_CIRCLECI_JOB"
+          artifacts=get("/project/gh/wilitohtc24-jpg/weex-auto-trader-android/53063/artifacts")["items"]
+          matches=[a for a in artifacts if a.get("path")=="private-pr184-circleci-candidate/WEEX-IA-Trader-release.apk"]
+          assert len(matches)==1,"PRIVATE_APK_NOT_FOUND"
+          url=matches[0]["url"]
+          parsed=urllib.parse.urlparse(url)
+          assert parsed.scheme=="https" and parsed.hostname in ("circleci.com","output.circle-artifacts.com"),"UNTRUSTED_ARTIFACT_HOST"
+          class SafeRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,hdrs,url):
+                  nxt=super().redirect_request(req,fp,code,msg,hdrs,url)
+                  if nxt is not None:
+                      for d in (nxt.headers,nxt.unredirected_hdrs):
+                          for key in list(d):
+                              if key.lower()=="circle-token":del d[key]
+                  return nxt
+          opener=urllib.request.build_opener(SafeRedirect())
+          expected="283754aa6e840234d9c9e87ed09deaaa7ee4e3512ba52bd34a309afd20556769"
+          digest=hashlib.sha256()
+          count=0
+          with opener.open(urllib.request.Request(url,headers=headers),timeout=150) as src:
+              with open("/tmp/weex-pr184-chat/private-release.apk","wb") as dest:
+                  while True:
+                      data=src.read(1024*1024)
+                      if not data:break
+                      count+=len(data)
+                      assert count<80*1024*1024,"APK_SIZE_EXCEEDED"
+                      digest.update(data)
+                      dest.write(data)
+          assert count==63560151, ("APK_WRONG_SIZE", count)
+          assert digest.hexdigest()==expected, "APK_SHA256_MISMATCH"
+          print("PR184_SOURCE_SIGNED_APK_EXACT_HASH_VERIFIED_BEFORE_ENCRYPTION",flush=True)
+          PY
+      - name: Encrypt original APK with temporary public key (private key never enters GitHub)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >/tmp/weex-pr184-chat/recipient-public.pem <<'PUB'
+          -----BEGIN PUBLIC KEY-----
+          MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA2OEBWWqoSDZnYwriLaqU
+          UXllNkoU7b+hXUEpUoUrA43Wx71MAo4dof9HGObQCj81WGZy2LieDsipqqb8zAc9
+          1rSK6KOFpxsw3AYBbO/yBSsZQlIV485AtTkYd/3dB7f3SDFxGooHo/9Z9EM4dzvq
+          U2PYfP47SQF2cQKjCmbkTHiUtIpal2EBjppy8vtEDx5MIm/Ax3l2ks93Abpy15zD
+          BdwZIBs8kkDmru1+2KAeEi7U+apiMxEAxE3CRMHZxOpjWMNqEmaU9sMmIf3JXX9D
+          wTAU/OEvOaiT2QDBb8LItZwmY0wvns+HgK+8jUf+qglZNmc/yUxiEdrci18GxL+J
+          i8ZR7nwzP0t6HL12XvKGhiyd0cvuO1S5cJ1up5f/fy5RfQgVyoZ9n3uqM/JhbboD
+          aeXYVN/lpVrxIWdFbZMW4HlohKZ69yMmqSAO1XohSqo0VnclPrXwkf+JdQQQd8va
+          9dSTf1t9WetT/+ElCQnzyo8eAVmz638fgxv/dCOyh/n9AgMBAAE=
+          -----END PUBLIC KEY-----
+          PUB
+          mkdir -p /tmp/weex-pr184-chat/output
+          python3 - <<'PY'
+          import secrets
+          with open("/tmp/weex-pr184-chat/keyiv.raw","wb") as f:
+              f.write(secrets.token_bytes(32)+secrets.token_bytes(16))
+          PY
+          openssl pkeyutl -encrypt -pubin -inkey /tmp/weex-pr184-chat/recipient-public.pem -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -in /tmp/weex-pr184-chat/keyiv.raw -out /tmp/weex-pr184-chat/output/keyiv.oaep
+          KEY="$(head -c 32 /tmp/weex-pr184-chat/keyiv.raw | xxd -p -c 256)"
+          IV="$(tail -c 16 /tmp/weex-pr184-chat/keyiv.raw | xxd -p -c 256)"
+          openssl enc -aes-256-ctr -K "$KEY" -iv "$IV" -in /tmp/weex-pr184-chat/private-release.apk -out /tmp/weex-pr184-chat/output/private-release.apk.aesctr
+          test "$(stat -c '%s' /tmp/weex-pr184-chat/output/private-release.apk.aesctr)" -eq 63560151
+          printf '%s\n' 'WEEX_PR184' 'sha256=283754aa6e840234d9c9e87ed09deaaa7ee4e3512ba52bd34a309afd20556769' 'bytes=63560151' 'cipher=AES-256-CTR' 'wrappedKey=RSA-OAEP-SHA256' > /tmp/weex-pr184-chat/output/provenance.txt
+          rm -f /tmp/weex-pr184-chat/private-release.apk /tmp/weex-pr184-chat/keyiv.raw
+          test ! -e /tmp/weex-pr184-chat/private-release.apk
+          echo PR184_ONLY_CIPHERTEXT_EXPORTED_OWNER_PRIVATE_KEY_NEVER_ON_RUNNER
+      - name: Transfer ciphertext via short-lived GitHub Actions artifact, not public APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: weex-pr184-temporary-encrypted-owner-chat-transfer
+          path: /tmp/weex-pr184-chat/output/
+          if-no-files-found: error
+          retention-days: 1

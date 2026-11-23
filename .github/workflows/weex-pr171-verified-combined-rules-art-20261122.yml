@@ -88,7 +88,7 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicyTest.kt)" = "adfb8c81ddfc6fdbc70ed32236c6bb111b7834db"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicy.kt)" = "cdba0a1b435c99b99da3046d226865914f46dde8"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealOrderScopedSignedFillsPolicyTest.kt)" = "35fe229d2723cb7c54e43ad579698604697eb13e"
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = "a9ff5a0417cb5059b098672485d2dde306c9ac65"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = "53d71b9ea22fa9afd73b242ac18fa4d77f4b86f8"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt)" = "531509e99d2d994f2159f9b8ae7633d3cc822c97"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollectorTest.kt)" = "bd7ae0f037c749b18bd363e2010fedd90c28182e"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt)" = "7c952d22205f78f2a446745236e632f064d068f2"

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 6f7e40b1082998d6b44bb58a5fd9fc0c0e3f0077
+      SOURCE_SHA: 1c936c9d7a76c1b211a6a742d5ad6f48d936f039
       SELECTOR_BLOB: 838d36d93ef7d315b80724674b8e919b6704c066
       FUNNEL_BLOB: bfebb0c4738a13aaa6820dd2445abb91ba563060
       FUNNEL_TEST_BLOB: 356b030edc03bd9749294534cf67a14319fcb426
@@ -104,7 +104,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 6f7e40b1082998d6b44bb58a5fd9fc0c0e3f0077
+          ref: 1c936c9d7a76c1b211a6a742d5ad6f48d936f039
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           path: source
@@ -116,6 +116,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)" = "70f1c63ac0f0801b65ff14546fd0c70590b3a60d"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = "e7495d52b2b583ed6201e187355748f1236cd39b"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningSignedCloseResearch.kt)" = "acd938b1439a71d55066062046b1da1f78c434f7"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningSignedCloseResearchTest.kt)" = "99a83c2ab17c315e53f8b0bae6400fbebceb6e88"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt)" = "$SELECTOR_BLOB"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSelectorFunnelEvidence.kt)" = "$FUNNEL_BLOB"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSelectorFunnelEvidenceTest.kt)" = "$FUNNEL_TEST_BLOB"
@@ -476,6 +478,11 @@ jobs:
           grep -Fq 'class RealAppliedLearningLedgerCoordinator(' "$final/RealAppliedLearningLedgerCoordinator.kt"
           grep -Fq 'permittedForLiveExecution:Boolean=false' "$final/RealAppliedLearningLedgerCoordinator.kt"
           test -s app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt
+          test -s "$final/RealAppliedLearningSignedCloseResearch.kt"
+          grep -Fq 'class RealAppliedLearningSignedCloseResearch(' "$final/RealAppliedLearningSignedCloseResearch.kt"
+          grep -Fq 'fundingAndFullPositionLifecycleProven:Boolean get()=false' "$final/RealAppliedLearningSignedCloseResearch.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningSignedCloseResearchTest.kt
+          echo WEEX_PR185_SIGNED_CLOSE_OPEN_RESEARCH_IS_READONLY_AND_RETAINED
           echo WEEX_PR185_VERIFIED_REAL_ONLY_LEDGER_COMMIT_AND_ADVICE_MATERIALIZED_NO_LIVE_ORDERS
           echo WEEX_PR184_CANONICAL_MATERIALIZED_REAL_STOP_WIRING_VERIFIED_NO_ORDERS_NO_OTA
           echo WEEX_PR184_COMBINED_LIVE_OWNER_JUNIT_PASS_NO_APK_NO_OTA

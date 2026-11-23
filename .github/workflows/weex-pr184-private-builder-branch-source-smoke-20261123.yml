@@ -29,6 +29,7 @@ jobs:
           grep -Fq 'WEEX_ALLOW_DIRECT_PUBLISH=false' ci/build_private_pr184_circleci_once.sh
           grep -Fq 'test "$APK_VERSION" -gt 30205252' ci/build_private_pr184_circleci_once.sh
           grep -Fq 'pr184_private_signed_candidate:' .circleci/config.yml
+          grep -Fq 'only: build/weex-pr184-owner-private-apk-v3-20261123' .circleci/config.yml
           # Rehearse the release's strict original MANUAL workflow list in
           # a disposable checkout. Neither verifier nor production config
           # is weakened, and no APK/secret/signing is used in this job.
@@ -38,7 +39,6 @@ jobs:
           python3 ci/verify_owner_manual_build_contract_v1.py
           python3 ci/test_manual_build_only_final_tail_v1.py
           echo PR184_V3_CANONICAL_RECOVERY_MANUAL_BUILD_ALLOWLIST_PRESERVED_NO_APK
-          grep -Fq 'only: build/weex-pr184-owner-private-apk-v2-20261123' .circleci/config.yml
           python3 - <<'PY'
           import subprocess
           green='800be05454697cb4647d60b9d4abb89b0da2701b'

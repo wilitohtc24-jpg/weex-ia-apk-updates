@@ -786,7 +786,12 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedStopLiveModePolicy.kt)" = "805224786d52dbf5c562f14acb4deb0ec16c2c03"
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedStopLiveModePolicyTest.kt)" = "a7708d66c930b480f209c4505c3fd73f1ab901c4"
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = "1724dfccf006d69d390755aa227b3e02c212a769"
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = "f085a8d3d97c110f594555d17ef408d1ad95f90f"
+          # Preflight intentionally replaces app/src/main with the canonical
+          # materialized tree. Compare precisely what Gradle/ART compiled to
+          # that exported tested tree; the original HEAD blob was pinned
+          # separately BEFORE materialization.
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = "$(git hash-object /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/TraderService.kt)"
+          grep -Fq 'realCombinedNetProfit.schedule(remotePositions)' /tmp/neutral-tie-exact-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
           grep -Fq 'realCombinedNetProfit.schedule(remotePositions)' app/src/main/java/com/wilito/weexautotrader/TraderService.kt
           grep -Fq 'RealCombinedStopLiveModePolicy.mayStartOrSendNewStop' app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
           echo WEEX_PR184_EXACT_SOURCE_OWNER_GATED_NO_NEW_ORDERS

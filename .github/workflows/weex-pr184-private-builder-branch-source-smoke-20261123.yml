@@ -17,6 +17,7 @@ jobs:
           ref: 017f2d22e06c91a19e0a9a9fa0dcb4f1639ca7db
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
+          fetch-depth: 0
       - name: Verify no release request, precise source diff and shell syntax
         shell: bash
         run: |

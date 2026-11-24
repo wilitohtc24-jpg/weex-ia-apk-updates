@@ -43,7 +43,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt)" = 3a8994a06475a2246ca5b90b86f737e3bd7891ec
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)" = 48feaf7a656c3fa09b67d2f1de385faccfb55df2
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = 9709474133eb574036f75a40806155c4da463c7d
-          test "$(git hash-object .circleci/config.yml)" = 48333b42698fde7ed05703fd46e79135d87d97ce
+          test "$(git hash-object .circleci/config.yml)" = f659de65f875aa70802c5b315b97b456ae12661e
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt)" = 3418d48e3680e620cd6af43ec1456109e89a783a
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/MainActivity.kt)" = fb0e9a6707c05732baed18187ab1253dd69fdddd
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt)" = dbe7cf9f6c5b00125b9257ed3a8615b2da1ce6d0

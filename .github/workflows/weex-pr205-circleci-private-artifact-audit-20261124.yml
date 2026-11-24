@@ -1,0 +1,175 @@
+name: WEEX PR205 signed CircleCI artifact hash and signer audit (NO OTA)
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr205-circleci-private-artifact-audit-20261124.yml
+permissions:
+  contents: read
+jobs:
+  independent-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Verify private signed APK bytes, SHA256, certificate and version without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re,time,urllib.request,urllib.parse,urllib.error
+          token=os.environ.get("CIRCLECI_READ_TOKEN","")
+          assert token, "CircleCI read token absent"
+          workflow_id="66e7217b-40e7-447f-8993-4d6d16eb8982"
+          job_id="abf81ac9-0593-44fa-ad78-41a8502f2a85"
+          def get(path):
+              req=urllib.request.Request("https://circleci.com/api/v2"+path,
+                  headers={"Circle-Token":token,"Accept":"application/json"})
+              with urllib.request.urlopen(req,timeout=25) as r:
+                  return json.load(r)
+          workflow=get("/workflow/"+workflow_id)
+          pipeline=get("/pipeline/"+workflow["pipeline_id"])
+          assert pipeline["vcs"]["revision"]=="47a46990f98e56934f07d3ca31d1b4a347cc8bf3"
+          assert pipeline["vcs"]["branch"]=="repair/weex-pr205-private-candidate-staging-20261124"
+          assert workflow["name"]=="pr205_private_candidate_only"
+          # Bounded read-only wait in CI, no retries of the signed builder.
+          deadline=time.monotonic()+720
+          while True:
+              jobs=get("/workflow/"+workflow_id+"/job")["items"]
+              matching=[x for x in jobs if x["id"]==job_id]
+              assert len(matching)==1,"Exact private build job missing"
+              job=matching[0]
+              assert job["name"]=="pr205_circleci_private_candidate"
+              state=job["status"]
+              if state=="success":break
+              assert state not in {"failed","canceled","unauthorized","not_run","infrastructure_fail","timedout"}, "Private build terminal: "+state
+              if time.monotonic()>=deadline:
+                  raise RuntimeError("PR205_BUILD_NOT_TERMINAL_WITHIN_AUDIT_WINDOW: "+state)
+              print("PR205_PRIVATE_BUILD_STATUS="+state,flush=True)
+              time.sleep(30)
+          number=job["job_number"]
+          assert type(number) is int and number>0
+          assert job["project_slug"]=="gh/wilitohtc24-jpg/weex-auto-trader-android"
+          print("PR205_EXACT_CIRCLECI_JOB_SUCCESS="+str(number))
+          items=get("/project/gh/wilitohtc24-jpg/weex-auto-trader-android/"+str(number)+"/artifacts")["items"]
+          bypath={v.get("path"):v for v in items}
+          prefix="private-pr205-circleci-candidate/"
+          required=["WEEX-IA-Trader-release.apk","apk-sha256.txt","signing-certificate.txt",
+                    "release.json","candidate-provenance.txt"]
+          for filename in required:
+              assert prefix+filename in bypath, "Missing private candidate "+filename
+          print("PR205_SIGNED_ARTIFACT_SET_PRESENT count="+str(len(items)))
+
+          class ScrubAuthRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,hdrs,newurl):
+                  new=super().redirect_request(req,fp,code,msg,hdrs,newurl)
+                  if new is not None:
+                      for name in list(new.headers):
+                          if name.lower()=="circle-token":del new.headers[name]
+                      for name in list(new.unredirected_hdrs):
+                          if name.lower()=="circle-token":del new.unredirected_hdrs[name]
+                  return new
+          opener=urllib.request.build_opener(ScrubAuthRedirect())
+
+          def source_for(filename):
+              url=bypath[prefix+filename].get("url","")
+              parsed=urllib.parse.urlparse(url)
+              host=(parsed.hostname or "").lower()
+              assert parsed.scheme=="https" and host, "Invalid artifact URL"
+              if not (host=="circleci.com" or host.endswith(".circleci.com")
+                      or host.endswith(".amazonaws.com")
+                      or host.endswith(".cloudfront.net")
+                      or host=="circle-artifacts.com"
+                      or host.endswith(".circle-artifacts.com")
+                      or host=="storage.googleapis.com"):
+                  print("PR205_ARTIFACT_STORAGE_HOST_TO_REVIEW="+host)
+                  raise AssertionError("Unrecognized artifact storage")
+              headers={"User-Agent":"weex-pr205-verified-private-apk"}
+              # Private CircleCI artifacts require the read token on the official
+              # artifact host; the redirect handler removes it before cloud storage.
+              if (host=="circleci.com" or host.endswith(".circleci.com")
+                  or host=="circle-artifacts.com" or host.endswith(".circle-artifacts.com")):
+                  headers["Circle-Token"]=token
+              return opener.open(urllib.request.Request(url,headers=headers),timeout=120)
+          def small(filename,limit=250000):
+              with source_for(filename) as r:
+                  data=r.read(limit+1)
+              assert len(data)<=limit, "Unexpectedly large metadata"
+              return data.decode("utf8")
+          expected_sha=small("apk-sha256.txt").strip().split()[0].lower()
+          assert re.fullmatch(r"[0-9a-f]{64}",expected_sha)
+          provenance={}
+          for line in small("candidate-provenance.txt").splitlines():
+              if "=" in line:
+                  k,v=line.split("=",1)
+                  provenance[k.strip()]=v.strip()
+          assert provenance.get("source")=="47a46990f98e56934f07d3ca31d1b4a347cc8bf3"
+          assert provenance.get("green_source")=="c94e73adc52bd8559fb687f57e34808f410490f5"
+          assert provenance.get("private_only")=="true"
+          assert provenance.get("ota_publication")=="false"
+          version=int(provenance["versionCode"])
+          assert 30379864 < version <= 2100000000
+          print("PR205_SIGNED_SOURCE_PROVENANCE_VERIFIED")
+          print("PR205_SIGNED_VERSION_CODE="+str(version))
+          canonical="5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"
+          cert=small("signing-certificate.txt")
+          # Match ALL three formats admitted by the canonical APK signer gate:
+          # numbered signer, minSdk-qualified signer, and v2/v3 scheme-labelled signer.
+          signer_patterns=(
+              r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*Signer\s+\([^\r\n)]*\)\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*V\d+(?:\.\d+)?\s+Signer:\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+          )
+          digests={value.replace(":","").lower()
+                   for pattern in signer_patterns for value in re.findall(pattern,cert)}
+          print("PR205_SIGNER_DIGEST_IDENTITIES="+str(len(digests)))
+          assert digests=={canonical}, "Signer differs from original OTA certificate"
+          print("PR205_CANONICAL_SIGNER_VERIFIED="+canonical)
+          release=json.loads(small("release.json"))
+          assert isinstance(release,dict)
+          for k in ("versionCode","version_code"):
+              if k in release:
+                  assert int(release[k])==version, "release.json version mismatch"
+          print("PR205_RELEASE_JSON_VALID")
+          h=hashlib.sha256()
+          size=0
+          first=b""
+          with source_for("WEEX-IA-Trader-release.apk") as r, open("/tmp/weex-pr205-private.apk","wb") as output:
+              while True:
+                  chunk=r.read(1024*1024)
+                  if not chunk:break
+                  if not first:first=chunk[:4]
+                  size+=len(chunk)
+                  assert size<=200*1024*1024, "Unexpectedly large APK"
+                  h.update(chunk)
+                  output.write(chunk)
+          assert first==b"PK\x03\x04", "Artifact not a ZIP/APK"
+          assert size>10*1024*1024, "APK unexpectedly small"
+          assert h.hexdigest()==expected_sha,"APK bytes differ from CircleCI SHA256"
+          print("PR205_SIGNED_APK_SHA256_MATCH="+h.hexdigest())
+          print("PR205_SIGNED_APK_SIZE_BYTES="+str(size))
+          print("PR205_PRIVATE_ARTIFACT_METADATA_AND_BYTES_MATCH")
+          PY
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK"
+          APKSIGNER="$(find "$SDK/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          AAPT="$(find "$SDK/build-tools" -type f -name aapt | sort -V | tail -1)"
+          test -x "$APKSIGNER" && test -x "$AAPT"
+          "$APKSIGNER" verify --verbose --print-certs /tmp/weex-pr205-private.apk > /tmp/weex-pr205-apk-cert.txt
+          "$AAPT" dump badging /tmp/weex-pr205-private.apk > /tmp/weex-pr205-apk-badging.txt
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          cert=Path("/tmp/weex-pr205-apk-cert.txt").read_text()
+          digests={v.replace(":","").lower() for v in re.findall(r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",cert)}
+          assert digests=={"5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"}, "Binary signer mismatch"
+          badging=Path("/tmp/weex-pr205-apk-badging.txt").read_text()
+          m=re.search(r"package: name='com\.wilito\.weexautotrader' versionCode='(\d+)'",badging)
+          assert m and 30379864<int(m.group(1))<=2100000000, "Package/version mismatch"
+          print("PR205_BINARY_SIGNATURE_VERIFIED")
+          print("PR205_BINARY_VERSION_CODE="+m.group(1))
+          PY
+          rm -f /tmp/weex-pr205-private.apk
+          echo PR205_PRIVATE_ARTIFACT_INDEPENDENT_AUDIT_PASS_NO_OTA

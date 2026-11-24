@@ -26,6 +26,7 @@ jobs:
           ref: f822a006bf94a9236747a0c535121af0fe21d2e2
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
+          fetch-depth: 0
           path: source
       - name: Verify pinned source and safe Neon-only code delta
         working-directory: source

@@ -1,5 +1,5 @@
 # Immutable PR192 Android ART/DEX smoke, ephemeral debug key; NO signing release, WEEX, Neon calls, or OTA.
-name: WEEX PR199 learning shadow consumer ART DEX reinstall NO OTA
+name: WEEX PR200 learning shadow diagnostic ART DEX reinstall NO OTA
 on:
   push:
     branches: [qa/weex-pr192-shadow-reconnect-20261124]
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: cd9fc4f80363029ab82fcf34df78a2fc3c44ed5d
+      SOURCE_SHA: 011836134a55e83eab2c1d61f6eae46d8c6b86a5
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: cd9fc4f80363029ab82fcf34df78a2fc3c44ed5d
+          ref: 011836134a55e83eab2c1d61f6eae46d8c6b86a5
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           fetch-depth: 0
           persist-credentials: false
@@ -35,6 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt)" = 606b0ae7602618a41ebc1533dd04e8fc6ecc2757
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)" = 48feaf7a656c3fa09b67d2f1de385faccfb55df2
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = 9709474133eb574036f75a40806155c4da463c7d
           test "$(git hash-object .circleci/config.yml)" = 48333b42698fde7ed05703fd46e79135d87d97ce
@@ -57,8 +58,8 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicyTest.kt)" = 9901a46f4407b75490bf1371917636673b9c78d7
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt)" = a6bd5cb4d7326daa468fe50e9e60a2b2ceab80ad
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 0f47d92c4ffd1262544c704884ca59cf2ecad5f9
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = 1105e8571ab28c5096853a5513e20a8d5e4a9cda
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLearningAdviceBackgroundTest.kt)" = b5769e6b314bc483018a40ae281f11372ebf39c8
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = 1b2bec8ed4148b57414a49c8c9addaef1ff3661e
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLearningAdviceBackgroundTest.kt)" = e71a0de5504adeda8fdcd84d0366847fd71ae28e
           test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = 5d130e85249a44e4633b789884c8d88d206ffc04
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedOriginalOpeningReadOnlyCollector.kt)" = 01925294ac975649160339a3bf1bab2791c7b5e7
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt)" = 7ace9d8ee51fd809e86d995ea834345c2ea7212b

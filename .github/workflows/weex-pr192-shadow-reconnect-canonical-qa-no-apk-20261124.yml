@@ -48,7 +48,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ConnectionRouteReadOnlyPolicy.kt)" = 096d1fb7ddfb8374f99ffa0f303a6041fd2cb011
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealVerifiedLearningProgressCard.kt)" = 4ab316dd4257bce250b05aca464165e6b2cec27c
           git diff --quiet 7195401846e7f1d6df73d67dfe333cdd3f4c4992 HEAD --             app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt             app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt             app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt             app/src/main/AndroidManifest.xml
-          test "$(git hash-object .circleci/config.yml)" = 48333b42698fde7ed05703fd46e79135d87d97ce
+          test "$(git hash-object .circleci/config.yml)" = f659de65f875aa70802c5b315b97b456ae12661e
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicy.kt)" = 355384662cfc4fdf668a29b73155bb26ef955948
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt)" = a12bab866f796e7efe6432b170e19a70783e65c3
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicyTest.kt)" = 9901a46f4407b75490bf1371917636673b9c78d7

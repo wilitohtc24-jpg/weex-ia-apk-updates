@@ -1,5 +1,5 @@
 # Source QA only. Does NOT build/sign an APK, access WEEX, deploy Neon, or publish OTA.
-name: WEEX PR196 legacy exact signed close canonical QA NO APK
+name: WEEX PR197 modern signed chronology canonical QA NO APK
 on:
   push:
     branches: [qa/weex-pr192-shadow-reconnect-20261124]
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: d113e2a013e1948a8e85068fc007e46c6af7b925
+      SOURCE_SHA: 8ab870c2bb741b1a6d29492520a27bcd65cb69da
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: d113e2a013e1948a8e85068fc007e46c6af7b925
+          ref: 8ab870c2bb741b1a6d29492520a27bcd65cb69da
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -47,10 +47,10 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicyTest.kt)" = 9901a46f4407b75490bf1371917636673b9c78d7
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt)" = a6bd5cb4d7326daa468fe50e9e60a2b2ceab80ad
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 9edebea3ece9258115640b7168e7886f6d88614f
-          test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = fe1f249886e0a079ce6872b5e76f9ef0aea7668d
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedOriginalOpeningReadOnlyCollector.kt)" = c29b9480e17050ee23b3576f2cffa78bb3ab3965
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt)" = 244f6d26cf02937a6afdfa15fe1e2d8bbcf5c24f
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicyTest.kt)" = cf866924d06f8acdb68408f48ef82d7a67673fac
+          test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = 5d130e85249a44e4633b789884c8d88d206ffc04
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedOriginalOpeningReadOnlyCollector.kt)" = 01925294ac975649160339a3bf1bab2791c7b5e7
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt)" = 7ace9d8ee51fd809e86d995ea834345c2ea7212b
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicyTest.kt)" = a3357ff4cca3fd35ca43128e5b0c3f8e8dd03a07
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSignedOriginalOpeningReadOnlyCollectorTest.kt)" = a705279fe02a92287cc880f5ccae8860e12133d8
           test -s app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicyTest.kt
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLegacyMakerSignedOpeningReadOnlyCollector.kt)" = 5307b613140ad90e9d452b1bf3e984409af89b5d

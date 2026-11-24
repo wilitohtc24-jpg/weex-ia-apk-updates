@@ -102,7 +102,7 @@ jobs:
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/Diagnostics.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CausalPricePathForecastStudy.kt
-          test -s /tmp/weex-pr192-materialized-no-apk/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
           grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
           test ! -e app/build/outputs/apk/release/app-release.apk
           echo PR192_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

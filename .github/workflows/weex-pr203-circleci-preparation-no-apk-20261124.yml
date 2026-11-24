@@ -1,0 +1,30 @@
+name: WEEX PR203 private source preparation mirror NO APK
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr203-circleci-preparation-no-apk-20261124.yml
+permissions:
+  contents: read
+jobs:
+  verify-source-preparation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 523b44fbd63f5e099867682166e6a870f47655bb
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Verify same preparation script independently (not CircleCI)
+        working-directory: source
+        shell: bash
+        env:
+          CIRCLE_BRANCH: repair/weex-pr203-circleci-private-preparation-20261124
+          CIRCLE_SHA1: 523b44fbd63f5e099867682166e6a870f47655bb
+        run: |
+          set -euo pipefail
+          bash ci/probe_private_pr203_circleci_preparation.sh

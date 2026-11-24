@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: 16d18d9a08e619f436584803f88b76d55d74e6c3
+      SOURCE_SHA: 2b17620a3fc75f75234e49e82966cc2948eddc2b
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 16d18d9a08e619f436584803f88b76d55d74e6c3
+          ref: 2b17620a3fc75f75234e49e82966cc2948eddc2b
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           fetch-depth: 0
           persist-credentials: false
@@ -40,6 +40,8 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/MainActivity.kt)" = fb0e9a6707c05732baed18187ab1253dd69fdddd
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt)" = dbe7cf9f6c5b00125b9257ed3a8615b2da1ce6d0
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopGateChartStatusTest.kt)" = 40e1e4dd0d296ccf1f730c43b31812122139bc98
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt)" = a74aa0d0ab074b510aafa145486dd51027981ce9
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt)" = 992f29706f24771ff3ce354c5650c662eef1403f
           grep -Fq 'RealProfitStopGateChartStatus.message(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningCertifiedClosePipeline.kt)" = 46fdc0332a43004cb935680d633ec0a3bb08ad3d
           test ! -e app/weex-ia-signing.jks
@@ -85,6 +87,8 @@ jobs:
           test -s "$FINAL/NeonTransportFailureDiagnostic.kt"
           test -s "$FINAL/RealAppliedLearningCertifiedClosePipeline.kt"
           test -s "$FINAL/CausalPricePathForecastStudy.kt"
+          test -s "$FINAL/RealContinuousImprovementContinuityPolicy.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt
           test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
           grep -Fq 'RealVerifiedLearningProgressCard(' "$FINAL/MainActivity.kt"
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' "$FINAL/Diagnostics.kt"
@@ -145,7 +149,8 @@ jobs:
                       "com.wilito.weexautotrader.RealAppliedLearningLedgerCoordinator",
                       "com.wilito.weexautotrader.RealVerifiedLearningProgressPolicy",
                       "com.wilito.weexautotrader.RealProfitStopGateChartStatus",
-                      "com.wilito.weexautotrader.CausalPricePathForecastStudy"
+                      "com.wilito.weexautotrader.CausalPricePathForecastStudy",
+                      "com.wilito.weexautotrader.RealContinuousImprovementContinuityPolicy"
                   )
                   for(name in classes) assertTrue(name,Class.forName(name)!=null)
               }

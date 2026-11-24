@@ -49,6 +49,10 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt)" = dbe7cf9f6c5b00125b9257ed3a8615b2da1ce6d0
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopGateChartStatusTest.kt)" = 40e1e4dd0d296ccf1f730c43b31812122139bc98
           grep -Fq 'RealProfitStopGateChartStatus.message(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
+          # Forecast PR190 must NOT be silently lost by old materializers:
+          # its tests remain included in the exact final source JUnit.
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CausalPricePathForecastStudy.kt)" = 05e9eef133dc3746a0acf45e8a35b1f6d9be0e95
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt)" = 07c27c1211017bae51a3cd3e7e48d7bd03b7a827
           grep -Fq 'RealVerifiedLearningProgressCard(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
           python3 ci/test_real_live_contract_size_proof_v1.py
           python3 ci/verify_manual_build_only.py
@@ -97,6 +101,8 @@ jobs:
           grep -Fq 'RealVerifiedLearningProgressCard(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/Diagnostics.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CausalPricePathForecastStudy.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
           grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
           test ! -e app/build/outputs/apk/release/app-release.apk
           echo PR192_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

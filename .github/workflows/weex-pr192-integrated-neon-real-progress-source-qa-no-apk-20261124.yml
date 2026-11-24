@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 031f34187eb54f92505dab322b12d8355f548b92
+      SOURCE_SHA: be75c5923ffd6bb4fbff77640843dc445ea4a5fe
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 031f34187eb54f92505dab322b12d8355f548b92
+          ref: be75c5923ffd6bb4fbff77640843dc445ea4a5fe
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -41,6 +41,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ConnectionRouteReadOnlyPolicy.kt)" = 096d1fb7ddfb8374f99ffa0f303a6041fd2cb011
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealVerifiedLearningProgressCard.kt)" = 4ab316dd4257bce250b05aca464165e6b2cec27c
           git diff --quiet 7195401846e7f1d6df73d67dfe333cdd3f4c4992 HEAD --             app/src/main/java/com/wilito/weexautotrader/TraderService.kt             app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt             app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt             app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt             app/src/main/AndroidManifest.xml
+          test "$(git hash-object .circleci/config.yml)" = 48333b42698fde7ed05703fd46e79135d87d97ce
           test ! -e app/weex-ia-signing.jks
           grep -Fq 'neonLastTransportFailureCode' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt

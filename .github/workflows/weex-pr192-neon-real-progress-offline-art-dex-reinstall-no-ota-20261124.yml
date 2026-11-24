@@ -90,6 +90,26 @@ jobs:
           test ! -e app/weex-ia-signing.jks
           keytool -genkeypair -keystore app/weex-ia-signing.jks -storepass android -keypass android -alias weexia -keyalg RSA -keysize 2048 -validity 1 -dname 'CN=PR192-OFFLINE-TEST-ONLY,OU=DISPOSABLE,O=NEVER-RELEASE' >/dev/null 2>&1
           test -s app/weex-ia-signing.jks
+          # Emulator-specific x86_64 and AndroidX test-only dependencies.
+          # This is a disposable CI checkout; do NOT commit to production.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("app/build.gradle.kts")
+          s=p.read_text(encoding="utf-8")
+          abi='abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))'
+          assert s.count(abi)==1, "PR192_ART_ABI_BASE_CHANGED"
+          s=s.replace(abi,'abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))',1)
+          default='    defaultConfig {'
+          assert s.count(default)==1, "PR192_ART_DEFAULTCONFIG_BASE_CHANGED"
+          s=s.replace(default,default+'\n        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"',1)
+          dep='    testImplementation("junit:junit:4.13.2")'
+          assert s.count(dep)==1, "PR192_ART_JUNIT_BASE_CHANGED"
+          s=s.replace(dep,dep+
+              '\n    androidTestImplementation("androidx.test:runner:1.6.2")'+
+              '\n    androidTestImplementation("androidx.test.ext:junit:1.2.1")',1)
+          p.write_text(s,encoding="utf-8")
+          print("PR192_DISPOSABLE_EMULATOR_ONLY_ABI_AND_JUNIT_DEPENDENCIES")
+          PY
           mkdir -p app/src/androidTest/java/com/wilito/weexautotrader
           cat > app/src/androidTest/java/com/wilito/weexautotrader/Pr192OfflineArtTest.kt <<'KOTLIN'
           package com.wilito.weexautotrader

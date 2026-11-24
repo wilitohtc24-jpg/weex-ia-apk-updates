@@ -84,6 +84,8 @@ jobs:
           test -s "$FINAL/TraderService.kt"
           test -s "$FINAL/NeonTransportFailureDiagnostic.kt"
           test -s "$FINAL/RealAppliedLearningCertifiedClosePipeline.kt"
+          test -s "$FINAL/CausalPricePathForecastStudy.kt"
+          test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
           grep -Fq 'RealVerifiedLearningProgressCard(' "$FINAL/MainActivity.kt"
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' "$FINAL/Diagnostics.kt"
           test -s "$FINAL/RealProfitStopGateChartStatus.kt"
@@ -142,7 +144,8 @@ jobs:
                       "com.wilito.weexautotrader.RealAppliedLearningCertifiedClosePipeline",
                       "com.wilito.weexautotrader.RealAppliedLearningLedgerCoordinator",
                       "com.wilito.weexautotrader.RealVerifiedLearningProgressPolicy",
-                      "com.wilito.weexautotrader.RealProfitStopGateChartStatus"
+                      "com.wilito.weexautotrader.RealProfitStopGateChartStatus",
+                      "com.wilito.weexautotrader.CausalPricePathForecastStudy"
                   )
                   for(name in classes) assertTrue(name,Class.forName(name)!=null)
               }

@@ -54,7 +54,7 @@ jobs:
           # verified future closed candle (never a late price after VPN gaps).
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt)" = 9fb7f2c4ba5dbf3c0a613a1cf445f44d6815e9d2
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt)" = 1328ff74da470f827e35147d65e8e4a00d86fae7
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt)" = 03340c9d08a86f6f9fdae62ea2b5d7069eed32d6
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt)" = 5a436fd031d6c5077ddaa9ab704256e65acc3de6
           grep -Fq 'RealProfitStopGateChartStatus.message(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
           # Forecast PR190 must NOT be silently lost by old materializers:
           # its tests remain included in the exact final source JUnit.

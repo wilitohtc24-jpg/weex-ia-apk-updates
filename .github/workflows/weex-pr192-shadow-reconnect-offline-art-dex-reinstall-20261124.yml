@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: 2fde91b0c405fde6744ec37c8ebce14e97fb2a06
+      SOURCE_SHA: bbab3f81fd5ee8bd207c8f368da7b23d43faa31d
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 2fde91b0c405fde6744ec37c8ebce14e97fb2a06
+          ref: bbab3f81fd5ee8bd207c8f368da7b23d43faa31d
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           fetch-depth: 0
           persist-credentials: false
@@ -50,6 +50,13 @@ jobs:
           grep -Fq 'RealProfitStopGateChartStatus.message(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningCertifiedClosePipeline.kt)" = 46fdc0332a43004cb935680d633ec0a3bb08ad3d
           test ! -e app/weex-ia-signing.jks
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicy.kt)" = b2d77430ad76fbc4baed76739042ca080a39e149
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt)" = bc0a13d2b59fb2e7f68954c0815161e01f213210
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicyTest.kt)" = aa9e37b31c94873232fab64268417ae2a8fd466a
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt)" = a6bd5cb4d7326daa468fe50e9e60a2b2ceab80ad
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = bdfe14e182c4ef44df9a89a6fd302787963015ab
+          test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = 1fc31ca2e6e88fd266cf0e4adf837f4b7bc85a6d
+          python3 ci/verify_pr192_historical_maker_offscanner_readonly_v1.py
           python3 ci/verify_manual_build_only.py
           echo PR192_ART_SOURCE_PINNED_NO_RELEASE_SIGNER
       - name: Java 17
@@ -94,6 +101,8 @@ jobs:
           test -s "$FINAL/CausalPricePathForecastStudy.kt"
           test -s "$FINAL/RealContinuousImprovementContinuityPolicy.kt"
           test -s "$FINAL/OnlineShadowMaturationPolicy.kt"
+          test -s "$FINAL/RealPendingHistoricalMakerReadOnlyWorker.kt"
+          grep -Fq 'historical?.schedule(stored,status,detail?.executedQuantity,filledIntoPosition)' "$FINAL/RealPendingEntryCoordinator.kt"
           grep -Fq 'OnlineShadowMaturationPolicy.classify(' "$FINAL/OnlineShadowLearning.kt"
           grep -Fq 'MAX_FOREIGN_CONTEXT_RECOVERY_GRACE_MS' "$FINAL/OnlineShadowMaturationPolicy.kt"
           grep -Fq 'age>horizon+MAX_FOREIGN_CONTEXT_RECOVERY_GRACE_MS' "$FINAL/OnlineShadowMaturationPolicy.kt"
@@ -164,7 +173,8 @@ jobs:
                       "com.wilito.weexautotrader.RealProfitStopGateChartStatus",
                       "com.wilito.weexautotrader.CausalPricePathForecastStudy",
                       "com.wilito.weexautotrader.RealContinuousImprovementContinuityPolicy",
-                      "com.wilito.weexautotrader.OnlineShadowMaturationPolicy"
+                      "com.wilito.weexautotrader.OnlineShadowMaturationPolicy",
+                      "com.wilito.weexautotrader.RealPendingHistoricalMakerReadOnlyWorker"
                   )
                   for(name in classes) assertTrue(name,Class.forName(name)!=null)
               }

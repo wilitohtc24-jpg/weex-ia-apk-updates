@@ -118,7 +118,7 @@ jobs:
           # Full source + JUnit proof is mandatory BEFORE debug APK creation.
           if ! python3 ci/preflight_full_presigning_source_v1.py >/tmp/pr192-art-presign.log 2>&1; then
             echo "::error::PR192_ART_CANONICAL_PRESIGN_FAILED_NO_OTA"
-            grep -E 'WEEX_PRESIGN_FIRST_FAILURE_LINE|PRESIGN_FAILURE_CONTEXT|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT|AUDIT_JUNIT_FAILED|WEEX_AUDIT_KOTLIN_FIRST_ERROR|WEEX_PREFLIGHT_BLOCKED' /tmp/pr192-art-presign.log | tail -70 || true
+            grep -E 'WEEX_PRESIGN_FIRST_FAILURE_LINE|PRESIGN_FAILURE_CONTEXT|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT|AUDIT_JUNIT_FAILED|WEEX_AUDIT_KOTLIN_FIRST_ERROR|WEEX_PREFLIGHT_BLOCKED|WEEX_AUDIT_JUNIT_BUILD_FAILED|WEEX_AUDIT_KOTLIN_ERROR_COUNT|AUDIT_ANDROID |WEEX_AUDIT_JUNIT_SOURCE_CHANGED_AFTER_TEST|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP' /tmp/pr192-art-presign.log | tail -115 | cut -c1-420 || true
             exit 1
           fi
           grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr192-art-presign.log
@@ -128,6 +128,13 @@ jobs:
           test -s "$FINAL/NeonTransportFailureDiagnostic.kt"
           test -s "$FINAL/RealAppliedLearningCertifiedClosePipeline.kt"
           test -s "$FINAL/CausalPricePathForecastStudy.kt"
+          test -s "$FINAL/RealForecastBackground.kt"
+          grep -Fq 'realForecastBackground.schedule(' "$FINAL/TraderService.kt"
+          grep -Fq 'realLearningAdvice.schedule(' "$FINAL/TraderService.kt"
+          grep -Fq 'cachedFreshNowMsOrNull()' "$FINAL/WeexPublicClock.kt"
+          grep -Fq 'realCausalForecastShadow' "$FINAL/Diagnostics.kt"
+          grep -Fq 'realLearningShadowAdvice' "$FINAL/Diagnostics.kt"
+          echo PR204_MATERIALIZED_FORECAST_AND_LEARNING_HOOKS_PRESENT
           test -s "$FINAL/RealContinuousImprovementContinuityPolicy.kt"
           test -s "$FINAL/OnlineShadowMaturationPolicy.kt"
           test -s "$FINAL/RealPendingHistoricalMakerReadOnlyWorker.kt"
@@ -210,6 +217,10 @@ jobs:
                       "com.wilito.weexautotrader.RealVerifiedLearningProgressPolicy",
                       "com.wilito.weexautotrader.RealProfitStopGateChartStatus",
                       "com.wilito.weexautotrader.CausalPricePathForecastStudy",
+                      "com.wilito.weexautotrader.RealForecastBackground",
+                      "com.wilito.weexautotrader.RealForecastInputPolicy",
+                      "com.wilito.weexautotrader.RealLearningAdviceBackground",
+                      "com.wilito.weexautotrader.RealLearningAdviceDiagnostic",
                       "com.wilito.weexautotrader.RealContinuousImprovementContinuityPolicy",
                       "com.wilito.weexautotrader.OnlineShadowMaturationPolicy",
                       "com.wilito.weexautotrader.RealPendingHistoricalMakerReadOnlyWorker",

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: 956e99411a786053df7bbfb6fc5c25eb3379b6fb
+      SOURCE_SHA: 133bccb5c1138278b2574b2f3dfa6001bb403441
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 956e99411a786053df7bbfb6fc5c25eb3379b6fb
+          ref: 133bccb5c1138278b2574b2f3dfa6001bb403441
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           fetch-depth: 0
           persist-credentials: false
@@ -67,7 +67,7 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealDailyLedgerBackgroundSingleFlightTest.kt)" = 01bf5642efc4896baa05b84eb05976943f8e984d
           test "$(git hash-object ci/patch_weex_funding_ledger.py)" = 54c1ae8c63f5fd34b230d63639ae8a8100839530
           test "$(git hash-object ci/verify_pr192_real_daily_ledger_offscanner_v1.py)" = 77139371aaf17cb897e3095c15c6e0043e71f8da
-          test "$(git hash-object ci/verify_real_preflight_progress_v1.py)" = 2585a1a936910191b08b8f36742f79551b982939
+          test "$(git hash-object ci/verify_real_preflight_progress_v1.py)" = e26ccb8619510422dc4d873598a5b1c2b4a8d7b3
           python3 ci/verify_pr192_real_daily_ledger_offscanner_v1.py
           python3 ci/verify_pr192_historical_maker_offscanner_readonly_v1.py
           python3 ci/verify_manual_build_only.py

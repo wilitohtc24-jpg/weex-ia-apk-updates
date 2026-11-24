@@ -1,0 +1,89 @@
+# Source QA only. Does NOT build/sign an APK, access WEEX, deploy Neon, or publish OTA.
+name: WEEX PR192 integrated Neon and REAL progress canonical Kotlin JUnit NO APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/weex-pr192-integrated-neon-real-progress-source-qa-no-apk-20261124.yml
+permissions:
+  contents: read
+jobs:
+  pr192-integrated-source-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      SOURCE_SHA: f822a006bf94a9236747a0c535121af0fe21d2e2
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+      WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+      WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr192-materialized-no-apk
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout immutable private PR192 source with read-only token
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: f822a006bf94a9236747a0c535121af0fe21d2e2
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Verify pinned source and safe Neon-only code delta
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt)" = 6315e58dc20d1b24ec2c6f2527fa96f1489aaa73
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt)" = 3418d48e3680e620cd6af43ec1456109e89a783a
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/NeonTransportFailureDiagnosticTest.kt)" = 85214ba06b8d6f5e9c264f03c0c3057730038e8a
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt)" = 5f65e973ce2e222e1a1d854da087877de1d97cda
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ConnectionRouteReadOnlyPolicy.kt)" = 096d1fb7ddfb8374f99ffa0f303a6041fd2cb011
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealVerifiedLearningProgressCard.kt)" = 4ab316dd4257bce250b05aca464165e6b2cec27c
+          git diff --quiet 7195401846e7f1d6df73d67dfe333cdd3f4c4992 HEAD --             app/src/main/java/com/wilito/weexautotrader/TraderService.kt             app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt             app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt             app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt             app/src/main/AndroidManifest.xml
+          test ! -e app/weex-ia-signing.jks
+          grep -Fq 'neonLastTransportFailureCode' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          grep -Fq 'optionalProfitStopFreshOwnerAuthority' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          grep -Fq 'RealVerifiedLearningProgressCard(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
+          echo PR192_EXACT_SOURCE_AND_UNCHANGED_LIVE_TRADING_AUTHORITY
+      - name: Prepare Java 17 and Android SDK 35
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Gradle 8.10.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          test -d "$SDK"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o /tmp/weex-gradle-pr192.zip
+          printf '%s  %s\n' '31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26' /tmp/weex-gradle-pr192.zip | sha256sum -c -
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o /tmp/weex-gradle-pr192.zip -d "$HOME/.gradle-dist"
+          echo "$HOME/.gradle-dist/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+          echo 'GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false' >> "$GITHUB_ENV"
+      - name: Canonical source preflight plus full Android Kotlin JUnit; NEVER APK
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr192-qa-source.log 2>&1; then
+            echo "::error::PR192_PRESIGN_OR_KOTLIN_JUNIT_FAILED_NO_APK"
+            grep -E 'WEEX_PRESIGN_FIRST_FAILURE_LINE|PRESIGN_FAILURE_CONTEXT|WEEX_PREFLIGHT_BLOCKED|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT|AUDIT_JUNIT_FAILED|AUDIT_JUNIT_STACK|WEEX_AUDIT_KOTLIN_FIRST_ERROR|WEEX_AUDIT_JUNIT_BUILD_FAILED|WEEX_AUDIT_JUNIT_SOURCE_CHANGED_AFTER_TEST|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP' /tmp/pr192-qa-source.log | tail -100 || true
+            exit 1
+          fi
+          grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr192-qa-source.log
+          grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr192-qa-source.log
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealAppliedLearningCertifiedClosePipeline.kt
+          grep -Fq 'RealVerifiedLearningProgressCard(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          grep -Fq 'optionalProfitStopFreshOwnerAuthority' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          test ! -e app/build/outputs/apk/release/app-release.apk
+          echo PR192_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

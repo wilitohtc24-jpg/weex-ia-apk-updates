@@ -144,6 +144,13 @@ jobs:
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/Diagnostics.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CausalPricePathForecastStudy.kt
+          test -s "/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealForecastBackground.kt"
+          grep -Fq 'realForecastBackground.schedule(' "/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt"
+          grep -Fq 'realLearningAdvice.schedule(' "/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt"
+          grep -Fq 'cachedFreshNowMsOrNull()' "/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/WeexPublicClock.kt"
+          grep -Fq 'realCausalForecastShadow' "/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/Diagnostics.kt"
+          grep -Fq 'realLearningShadowAdvice' "/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/Diagnostics.kt"
+          echo PR204_MATERIALIZED_FORECAST_AND_LEARNING_HOOKS_PRESENT
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt

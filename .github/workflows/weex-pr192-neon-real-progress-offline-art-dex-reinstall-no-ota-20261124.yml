@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: 5321df4f8e9e011191ef5649287ed1a1abf313b1
+      SOURCE_SHA: 16d18d9a08e619f436584803f88b76d55d74e6c3
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 5321df4f8e9e011191ef5649287ed1a1abf313b1
+          ref: 16d18d9a08e619f436584803f88b76d55d74e6c3
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           fetch-depth: 0
           persist-credentials: false
@@ -37,6 +37,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           test "$(git hash-object .circleci/config.yml)" = 48333b42698fde7ed05703fd46e79135d87d97ce
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt)" = 3418d48e3680e620cd6af43ec1456109e89a783a
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/MainActivity.kt)" = fb0e9a6707c05732baed18187ab1253dd69fdddd
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt)" = dbe7cf9f6c5b00125b9257ed3a8615b2da1ce6d0
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopGateChartStatusTest.kt)" = 40e1e4dd0d296ccf1f730c43b31812122139bc98
+          grep -Fq 'RealProfitStopGateChartStatus.message(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningCertifiedClosePipeline.kt)" = 46fdc0332a43004cb935680d633ec0a3bb08ad3d
           test ! -e app/weex-ia-signing.jks
           python3 ci/verify_manual_build_only.py
@@ -82,6 +86,8 @@ jobs:
           test -s "$FINAL/RealAppliedLearningCertifiedClosePipeline.kt"
           grep -Fq 'RealVerifiedLearningProgressCard(' "$FINAL/MainActivity.kt"
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' "$FINAL/Diagnostics.kt"
+          test -s "$FINAL/RealProfitStopGateChartStatus.kt"
+          grep -Fq 'RealProfitStopGateChartStatus.message(' "$FINAL/MainActivity.kt"
           # Only an ephemeral exported source tree is modified; original
           # canonical signed source in Git remains untouched and pinned.
           rsync -a --delete /tmp/weex-pr192-art-materialized/main/ app/src/main/
@@ -135,7 +141,8 @@ jobs:
                       "com.wilito.weexautotrader.ConnectionRouteReadOnlyPolicy",
                       "com.wilito.weexautotrader.RealAppliedLearningCertifiedClosePipeline",
                       "com.wilito.weexautotrader.RealAppliedLearningLedgerCoordinator",
-                      "com.wilito.weexautotrader.RealVerifiedLearningProgressPolicy"
+                      "com.wilito.weexautotrader.RealVerifiedLearningProgressPolicy",
+                      "com.wilito.weexautotrader.RealProfitStopGateChartStatus"
                   )
                   for(name in classes) assertTrue(name,Class.forName(name)!=null)
               }

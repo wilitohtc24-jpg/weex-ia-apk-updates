@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 2b17620a3fc75f75234e49e82966cc2948eddc2b
+      SOURCE_SHA: d10c2a5830e4391ed3d8dca47dc54f9efc9ac6b8
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 2b17620a3fc75f75234e49e82966cc2948eddc2b
+          ref: d10c2a5830e4391ed3d8dca47dc54f9efc9ac6b8
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -50,6 +50,11 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopGateChartStatusTest.kt)" = 40e1e4dd0d296ccf1f730c43b31812122139bc98
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt)" = a74aa0d0ab074b510aafa145486dd51027981ce9
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt)" = 992f29706f24771ff3ce354c5650c662eef1403f
+          # Existing online shadow training now labels ONLY its own TF and exact
+          # verified future closed candle (never a late price after VPN gaps).
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt)" = 9fb7f2c4ba5dbf3c0a613a1cf445f44d6815e9d2
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt)" = 6fe3362e850ecd7bc2b1c81a58f0556b539bf191
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt)" = 03340c9d08a86f6f9fdae62ea2b5d7069eed32d6
           grep -Fq 'RealProfitStopGateChartStatus.message(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
           # Forecast PR190 must NOT be silently lost by old materializers:
           # its tests remain included in the exact final source JUnit.
@@ -105,6 +110,9 @@ jobs:
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CausalPricePathForecastStudy.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          grep -Fq 'OnlineShadowMaturationPolicy.classify(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
           test -s app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt
           test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
           grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt

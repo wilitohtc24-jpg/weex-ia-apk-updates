@@ -1,5 +1,5 @@
 # Source QA only. Does NOT build/sign an APK, access WEEX, deploy Neon, or publish OTA.
-name: WEEX PR200 learning shadow diagnostic canonical QA NO APK
+name: WEEX PR201 learning purged holdout canonical QA NO APK
 on:
   push:
     branches: [qa/weex-pr192-shadow-reconnect-20261124]
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 011836134a55e83eab2c1d61f6eae46d8c6b86a5
+      SOURCE_SHA: 365d3847f9d23410ab16b189b1632a4ea1c9a049
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 011836134a55e83eab2c1d61f6eae46d8c6b86a5
+          ref: 365d3847f9d23410ab16b189b1632a4ea1c9a049
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -34,6 +34,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisorTest.kt)" = b6d8a3272b80ef211d099d98c933272ad3afdfed
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisor.kt)" = f5f3d08b274c3edef023f944e9b890d9783aa3b5
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)" = 48feaf7a656c3fa09b67d2f1de385faccfb55df2
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = 9709474133eb574036f75a40806155c4da463c7d
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt)" = 6315e58dc20d1b24ec2c6f2527fa96f1489aaa73

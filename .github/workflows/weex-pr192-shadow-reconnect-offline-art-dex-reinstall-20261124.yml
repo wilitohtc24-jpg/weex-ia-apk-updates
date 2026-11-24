@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: b3a1bf847d3856cbad66466b5da394790f26b392
+      SOURCE_SHA: a86061a5374534ea3b0c8355d83dd9fe2265d0d4
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: b3a1bf847d3856cbad66466b5da394790f26b392
+          ref: a86061a5374534ea3b0c8355d83dd9fe2265d0d4
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           fetch-depth: 0
           persist-credentials: false
@@ -51,16 +51,18 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningCertifiedClosePipeline.kt)" = 46fdc0332a43004cb935680d633ec0a3bb08ad3d
           test ! -e app/weex-ia-signing.jks
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicy.kt)" = b2d77430ad76fbc4baed76739042ca080a39e149
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt)" = 978660a8efad4783d6e871f5df446d88c7b10eb9
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt)" = e3b86f60c96bbe18a3a244affd0daf797e859168
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicyTest.kt)" = aa9e37b31c94873232fab64268417ae2a8fd466a
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt)" = a6bd5cb4d7326daa468fe50e9e60a2b2ceab80ad
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = bdfe14e182c4ef44df9a89a6fd302787963015ab
-          test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = 0eefbbf1c2b41eb3ad306092c76c085c44093d2a
+          test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = 9ceb3a41617e91ff43295d9d276f3e071d113c92
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedOriginalOpeningReadOnlyCollector.kt)" = 803fdae0761804c61097c0c0ad7512a4bd8c4e02
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt)" = 244f6d26cf02937a6afdfa15fe1e2d8bbcf5c24f
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicyTest.kt)" = cf866924d06f8acdb68408f48ef82d7a67673fac
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSignedOriginalOpeningReadOnlyCollectorTest.kt)" = 1414d8d657c763887317811da2d015f023ed8b57
           test -s app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicyTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLegacyMakerSignedOpeningReadOnlyCollector.kt)" = c760bdd43d9b0c86623907fa17b9a3845c2be0a3
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLegacyMakerSignedOpeningReadOnlyCollectorTest.kt)" = e610cf563a49345a39b9c6cd8f36a1c3a17bdbc3
           python3 ci/verify_pr192_historical_maker_offscanner_readonly_v1.py
           python3 ci/verify_manual_build_only.py
           echo PR192_ART_SOURCE_PINNED_NO_RELEASE_SIGNER
@@ -108,6 +110,7 @@ jobs:
           test -s "$FINAL/OnlineShadowMaturationPolicy.kt"
           test -s "$FINAL/RealPendingHistoricalMakerReadOnlyWorker.kt"
           test -s "$FINAL/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt"
+          test -s "$FINAL/RealLegacyMakerSignedOpeningReadOnlyCollector.kt"
           grep -Fq 'historical?.schedule(stored,status,detail?.executedQuantity,filledIntoPosition)' "$FINAL/RealPendingEntryCoordinator.kt"
           grep -Fq 'OnlineShadowMaturationPolicy.classify(' "$FINAL/OnlineShadowLearning.kt"
           grep -Fq 'MAX_FOREIGN_CONTEXT_RECOVERY_GRACE_MS' "$FINAL/OnlineShadowMaturationPolicy.kt"
@@ -181,7 +184,8 @@ jobs:
                       "com.wilito.weexautotrader.RealContinuousImprovementContinuityPolicy",
                       "com.wilito.weexautotrader.OnlineShadowMaturationPolicy",
                       "com.wilito.weexautotrader.RealPendingHistoricalMakerReadOnlyWorker",
-                      "com.wilito.weexautotrader.RealPendingHistoricalMakerRoundTripQuantityPolicy"
+                      "com.wilito.weexautotrader.RealPendingHistoricalMakerRoundTripQuantityPolicy",
+                      "com.wilito.weexautotrader.RealLegacyMakerSignedOpeningReadOnlyCollector"
                   )
                   for(name in classes) assertTrue(name,Class.forName(name)!=null)
               }

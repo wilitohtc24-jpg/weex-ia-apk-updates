@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 79eb049720f17739dd3e91d382d7223e8bee78d1
+      SOURCE_SHA: f9aa767d1e276c8bfaf03e4af43b4147dec6b6e8
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 79eb049720f17739dd3e91d382d7223e8bee78d1
+          ref: f9aa767d1e276c8bfaf03e4af43b4147dec6b6e8
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -146,6 +146,7 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt)" = 07c27c1211017bae51a3cd3e7e48d7bd03b7a827
           grep -Fq 'RealVerifiedLearningProgressCard(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
           python3 ci/test_real_live_contract_size_proof_v1.py
+          test "$(git hash-object ci/verify_manual_build_only.py)" = 5fac1439ffeb3167748417992b1395272c2bc986
           python3 ci/verify_manual_build_only.py
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFloorPolicy.kt)" = de0dc8829a97f39f5a0c7b154833a34ff3b748a5
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitVerifiedSamplePolicy.kt)" = b071de53ff1eabf6e3894a4e06a5f79ad59f2b64

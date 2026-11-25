@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 86a5b3fb3a40b961274be619d4a1388cc9c8b7e4
+      SOURCE_SHA: 885b66d3a4bd14e14ed30cca49e0c7a61be55e80
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 86a5b3fb3a40b961274be619d4a1388cc9c8b7e4
+          ref: 885b66d3a4bd14e14ed30cca49e0c7a61be55e80
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -118,15 +118,18 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ReasoningBrain.kt)" = 9f29692b757784fe19ce5b866c8a6eb070061bcf
           # Preserve the exact published raw money/position authority until a deliberate, separately tested change.
           git diff --exit-code 47a46990f98e56934f07d3ca31d1b4a347cc8bf3 HEAD -- app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt app/src/main/java/com/wilito/weexautotrader/StrategyParityPolicy.kt app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFloorPolicy.kt app/src/main/java/com/wilito/weexautotrader/RealCryptoFeeAwareSizingPolicy.kt app/src/main/java/com/wilito/weexautotrader/RealTradingPnl.kt
-          test "$(git hash-object docs/NO_OMITIR_APK_UNICA_WEEX_IA_20261124.md)" = 9933b0a43e7a75bc563ef1f861788265f9feca94
+          test "$(git hash-object docs/NO_OMITIR_APK_UNICA_WEEX_IA_20261124.md)" = 3a18163941c9b33e49ae242181b50a55f31d6145
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealStandbyStudyPolicy.kt)" = e371c025758ea2fd65b9f7084848cdf5e9e20e45
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealStandbyStudyPolicyTest.kt)" = b2396c3998cfc640c4cd6a932c19b9f8ea0ca365
           test -s app/src/main/java/com/wilito/weexautotrader/AutomaticWithdrawalPreviewPolicy.kt
           test -s app/src/test/java/com/wilito/weexautotrader/AutomaticWithdrawalPreviewPolicyTest.kt
+          test -s app/src/main/java/com/wilito/weexautotrader/WithdrawalNetworkCatalog.kt
+          test -s app/src/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/WithdrawalNetworkCatalogTest.kt
           test ! -e app/weex-ia-signing.jks
           grep -Fq 'neonLastTransportFailureCode' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/MainActivity.kt)" = fb0e9a6707c05732baed18187ab1253dd69fdddd
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/MainActivity.kt)" = 494b205ac4f17127956c0cc0c5af01a47d4f71eb
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt)" = dbe7cf9f6c5b00125b9257ed3a8615b2da1ce6d0
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopGateChartStatusTest.kt)" = 40e1e4dd0d296ccf1f730c43b31812122139bc98
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt)" = a74aa0d0ab074b510aafa145486dd51027981ce9
@@ -306,4 +309,6 @@ jobs:
           grep -Fq 'seen.add(normalize(it.symbol))' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealStandbyStudyPolicy.kt
           grep -Fq 'else RealStandbyStudyPolicy.invalidateContext(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealIndependentResearchWorker.kt
           grep -Fq 'internal object AutomaticWithdrawalPreviewPolicy' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/AutomaticWithdrawalPreviewPolicy.kt
+          grep -Fq 'if(showWithdrawalSetup)WithdrawalSetupDialog' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          grep -Fq 'internal object WithdrawalNetworkCatalog' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/WithdrawalNetworkCatalog.kt
           echo PR206_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

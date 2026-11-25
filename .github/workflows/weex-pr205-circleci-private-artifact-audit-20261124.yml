@@ -147,7 +147,8 @@ jobs:
                   output.write(chunk)
           assert first==b"PK\x03\x04", "Artifact not a ZIP/APK"
           assert size>10*1024*1024, "APK unexpectedly small"
-          assert h.hexdigest()==expected_sha,"APK bytes differ from CircleCI SHA256"
+          assert h.hexdigest()==expected_sha=="321d21511bab048c36e473040691534d3bbc3e027e7b837765d0351ebee2b718","APK bytes differ from audited CircleCI SHA256"
+          assert size==63666705 and version==30536366, "Candidate size/version changed"
           print("PR205_SIGNED_APK_SHA256_MATCH="+h.hexdigest())
           print("PR205_SIGNED_APK_SIZE_BYTES="+str(size))
           print("PR205_PRIVATE_ARTIFACT_METADATA_AND_BYTES_MATCH")
@@ -157,17 +158,26 @@ jobs:
           APKSIGNER="$(find "$SDK/build-tools" -type f -name apksigner | sort -V | tail -1)"
           AAPT="$(find "$SDK/build-tools" -type f -name aapt | sort -V | tail -1)"
           test -x "$APKSIGNER" && test -x "$AAPT"
-          "$APKSIGNER" verify --verbose --print-certs /tmp/weex-pr205-private.apk > /tmp/weex-pr205-apk-cert.txt
+          "$APKSIGNER" verify --verbose --print-certs --min-sdk-version 21 /tmp/weex-pr205-private.apk > /tmp/weex-pr205-apk-cert.txt
           "$AAPT" dump badging /tmp/weex-pr205-private.apk > /tmp/weex-pr205-apk-badging.txt
           python3 - <<'PY'
           import re
           from pathlib import Path
           cert=Path("/tmp/weex-pr205-apk-cert.txt").read_text()
-          digests={v.replace(":","").lower() for v in re.findall(r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",cert)}
+          # Same three supported report formats as the canonical signer contract.
+          patterns=(
+              r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*Signer\s+\([^\r\n)]*\)\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+              r"(?mi)^\s*V\d+(?:\.\d+)?\s+Signer:\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+          )
+          digests={v.replace(":","").lower() for p in patterns for v in re.findall(p,cert)}
+          print("PR205_BINARY_SIGNER_IDENTITIES="+str(len(digests)))
+          if not digests:
+              print("PR205_BINARY_REPORT_LABELS="+repr([line.strip().split("digest:")[0] for line in cert.splitlines() if "SHA-256" in line][:12]))
           assert digests=={"5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6"}, "Binary signer mismatch"
           badging=Path("/tmp/weex-pr205-apk-badging.txt").read_text()
           m=re.search(r"package: name='com\.wilito\.weexautotrader' versionCode='(\d+)'",badging)
-          assert m and 30379864<int(m.group(1))<=2100000000, "Package/version mismatch"
+          assert m and int(m.group(1))==30536366, "Package/version mismatch"
           print("PR205_BINARY_SIGNATURE_VERIFIED")
           print("PR205_BINARY_VERSION_CODE="+m.group(1))
           PY

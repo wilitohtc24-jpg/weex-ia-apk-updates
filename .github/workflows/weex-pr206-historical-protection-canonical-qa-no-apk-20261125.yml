@@ -165,9 +165,9 @@ jobs:
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealHistoricalProtectiveClosePolicy.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt
-          test -s /tmp/weex-pr192-materialized-no-apk/test/java/com/wilito/weexautotrader/RealHistoricalProtectionOpeningAnchorTest.kt
-          test -s /tmp/weex-pr192-materialized-no-apk/test/java/com/wilito/weexautotrader/RealHistoricalProtectiveCloseExecutionPolicyTest.kt
-          test -s /tmp/weex-pr192-materialized-no-apk/test/java/com/wilito/weexautotrader/RealHistoricalProtectiveClosePolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectionOpeningAnchorTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectiveCloseExecutionPolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectiveClosePolicyTest.kt
           grep -Fq 'RealHistoricalProtectiveCloseExecutionPolicy.verified(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
           grep -Fq 'signedHistoricalProtectiveCloseCandidate(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt

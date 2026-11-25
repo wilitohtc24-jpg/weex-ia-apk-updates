@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: a3a4a7570d93d46efa04074526a424eab9be5ac9
+      SOURCE_SHA: 746f276efe6c102e1b9ba607dbd5dbc0dc66dde5
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: a3a4a7570d93d46efa04074526a424eab9be5ac9
+          ref: 746f276efe6c102e1b9ba607dbd5dbc0dc66dde5
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -41,7 +41,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisor.kt)" = f5f3d08b274c3edef023f944e9b890d9783aa3b5
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)" = 48feaf7a656c3fa09b67d2f1de385faccfb55df2
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = 9709474133eb574036f75a40806155c4da463c7d
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt)" = 6330dda8cccd100a2dc0422e2ff85cffe0ad4d74
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt)" = 10821f3a20fb4710c0a7286f11da6b33354ec2e3
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt)" = 3418d48e3680e620cd6af43ec1456109e89a783a
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/NeonTransportFailureDiagnosticTest.kt)" = 85214ba06b8d6f5e9c264f03c0c3057730038e8a
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt)" = 3a8994a06475a2246ca5b90b86f737e3bd7891ec
@@ -102,7 +102,7 @@ jobs:
           test "$(git hash-object ci/verify_learning_e6_authority_compat_v1.py)" = 636bf68dd2f3d79e5e45f92ece03673bc79b7c32
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/AdaptiveThesisPolicy.kt)" = 1edebf07dcbda62012571e177b3ec7cecd5f6b50
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/AdaptiveThesisPolicyTest.kt)" = ce4426eac5e5969662e0eab074a9cdff32748a75
-          test "$(git hash-object backend/neon/gateway/core.mjs)" = 2e5c8c77e55da517dba450e7b58d760bc9fa73f9
+          test "$(git hash-object backend/neon/gateway/core.mjs)" = 705866aa40964ab8601ba70e94e5ecadd7a2c598
           node --test backend/neon/gateway/collective-e6.test.mjs
           test "$(git hash-object ci/verify_neon_owner_failover_402_v1.py)" = accd28cc8ad6d8b828f920bdaf1b2f2ea1d16429
           test "$(git hash-object ci/patch_collective_learning_e4_truth_v1.py)" = b5d53148e869a235558ab469b1a9aad62a8770ad
@@ -110,6 +110,9 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/SwarmIntelligence.kt)" = 583587ddc8e8643aeff2b8f91ee4fe1b8d5376da
           test -s app/src/main/java/com/wilito/weexautotrader/CollectiveOpenTrajectoryPolicy.kt
           test -s app/src/test/java/com/wilito/weexautotrader/CollectiveOpenTrajectoryPolicyTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CollectiveUsePolicy.kt)" = a6554bceb7875fe0f3349a02c91d5878b45b5b44
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/CollectiveUsePolicyTest.kt)" = e04a16df8ad257729d42395f665a0778fc4597d8
+          test "$(git hash-object backend/neon/gateway/collective-e6.test.mjs)" = 683acc5ba519956e527f1f1a54aa2e17619ffd74
           test ! -e app/weex-ia-signing.jks
           grep -Fq 'neonLastTransportFailureCode' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
@@ -286,4 +289,5 @@ jobs:
           grep -Fq 'collectiveConsentRevision.incrementAndGet()' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
           grep -Fq 'private fun collectiveDirection(item:CollectiveKnowledge?):String = "WAIT"' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SwarmIntelligence.kt
           grep -Fq 'if(!openTrajectoryConsent||!entry.signedExecutedEntry||nowMs<=0L)return null' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CollectiveOpenTrajectoryPolicy.kt
+          grep -Fq 'val reports=collectedReports.filter{CollectiveUsePolicy.uploadEligible(it,now)}' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
           echo PR206_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

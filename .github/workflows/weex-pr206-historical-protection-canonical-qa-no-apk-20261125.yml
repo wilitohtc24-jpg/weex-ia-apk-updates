@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: da95a6fdb268316dce6b950b05ee38b55c6b3719
+      SOURCE_SHA: e8392cf977943114007d62096b9df04f51f552ba
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: da95a6fdb268316dce6b950b05ee38b55c6b3719
+          ref: e8392cf977943114007d62096b9df04f51f552ba
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -54,7 +54,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt)" = ee8fe9da3fc75b75253879643197fc1289da0732
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicyTest.kt)" = 9901a46f4407b75490bf1371917636673b9c78d7
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt)" = a6bd5cb4d7326daa468fe50e9e60a2b2ceab80ad
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 6e42c09467b4e47beb3482106555f84ac093320a
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 1b2ffc07eb80d3ea4c10f49264f7c408cc56aca9
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = 1b2bec8ed4148b57414a49c8c9addaef1ff3661e
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLearningAdviceBackgroundTest.kt)" = e71a0de5504adeda8fdcd84d0366847fd71ae28e
           test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = 5d130e85249a44e4633b789884c8d88d206ffc04
@@ -99,6 +99,9 @@ jobs:
           test "$(git hash-object ci/patch_aux_learning_integrity.py)" = acbb904a9c272ca71b6c5dd82395511424988334
           test "$(git hash-object ci/patch_backup_learning_artifacts.py)" = 978348b9116eaca38d776b9b5b2c2d5b35af6bc0
           test "$(git hash-object ci/verify_aux_backup_execution_integrity.py)" = 2421a6ddf02fe1cd99c64a8ae89420c6f73f6099
+          test "$(git hash-object ci/verify_learning_e6_authority_compat_v1.py)" = 636bf68dd2f3d79e5e45f92ece03673bc79b7c32
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/AdaptiveThesisPolicy.kt)" = 1edebf07dcbda62012571e177b3ec7cecd5f6b50
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/AdaptiveThesisPolicyTest.kt)" = ce4426eac5e5969662e0eab074a9cdff32748a75
           test ! -e app/weex-ia-signing.jks
           grep -Fq 'neonLastTransportFailureCode' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
@@ -253,4 +256,16 @@ jobs:
           PY
           grep -Fq '"shadow-policy-challenger-causal-v2.json"' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
           grep -Fq '"shadow-policy-challenger-v2-timeframe.json"' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader')
+          src=(root/'TraderService.kt').read_text()
+          a=src.index('SHARED_RUNNING_POSITION_THESIS_V1')
+          b=src.index('is RealAIExitResult.Closed',a)
+          block=src[a:b]
+          assert 'AdaptiveThesisPolicy.assess(' in block and 'if(review?.state==ThesisState.VALID)' in block
+          assert block.count('realAdaptiveProfit.maybeExtend(')==1
+          assert 'exitBlocksNewEntry=' not in block
+          assert 'assess(position.side,position.entry,price,indicators,signal)' in (root/'AdaptiveThesisPolicy.kt').read_text()
+          PY
           echo PR206_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

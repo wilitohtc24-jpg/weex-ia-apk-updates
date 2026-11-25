@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: c1d1f56c888660fed2a92db58d395c8c63f83bb1
+      SOURCE_SHA: 5e0a5216dfac5367fa1b3eaa254048d8712ca102
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: c1d1f56c888660fed2a92db58d395c8c63f83bb1
+          ref: 5e0a5216dfac5367fa1b3eaa254048d8712ca102
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -41,7 +41,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisor.kt)" = f5f3d08b274c3edef023f944e9b890d9783aa3b5
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)" = 48feaf7a656c3fa09b67d2f1de385faccfb55df2
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = 9709474133eb574036f75a40806155c4da463c7d
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt)" = fb9c8940adc81fa4c1bc85df6ea608896f1ba500
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt)" = 6330dda8cccd100a2dc0422e2ff85cffe0ad4d74
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt)" = 3418d48e3680e620cd6af43ec1456109e89a783a
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/NeonTransportFailureDiagnosticTest.kt)" = 85214ba06b8d6f5e9c264f03c0c3057730038e8a
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt)" = 3a8994a06475a2246ca5b90b86f737e3bd7891ec
@@ -278,4 +278,7 @@ jobs:
           grep -Fq 'val networkStatus=pull.takeIf{it.optInt("authorityEpoch",-1)==LearningAuthorityEpoch.VERSION}' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
           grep -Fq 'val reportingDevices=networkStatus?.optInt("reportingDevices",-1)?:-1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
           ! grep -Fq 'postTo(collectiveStatusEndpoint,JSONObject().put("action","status"),token)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'return collectiveSyncMutex.withLock { syncCollectiveLocked(force) }' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'if(!consentCurrent())return@synchronized false' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'collectiveConsentRevision.incrementAndGet()' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CloudAccess.kt
           echo PR206_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

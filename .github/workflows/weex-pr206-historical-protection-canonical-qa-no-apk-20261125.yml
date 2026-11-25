@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 21d207bb523f5d52b8d71934376bcd73b09e4580
+      SOURCE_SHA: d94f281290764049445e1522e4817b3d4247716a
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 21d207bb523f5d52b8d71934376bcd73b09e4580
+          ref: d94f281290764049445e1522e4817b3d4247716a
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -94,8 +94,9 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/PredictionHistoricalTargetPolicy.kt)" = 34b418255fd35966876ab8a2c5c03c85efcd444b
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/PredictionHorizonPolicyTest.kt)" = 5fca9670bee2a0c18b1fe00f4aeb2437c133d2e5
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/PredictionHistoricalTargetPolicyTest.kt)" = ba6f3015e05a1b604fc874fc5d2d8e96ce847966
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ShadowPolicyChallenger.kt)" = bc4b359db0f7e2962a16690cab78387920c4d2a4
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ShadowPolicyChallenger.kt)" = e16d290d5c9feef6a0f3b002cc32f36898a64449
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/PredictionLayer.kt)" = fbf178049482242b7e8ff8e2c1dc5f3a2255d607
+          test "$(git hash-object ci/patch_aux_learning_integrity.py)" = acbb904a9c272ca71b6c5dd82395511424988334
           test ! -e app/weex-ia-signing.jks
           grep -Fq 'neonLastTransportFailureCode' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
@@ -237,6 +238,7 @@ jobs:
           challenger=/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/ShadowPolicyChallenger.kt
           grep -Fq 'shadow-policy-challenger-causal-v2.json' "$challenger"
           grep -Fq 'OnlineShadowMaturationPolicy.classify(' "$challenger"
+          grep -Fq 'stateKey(features,timeframe)' "$challenger"
           grep -Fq 'val rawReturn=(target-sample.entryPrice)/sample.entryPrice' "$challenger"
           grep -Fq 'PredictionHorizonPolicy.sampleIntervalMs(timeframe)' "$challenger"
           ! grep -Fq 'currentPrice-sample.entryPrice' "$challenger"

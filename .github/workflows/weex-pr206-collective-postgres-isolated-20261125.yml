@@ -1,0 +1,43 @@
+name: WEEX PR206 collective E6 isolated PostgreSQL
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr206-collective-postgres-isolated-20261125.yml
+permissions:
+  contents: read
+jobs:
+  collective-local:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fixture
+          POSTGRES_PASSWORD: fixture
+          POSTGRES_DB: weex_collective_fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fixture -d weex_collective_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: f2edf039cc355a0e0058f89e3b1a4f37aad639eb
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Exact source and fixture-only gateway regression
+        working-directory: source
+        env:
+          WEEX_COLLECTIVE_FIXTURE_URL: postgres://fixture:fixture@127.0.0.1:5432/weex_collective_fixture
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = f2edf039cc355a0e0058f89e3b1a4f37aad639eb
+          test "$(git hash-object backend/neon/gateway/core.mjs)" = 2e5c8c77e55da517dba450e7b58d760bc9fa73f9
+          node --test backend/neon/gateway/collective-e6.test.mjs backend/neon/gateway/collective-e6-postgres.integration.mjs

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 2b42d9dd70e2ea9630973bc0541dea55f7952b19
+      SOURCE_SHA: e233affdd529d17adc842a38f55ff4753afd22aa
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 2b42d9dd70e2ea9630973bc0541dea55f7952b19
+          ref: e233affdd529d17adc842a38f55ff4753afd22aa
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -47,7 +47,8 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt)" = 3a8994a06475a2246ca5b90b86f737e3bd7891ec
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ConnectionRouteReadOnlyPolicy.kt)" = 096d1fb7ddfb8374f99ffa0f303a6041fd2cb011
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealVerifiedLearningProgressCard.kt)" = 4ab316dd4257bce250b05aca464165e6b2cec27c
-          git diff --quiet 7195401846e7f1d6df73d67dfe333cdd3f4c4992 HEAD --             app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt             app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt             app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt             app/src/main/AndroidManifest.xml
+          git diff --quiet 7195401846e7f1d6df73d67dfe333cdd3f4c4992 HEAD --             app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt             app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt                          app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt             app/src/main/AndroidManifest.xml
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = b12fb924f838834e611797ac33693c362cb98f85
           test "$(git hash-object .circleci/config.yml)" = 335d875e152540628755a0760bb1510c89113426
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicy.kt)" = 355384662cfc4fdf668a29b73155bb26ef955948
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt)" = ee8fe9da3fc75b75253879643197fc1289da0732
@@ -77,7 +78,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt)" = f83d96986e0f7af4ea5cc19857fdc212060804dc
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollectorTest.kt)" = 9e48b9de00b1e5475f21e874410a02a43171ceec
           python3 ci/verify_pr192_historical_maker_offscanner_readonly_v1.py
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt)" = 4d55e01c0cfe13253ab74430295058aee2ab6ca2
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt)" = 98821e9d7690a3263008b928263dfe0465f57e33
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealHistoricalProtectiveCloseExecutionPolicy.kt)" = ab7730206cc3445326722132f4b4d8e2619b3238
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealHistoricalProtectiveClosePolicy.kt)" = 1a1fb83de281d5a960b32e1b52408793c225f4d0
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectionOpeningAnchorTest.kt)" = 595bafe9b06a7fe626607644f8ffab44d778fc45
@@ -197,4 +198,16 @@ jobs:
           grep -Fq 'RealResearchCoverageRotation.select(sweep,candidates.size)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealIndependentResearchWorker.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealResearchCoverageRotation.kt
           test -s app/src/test/java/com/wilito/weexautotrader/RealResearchCoverageRotationTest.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader")
+          c=(root/"RealCombinedContinuousNetProfitCoordinator.kt").read_text()
+          archive="RealCombinedSignedStopObservationStore(context).recordSignedReadOnly(observation)"
+          assert c.count(archive)==1
+          assert c.index("RealCombinedStopObservationPolicy.inspect(")<c.index(archive)<c.index("if(signedGross<4.0")
+          assert c.count("transaction.execute(")==2
+          assert "COMBINED_FULL_SIGNED_BOT_JOIN_MISSING • "+'"+assembly.reason' in c
+          assert "companion object { private val mutex=Any() }" in (root/"RealCombinedSignedStopObservationStore.kt").read_text()
+          print("PR206_PROTECTION_ARCHIVE_BEFORE_PROFIT_FLOOR_AND_SHARED_LOCK")
+          PY
           echo PR206_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

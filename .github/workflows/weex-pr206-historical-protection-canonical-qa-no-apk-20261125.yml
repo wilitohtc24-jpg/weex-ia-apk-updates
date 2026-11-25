@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: e30a14e31aede47be8e709d906a7b3111b1f369f
+      SOURCE_SHA: 0187950975c1879b9aa3bc275e68e01666502754
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: e30a14e31aede47be8e709d906a7b3111b1f369f
+          ref: 0187950975c1879b9aa3bc275e68e01666502754
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -100,7 +100,7 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt)" = 992f29706f24771ff3ce354c5650c662eef1403f
           # Existing online shadow training now labels ONLY its own TF and exact
           # verified future closed candle (never a late price after VPN gaps).
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt)" = 4318fe16e6f7307409678b97d30812464b52a3c6
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt)" = a842b3b963f2d314eb27ff6164d65db8d7441197
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt)" = 87a63bff67f1d1746799e8c8c478af13a9a85f64
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt)" = adc0070c248940e760674996d2b2f21cc137c459
           grep -Fq 'RealProfitStopGateChartStatus.message(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
@@ -224,4 +224,5 @@ jobs:
           grep -Fq 'if(target==null)OwnerAnnouncementDeliveryRefresh.published(announcementId)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OwnerAnnouncementsComposer.kt
           grep -Fq 'AnnouncementMegaphone(accent,note.id)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/AnnouncementNoteOverlay.kt
           grep -Fq 'pending=notes.firstOrNull{it.id==ownBroadcast' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/AnnouncementNoteOverlay.kt
+          grep -Fq 'if (TradingModeState.mode.value == TradingMode.REAL) return predictOnly(features)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt
           echo PR206_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

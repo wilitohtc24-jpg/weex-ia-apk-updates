@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 0187950975c1879b9aa3bc275e68e01666502754
+      SOURCE_SHA: 670c3ca7b8c7275fb5f806809939390b298c6683
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 0187950975c1879b9aa3bc275e68e01666502754
+          ref: 670c3ca7b8c7275fb5f806809939390b298c6683
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -88,12 +88,12 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealIndependentResearchWorker.kt)" = 87df5b3ad3e9b7a5b13225b074d85d980b7cc52e
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealResearchCoverageRotationTest.kt)" = d851bb2801058492d4ec945a4afcf3b0681c1e29
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OwnerAnnouncementsComposer.kt)" = 811b9a7021c3f948937e5faf6ddc3d57f127c830
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OwnerControlCenterDialog.kt)" = 819f143a5d659913f388b3c1ae42ae7a4b11281b
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OwnerControlCenterDialog.kt)" = 5f4de6c840cf7beb30389e2812097ed5f61f1f93
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/AnnouncementNoteOverlay.kt)" = a2721732905838a7e7a71cd87344903af3178262
           test ! -e app/weex-ia-signing.jks
           grep -Fq 'neonLastTransportFailureCode' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/MainActivity.kt)" = 17277b224edd06bdf76737b8541fa42925402ab6
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/MainActivity.kt)" = fb0e9a6707c05732baed18187ab1253dd69fdddd
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt)" = dbe7cf9f6c5b00125b9257ed3a8615b2da1ce6d0
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopGateChartStatusTest.kt)" = 40e1e4dd0d296ccf1f730c43b31812122139bc98
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt)" = a74aa0d0ab074b510aafa145486dd51027981ce9
@@ -220,7 +220,7 @@ jobs:
           grep -Fq 'if(current==OwnerPage.COMUNICADOS) Modifier' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OwnerControlCenterDialog.kt
           grep -Fq 'AnnouncementNoteOverlay(cloud,license,selectedTab)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
           grep -Fq 'synchronized(sharedModelWriteLock)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt
-          grep -Fq 'OwnerAnnouncementDeliveryRefresh.ownerPanelClosed()' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          grep -Fq 'onDispose { OwnerAnnouncementDeliveryRefresh.ownerPanelClosed() }' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OwnerControlCenterDialog.kt
           grep -Fq 'if(target==null)OwnerAnnouncementDeliveryRefresh.published(announcementId)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OwnerAnnouncementsComposer.kt
           grep -Fq 'AnnouncementMegaphone(accent,note.id)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/AnnouncementNoteOverlay.kt
           grep -Fq 'pending=notes.firstOrNull{it.id==ownBroadcast' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/AnnouncementNoteOverlay.kt

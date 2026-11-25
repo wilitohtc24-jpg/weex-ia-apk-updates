@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 22c73b569515950e5921f27c3d379de426ca272e
+      SOURCE_SHA: 90c0fedd5eed2f3cc58c5519275e3ae7544e7a63
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 22c73b569515950e5921f27c3d379de426ca272e
+          ref: 90c0fedd5eed2f3cc58c5519275e3ae7544e7a63
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -116,6 +116,9 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/SimulationAIMarketSelector.kt)" = 307b75db98e141b8c7f41515af8a07fcad0b450c
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt)" = ed0783dc30f95319d3097b8dd3209f6377b89a71
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ReasoningBrain.kt)" = 9f29692b757784fe19ce5b866c8a6eb070061bcf
+          # Preserve the exact published raw money/position authority until a deliberate, separately tested change.
+          git diff --exit-code 47a46990f98e56934f07d3ca31d1b4a347cc8bf3 HEAD -- app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt app/src/main/java/com/wilito/weexautotrader/StrategyParityPolicy.kt app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFloorPolicy.kt app/src/main/java/com/wilito/weexautotrader/RealCryptoFeeAwareSizingPolicy.kt app/src/main/java/com/wilito/weexautotrader/RealTradingPnl.kt
+          test "$(git hash-object docs/NO_OMITIR_APK_UNICA_WEEX_IA_20261124.md)" = 78e839c0384d941ddf2dc70be94aa64617e50a5f
           test ! -e app/weex-ia-signing.jks
           grep -Fq 'neonLastTransportFailureCode' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt

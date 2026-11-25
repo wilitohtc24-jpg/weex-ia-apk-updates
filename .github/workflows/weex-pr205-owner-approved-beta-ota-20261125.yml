@@ -1,0 +1,117 @@
+# Explicit owner authorization: public beta discoverable through installed app updater.
+# Same signed binary; no rebuild, production certification or real orders.
+name: WEEX PR205 owner-approved public diagnostic beta OTA
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr205-owner-approved-beta-ota-20261125.yml
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: weex-pr205-owner-approved-beta-ota
+  cancel-in-progress: false
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      REPO: wilitohtc24-jpg/weex-ia-apk-updates
+      RELEASE_ID: "457496553"
+      VERSION: "30536366"
+      SHA: 321d21511bab048c36e473040691534d3bbc3e027e7b837765d0351ebee2b718
+      BYTES: "63666705"
+      SIGNER: 5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6
+    steps:
+      - name: Verify exact public beta, prior latest and exact independent evidence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$REPO"
+          test "$GITHUB_REF" = "refs/heads/qa/weex-pr192-shadow-reconnect-20261124"
+          gh api "repos/$REPO/releases/$RELEASE_ID" > /tmp/pr205-beta.json
+          gh api "repos/$REPO/releases/latest" > /tmp/pr205-prior.json
+          for id in 45515651509 45516051110 45518446166; do
+            gh api "repos/$REPO/actions/runs/$id" > "/tmp/run-$id.json"
+          done
+          python3 - <<'PY'
+          import json,os
+          def load(path):return json.load(open(path))
+          r=load('/tmp/pr205-beta.json')
+          prior=load('/tmp/pr205-prior.json')
+          assert prior['tag_name']=='v30379864' and not prior['draft'] and not prior['prerelease']
+          assert r['id']==int(os.environ['RELEASE_ID']) and r['tag_name']=='beta-v30536366'
+          assert not r['draft'] and r['prerelease'] and r['published_at']
+          assert 'exclusivamente en SIM' in r['body'] and os.environ['SHA'] in r['body']
+          a=[x for x in r['assets'] if x['name']=='WEEX-IA-Trader-release.apk']
+          assert len(a)==1 and a[0]['state']=='uploaded' and a[0]['size']==int(os.environ['BYTES'])
+          assert a[0]['digest']=='sha256:'+os.environ['SHA']
+          for id,sha in [(45515651509,'8677e7ca5963fbb504f9ab27efb909839459a4c3'),(45516051110,'068c55cc4f240edd373309481c5d3597fbadd55b'),(45518446166,'7eaec8b28c0a78c929ec484531f8349287c3a208')]:
+              run=load(f'/tmp/run-{id}.json')
+              assert run['status']=='completed' and run['conclusion']=='success' and run['head_sha']==sha
+          print('PR205_EXACT_PUBLIC_BETA_AND_AUDITS_VERIFIED')
+          PY
+          if gh api "repos/$REPO/releases/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "Refusing to overwrite existing version"; exit 1
+          fi
+          if gh api "repos/$REPO/git/ref/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "Refusing to overwrite existing tag"; exit 1
+          fi
+      - name: Promote owner-approved diagnostic beta for voluntary app update
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$REPO/releases/latest" --jq .tag_name)" = "v30379864"
+          cat > /tmp/pr205-notes.md <<EOF
+          WEEX_OTA_RELEASE_APPROVED_V1
+          WEEX_OTA_PUBLIC_TEST_BETA_V1
+          WEEX_PR205_OWNER_AUTHORIZED_GLOBAL_BETA_20261125_V1
+
+          BETA PUBLICA DE DIAGNOSTICO, ACTUALIZACION VOLUNTARIA DESDE LA APK.
+          El propietario autorizo expresamente que todos puedan probar esta APK
+          desde el actualizador. NO es una version certificada como estable.
+          Probar exclusivamente en SIM y con REAL desactivado. No instalar
+          mientras existan posiciones reales abiertas. NO desinstalar ni borrar datos.
+          El mismo archivo firmado paso auditoria y actualizacion en emulador,
+          pero falta la prueba funcional en el telefono, conciliacion de cierres,
+          nuevas entradas, STOP/proteccion de ganancias, aprendizaje aplicado y
+          conectividad. Predicciones y asesoramiento de aprendizaje no estan
+          certificados para decisiones REAL. No garantiza rentabilidad ni proteccion.
+          No se declara aprobada la matriz funcional de 91 requisitos.
+
+          VersionCode: $VERSION
+          APK SHA-256: $SHA
+          Bytes: $BYTES
+          Firmante original SHA-256: $SIGNER
+          Paquete: com.wilito.weexautotrader
+          Fuente firmada: 47a46990f98e56934f07d3ca31d1b4a347cc8bf3
+          CircleCI job 53096.
+          Auditoria independiente: https://github.com/$REPO/actions/runs/45515651509
+          Actualizacion Android firmada: https://github.com/$REPO/actions/runs/45516051110
+          PR205: https://github.com/wilitohtc24-jpg/weex-auto-trader-android/pull/205
+          Version anterior v30379864 se conserva, sin borrar ni modificar su archivo.
+          EOF
+          gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" \
+            -f tag_name="v$VERSION" -f target_commitish=main \
+            -f name="WEEX IA Trader v$VERSION — BETA de diagnostico voluntaria" \
+            -f body="$(cat /tmp/pr205-notes.md)" \
+            -F draft=false -F prerelease=false -f make_latest=true > /tmp/pr205-promoted.json
+          gh api "repos/$REPO/releases/latest" > /tmp/pr205-latest.json
+          python3 - <<'PY'
+          import json,os
+          r=json.load(open('/tmp/pr205-latest.json'))
+          assert r['id']==int(os.environ['RELEASE_ID']) and r['tag_name']=='v'+os.environ['VERSION']
+          assert not r['draft'] and not r['prerelease'] and r['published_at']
+          assert 'BETA' in r['name'] and 'WEEX_OTA_PUBLIC_TEST_BETA_V1' in r['body']
+          assert 'WEEX_OTA_RELEASE_APPROVED_V1' in r['body'] and os.environ['SHA'] in r['body']
+          a=[x for x in r['assets'] if x['name']=='WEEX-IA-Trader-release.apk']
+          assert len(a)==1 and a[0]['state']=='uploaded' and a[0]['size']==int(os.environ['BYTES'])
+          assert a[0]['digest']=='sha256:'+os.environ['SHA']
+          assert a[0]['browser_download_url']=='https://github.com/'+os.environ['REPO']+'/releases/download/v'+os.environ['VERSION']+'/WEEX-IA-Trader-release.apk'
+          print('PR205_GLOBAL_DIAGNOSTIC_BETA_OTA_VISIBLE_IN_LATEST_NO_REBUILD')
+          PY

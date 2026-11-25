@@ -210,6 +210,31 @@ jobs:
             grep -Eo 'WEEX_PRESIGN_FIRST_FAILURE_LINE=[0-9]+|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=[0-9]+|WEEX_AUDIT_KOTLIN_ERROR_COUNT=[0-9]+|WEEX_AUDIT_JUNIT_BUILD_FAILED [0-9]+|WEEX_PRESIGN_SOURCE_REPLAY_FAILED rc=[0-9]+|WEEX_PREFLIGHT_BLOCKED|WEEX_RELEASE_ERRTRAP' /tmp/pr192-qa-source.log | tail -30 || true
             grep -Eo 'WEEX_AUDIT_JUNIT_FAILED com\.wilito\.weexautotrader\.[A-Za-z0-9_.$]+' /tmp/pr192-qa-source.log | head -20 || true
             grep -Eo 'app/src/[A-Za-z0-9_./-]+\.kt:[0-9]+:[0-9]+' /tmp/pr192-qa-source.log | sort -u | head -20 || true
+            # Only allowlisted Gradle task names and known failure categories.
+            # Do not echo source, compiler excerpts, paths, URLs or remote payloads.
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+          data=Path("/tmp/pr192-qa-source.log").read_text(errors="replace")
+          categories={
+            "DAEMON_DISAPPEARED":r"daemon disappeared|daemon has disappeared|daemon was stopped",
+            "OOM":r"OutOfMemoryError|Java heap space|GC overhead limit|out of memory|Metaspace",
+            "KILLED":r"exit (?:code|value) 137|signal 9|Killed process",
+            "DEPENDENCY_RESOLUTION":r"Could not resolve|Could not download|Could not GET|Could not HEAD",
+            "NETWORK_TIMEOUT":r"Read timed out|Connect timed out|Connection timed out|SocketTimeoutException",
+            "DISK_FULL":r"No space left on device",
+            "KOTLIN_INTERNAL":r"Internal compiler error|Backend Internal error|Compilation error",
+            "GRADLE_TIMEOUT":r"TimeoutException|timed out waiting",
+            "TEST_EXECUTOR":r"Gradle Test Executor|Test process encountered|There were failing tests",
+            "BUILD_FAILED":r"BUILD FAILED",
+          }
+          for name,pattern in categories.items():
+              if re.search(pattern,data,re.I):
+                  print("QA_GRADLE_CATEGORY="+name)
+          for task in sorted(set(re.findall(r"(?:Execution failed for task ['\x22]|> Task )(:[A-Za-z0-9_:.-]+)(?:['\x22]| FAILED)",data))):
+              if re.fullmatch(r":app:[A-Za-z0-9_]+",task):
+                  print("QA_GRADLE_FAILED_TASK="+task)
+          PY
             exit 1
           fi
           grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr192-qa-source.log

@@ -1,0 +1,66 @@
+# Isolated source QA: no production database, deployment, WEEX or APK.
+name: WEEX PR214 collective backend fixture QA
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr214-backend-collective-offline-qa-20261125.yml
+permissions:
+  contents: read
+jobs:
+  collective-fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fixture
+          POSTGRES_PASSWORD: fixture
+          POSTGRES_DB: weex_collective_fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fixture -d weex_collective_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout exact private source read-only
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 96caa832605ae7d65cdd0ec61eeae0cd451120aa
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          path: source
+      - name: Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact backend and run isolated tests
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "96caa832605ae7d65cdd0ec61eeae0cd451120aa"
+          test "$(git hash-object backend/neon/gateway/core.mjs)" = "705866aa40964ab8601ba70e94e5ecadd7a2c598"
+          test "$(git hash-object backend/neon/gateway/core.test.mjs)" = "b5320f1d9c7fdf5aae6fdc7a72aa30eeec658601"
+          test "$(git hash-object backend/neon/gateway/collective-e6.test.mjs)" = "683acc5ba519956e527f1f1a54aa2e17619ffd74"
+          test "$(git hash-object backend/neon/gateway/collective-e6-postgres.integration.mjs)" = "69ace0b0710dcd433bb4f7959ff4114255353a1c"
+          cd backend/neon/gateway
+          unset DATABASE_URL NEON_DATABASE_URL POSTGRES_URL
+          export WEEX_COLLECTIVE_FIXTURE_URL=postgres://fixture:fixture@127.0.0.1:5432/weex_collective_fixture
+          # Do not publish private source, database contents, tokens or raw logs.
+          for spec in core.test.mjs collective-e6.test.mjs collective-e6-postgres.integration.mjs; do
+            if ! node --test "$spec" >/tmp/weex-backend-fixture.log 2>&1; then
+              echo "::error::BACKEND_FIXTURE_FAILED $spec"
+              grep -E '^# (tests|pass|fail|cancelled|skipped|todo) [0-9]+$' /tmp/weex-backend-fixture.log || true
+              exit 1
+            fi
+            echo "BACKEND_FIXTURE_PASS $spec"
+            grep -E '^# (tests|pass|fail|cancelled|skipped|todo) [0-9]+$' /tmp/weex-backend-fixture.log
+            grep -Eq '^# fail 0$' /tmp/weex-backend-fixture.log
+            grep -Eq '^# skipped 0$' /tmp/weex-backend-fixture.log
+          done
+          echo PR214_COLLECTIVE_BACKEND_POSTGRES_FIXTURE_PASS_NO_DEPLOYMENT

@@ -1,3 +1,4 @@
+# Retry exact immutable source after dependency resolution failure in run 45704051612; all gates unchanged.
 # Source QA only. Does NOT build/sign an APK, access WEEX, deploy Neon, or publish OTA.
 name: WEEX PR216 signed opening history canonical QA NO APK
 on:

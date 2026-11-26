@@ -300,6 +300,22 @@ jobs:
                   print("PR247_FAILURE_GUARD="+match.group(0))
               for match in re.finditer(r"\b(?:ci/)?(?:verify|patch|test)_[a-z0-9_]+\.py\b",line):
                   if "PRESIGN_FAILURE_CONTEXT" in line: print("PR247_FAILURE_SCRIPT="+match.group(0))
+              if "PRESIGN_FAILURE_CONTEXT" in line:
+                  # Static diagnostic categories only, never arbitrary source/log text.
+                  for label,pattern in (
+                      ("LEGACY_PENDING_CLEAR",r"store\.clear\(\)"),
+                      ("PLANNED_ENTRY_STORE",r"PlannedRealEntryStore|PredictiveEntryPlanner"),
+                      ("SNAPSHOT_COMPARE_CLEAR",r"clearIfUnchanged|matchesPlannedEntrySnapshot"),
+                      ("REGRESSION_FIXTURE_MISSING",r"regression fixture missing"),
+                      ("LEGACY_MATERIALIZER_ANCHOR",r"anchor missing|anchor changed|source changed|expected 1"),
+                      ("PYTHON_ASSERTION",r"AssertionError|Traceback"),
+                      ("STICKY_TTL_REPLAY",r"REAL_PENDING_STICKY_TTL_V2_REPLAY"),
+                  ):
+                      if re.search(pattern,line): print("PR247_FAILURE_CATEGORY="+label)
+                  for match in re.finditer(r"\b(?:[A-Z][A-Z0-9_]{5,90}|(?:PLANNED V2 COMPAT|MAKER STRATEGY PRECOMPAT|PLANNED V2))(?=[: ])",line):
+                      print("PR247_FAILURE_CONTEXT_MARK="+match.group(0))
+                  for match in re.finditer(r"\bWEEX_RELEASE_ERRTRAP line=[0-9]+ rc=[0-9]+",line):
+                      print("PR247_FAILURE_SHELL="+match.group(0))
           PY
             grep -Eo 'WEEX_AUDIT_JUNIT_FAILED com\.wilito\.weexautotrader\.[A-Za-z0-9_.$]+' /tmp/pr192-qa-source.log | head -20 || true
             grep -Eo 'app/src/[A-Za-z0-9_./-]+\.kt:[0-9]+:[0-9]+' /tmp/pr192-qa-source.log | sort -u | head -20 || true

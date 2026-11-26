@@ -1504,3 +1504,44 @@ jobs:
           emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           disable-animations: true
           script: bash /tmp/pr192-art-offline-runner.sh
+
+  # Publish only the QA lifecycle and run URL on this public CI commit.
+  # No source checkout, private read token, release permission or signing.
+  report-qa-start:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      statuses: write
+    steps:
+      - name: Expose push run ID through commit status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending \
+            -f context=weex/pr286/cumulative-qa \
+            -f description="Immutable source QA running; no OTA" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+  report-qa-finish:
+    if: ${{ always() }}
+    needs: [pr192-integrated-source-qa, report-qa-start]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      statuses: write
+    steps:
+      - name: Expose terminal cumulative QA result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_RESULT: ${{ needs.pr192-integrated-source-qa.result }}
+        run: |
+          case "$QA_RESULT" in
+            success) state=success ;;
+            failure) state=failure ;;
+            *) state=error ;;
+          esac
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" \
+            -f context=weex/pr286/cumulative-qa \
+            -f description="Cumulative QA: $QA_RESULT; no OTA" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

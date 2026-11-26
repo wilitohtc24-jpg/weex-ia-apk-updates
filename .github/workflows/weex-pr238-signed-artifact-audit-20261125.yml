@@ -1,6 +1,9 @@
 name: WEEX PR238 signed CircleCI artifact hash and signer audit (NO OTA)
 on:
-  workflow_dispatch:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr238-signed-artifact-audit-20261125.yml
 permissions:
   contents: read
 jobs:

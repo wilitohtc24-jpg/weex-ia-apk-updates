@@ -444,6 +444,7 @@ jobs:
           fi
           grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr192-qa-source.log
           grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr192-qa-source.log
+          echo PR263_CANONICAL_PRESIGN_AND_ANDROID_JUNIT_PASS
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealAppliedLearningCertifiedClosePipeline.kt
@@ -487,7 +488,17 @@ jobs:
           grep -Fq 'rememberOriginalObservedAck(api,prepared,receipt,studyAckObservedAt)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt
           grep -Fq 'RealOriginalDecisionDraftStore(context).promoteOne(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
           grep -Fq 'links.readOrRestoreFromExactArchives(account,orderId,clientId)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt
-          test "$(grep -Fc 'submittedQuantity=prepared.quantity.toDoubleOrNull()' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt)" = 3
+          # PR258 added a separate local study observation copy. Check all
+          # four uses explicitly, not the legacy total of three receipts.
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("/tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt").read_text()
+          assert s.count("submittedQuantity=prepared.quantity.toDoubleOrNull()")==4, "PR263 exact submitted quantity use count"
+          assert s.count("submittedQuantity=prepared.quantity.toDoubleOrNull()?.takeIf{signedStudyQtyMatches},")==2, "PR263 signed IOC/recovered receipt quantity"
+          assert s.count("submittedQuantity=prepared.quantity.toDoubleOrNull()?.takeIf{receipt.clientOrderId==prepared.clientOrderId},")==1, "PR263 maker receipt identity"
+          assert s.count("receipt.copy(submittedQuantity=prepared.quantity.toDoubleOrNull()),observedAt)")==1, "PR263 local study observation copy"
+          print("PR263_ALL_FOUR_EXACT_SUBMITTED_QUANTITY_USES_VERIFIED")
+          PY
           grep -Fq 'trackedPendingOrderId.orEmpty(),trackedPendingClientId.orEmpty()' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
           grep -Fq 'check(maySavePlannedEntry(v,load(),prefs.all.isEmpty()))' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/PredictiveEntryPlanner.kt
           grep -Fq 'signedHistoricalProtectiveCloseCandidate(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt

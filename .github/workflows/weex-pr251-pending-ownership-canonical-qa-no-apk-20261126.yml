@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 1323df5039a1848eef352a9c0282ef5c3bfcf761
+      SOURCE_SHA: 9e3673ca2f274002880c87963643ee260374cb71
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 1323df5039a1848eef352a9c0282ef5c3bfcf761
+          ref: 9e3673ca2f274002880c87963643ee260374cb71
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -63,6 +63,7 @@ jobs:
           test "$(git hash-object ci/verify_reachable_pending_entry_v1.py)" = 005c6cc236a8893509f4949975fd8f7844caf454
           test "$(git hash-object ci/verify_real_pending_sticky_ttl_v2.py)" = a73f4bb7994b4a99af6ed593b1561ce56b59ffd9
           test "$(git hash-object ci/verify_real_pending_reconcile_progress_v1.py)" = fb979ff22fa16f0a28e4473ffc70521672ab9f2a
+          test "$(git hash-object ci/owner_real_selector_scope_v1.py)" = e48eb755ef8f51954eb33500c99fd570735a3911
           test "$(git hash-object ci/patch_real_pending_entry_exclusive_hold_v2.py)" = 34ea668de7920ca96be4d54b966a2bae327d170c
           test "$(git hash-object ci/verify_real_selector_pending_scope_antiwait_v1.py)" = ba492a63c0667b8f4984cacea8b1f22d098aacbb
           test "$(git hash-object ci/verify_real_pending_entry_exclusive_hold_v2.py)" = 56dee67fe2fb66638caf2f25d85b4dee53fa13ec

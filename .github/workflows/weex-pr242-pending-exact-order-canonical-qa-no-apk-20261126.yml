@@ -285,6 +285,17 @@ jobs:
             # when BUILD_FAILED had zero Kotlin errors and zero failing JUnit XML.
             # Keep compiler, timeout and infrastructure errors, never HTTP bodies.
             grep -Eo 'WEEX_PRESIGN_FIRST_FAILURE_LINE=[0-9]+|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=[0-9]+|WEEX_AUDIT_KOTLIN_ERROR_COUNT=[0-9]+|WEEX_AUDIT_JUNIT_BUILD_FAILED [0-9]+|WEEX_PRESIGN_SOURCE_REPLAY_FAILED rc=[0-9]+|WEEX_PREFLIGHT_BLOCKED|WEEX_RELEASE_ERRTRAP' /tmp/pr192-qa-source.log | tail -30 || true
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+          # Emit only bounded source guard identifiers, not arbitrary logs or credentials.
+          log=Path("/tmp/pr192-qa-source.log").read_text(errors="replace")
+          for line in log.splitlines():
+              for match in re.finditer(r"\b[A-Z][A-Z0-9_]{5,90}(?:_FAIL|_FAILED|_MISSING|_REGRESSION|_REJECTED|_BLOCKED|_MISMATCH)\b",line):
+                  print("PR242_FAILURE_GUARD="+match.group(0))
+              for match in re.finditer(r"\b(?:ci/)?(?:verify|patch|test)_[a-z0-9_]+\.py\b",line):
+                  if "PRESIGN_FAILURE_CONTEXT" in line: print("PR242_FAILURE_SCRIPT="+match.group(0))
+          PY
             grep -Eo 'WEEX_AUDIT_JUNIT_FAILED com\.wilito\.weexautotrader\.[A-Za-z0-9_.$]+' /tmp/pr192-qa-source.log | head -20 || true
             grep -Eo 'app/src/[A-Za-z0-9_./-]+\.kt:[0-9]+:[0-9]+' /tmp/pr192-qa-source.log | sort -u | head -20 || true
             # Only allowlisted Gradle task names and known failure categories.

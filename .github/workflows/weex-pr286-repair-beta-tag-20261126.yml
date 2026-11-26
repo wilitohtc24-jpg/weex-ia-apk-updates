@@ -1,0 +1,118 @@
+name: Repair exact PR286 public beta tag and verify download
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr286-repair-beta-tag-20261126.yml
+permissions:
+  contents: write
+concurrency:
+  group: weex-pr286-opt-in-beta
+  cancel-in-progress: false
+jobs:
+  repair-tag:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: wilitohtc24-jpg/weex-ia-apk-updates
+      RELEASE_ID: "459958963"
+      ASSET_ID: "797943559"
+      SHA: fcf2fc880dfbb3fb2693830e285a84a1c7b9e2f77f11a286be4a8c9af1493de2
+    steps:
+      - name: Verify exact persisted public prerelease and stable baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$REPO"
+          test "$GITHUB_REF" = "refs/heads/qa/weex-pr192-shadow-reconnect-20261124"
+          gh api "repos/$REPO/releases/$RELEASE_ID" > /tmp/current.json
+          gh api "repos/$REPO/releases/latest" > /tmp/stable.json
+          gh api --paginate "repos/$REPO/releases?per_page=100" --slurp > /tmp/releases.json
+          python3 - <<'PY'
+          import json,os
+          r=json.load(open("/tmp/current.json"))
+          stable=json.load(open("/tmp/stable.json"))
+          assert stable["tag_name"]=="v30536366" and not stable["draft"] and not stable["prerelease"]
+          assets=[a for a in stable["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(assets)==1 and assets[0]["digest"]=="sha256:321d21511bab048c36e473040691534d3bbc3e027e7b837765d0351ebee2b718"
+          assert r["id"]==int(os.environ["RELEASE_ID"]) and r["tag_name"] in ("untagged-d53d4c1ed2a0351a3828","v30704940")
+          assert r["draft"] is False and r["prerelease"] is True and r["published_at"]
+          assert "WEEX_PUBLIC_OPT_IN_TEST_BETA_V1" in r["body"] and os.environ["SHA"] in r["body"]
+          assert "610287e3bc69155fa6c2ac290902879689d7e3fd" in r["body"]
+          a=[a for a in r["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(a)==1 and a[0]["id"]==int(os.environ["ASSET_ID"]) and a[0]["state"]=="uploaded"
+          assert a[0]["size"]==63830545 and a[0]["digest"]=="sha256:"+os.environ["SHA"]
+          releases=[x for page in json.load(open("/tmp/releases.json")) for x in page]
+          assert not any(x["tag_name"]=="v30704940" and x["id"]!=r["id"] for x in releases)
+          print("PR286_EXACT_EXISTING_PUBLIC_BETA_VERIFIED")
+          PY
+          for entry in "45902846558:aab858329774679b68e547dba088ebe139af93dd" "45904143636:5f33a394199779be16b3ed29a8684136c362a321" "45904628259:2316f2d1b5962e2c98eba344cdac8f1359e3d2bc"; do
+            run="${entry%%:*}"; sha="${entry#*:}"
+            gh api "repos/$REPO/actions/runs/$run" | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["head_sha"]==sys.argv[1] and r["status"]=="completed" and r["conclusion"]=="success"' "$sha"
+          done
+      - name: Repair tag only on same release ID and verify anonymous download
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$REPO/releases/latest" --jq .tag_name)" = v30536366
+          if test "$(gh api "repos/$REPO/releases/$RELEASE_ID" --jq .tag_name)" != v30704940; then
+            # Reject conflicting existing tags, never move or delete a git ref.
+            gh api --paginate "repos/$REPO/git/matching-refs/tags/v30704940" --slurp > /tmp/tag-refs.json
+            python3 -c 'import json; assert not any(r["ref"]=="refs/tags/v30704940" for page in json.load(open("/tmp/tag-refs.json")) for r in page), "Tag already exists; review before changing"'
+            gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" -f tag_name=v30704940 -f target_commitish=main -F draft=false -F prerelease=true -f make_latest=false > /tmp/patch.json
+          fi
+          gh api "repos/$REPO/releases/$RELEASE_ID" > /tmp/after.json
+          gh api "repos/$REPO/releases/latest" > /tmp/latest-after.json
+          python3 - <<'PY'
+          import json,os,urllib.request,time
+          r=json.load(open("/tmp/after.json"))
+          print("PR286_PERSISTED_TAG="+str(r.get("tag_name")))
+          assert r["id"]==int(os.environ["RELEASE_ID"]) and r["tag_name"]=="v30704940"
+          assert r["draft"] is False and r["prerelease"] is True and r["published_at"]
+          a=[a for a in r["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(a)==1 and a[0]["id"]==int(os.environ["ASSET_ID"]) and a[0]["size"]==63830545 and a[0]["digest"]=="sha256:"+os.environ["SHA"]
+          latest=json.load(open("/tmp/latest-after.json"))
+          assert latest["tag_name"]=="v30536366" and not latest["draft"] and not latest["prerelease"]
+          expected="https://github.com/"+os.environ["REPO"]+"/releases/download/v30704940/WEEX-IA-Trader-release.apk"
+          assert a[0]["browser_download_url"]==expected
+          for attempt in range(4):
+              try:
+                  request=urllib.request.Request(expected,method="HEAD",headers={"User-Agent":"WEEX-public-beta-verification"})
+                  with urllib.request.urlopen(request,timeout=25) as response:
+                      assert response.status==200 and int(response.headers["Content-Length"])==63830545
+                  break
+              except Exception:
+                  if attempt==3: raise
+                  time.sleep(5)
+          print("PR286_ANONYMOUS_PUBLIC_BETA_DOWNLOAD_VERIFIED="+expected)
+          print("PR286_STABLE_OTA_UNCHANGED")
+          PY
+  report-start:
+    runs-on: ubuntu-24.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Report tag repair run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=pending -f context=weex/pr286/beta-tag-repair -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+  report-finish:
+    if: ${{ always() }}
+    needs: [repair-tag, report-start]
+    runs-on: ubuntu-24.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Report tag repair result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_RESULT: ${{ needs.repair-tag.result }}
+        run: |
+          case "$QA_RESULT" in
+            success) state=success ;;
+            failure) state=failure ;;
+            *) state=error ;;
+          esac
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state="$state" -f context=weex/pr286/beta-tag-repair -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

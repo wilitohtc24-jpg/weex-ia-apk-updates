@@ -1,0 +1,129 @@
+# Owner explicitly authorized public testing 26-Nov-2026.
+# Optional prerelease download ONLY. Do not activate the automatic OTA or attest phone acceptance.
+name: PR286 authorized opt-in public beta 30704940 (not latest OTA)
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr286-publish-opt-in-beta-20261126.yml
+permissions:
+  contents: write
+concurrency:
+  group: weex-pr286-opt-in-beta
+  cancel-in-progress: false
+jobs:
+  publish-beta:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: wilitohtc24-jpg/weex-ia-apk-updates
+      VERSION: "30704940"
+      SHA: fcf2fc880dfbb3fb2693830e285a84a1c7b9e2f77f11a286be4a8c9af1493de2
+      BYTES: "63830545"
+      SIGNER: 5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6
+    steps:
+      - name: Verify exact draft and three successful immutable QA runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$REPO"
+          test "$GITHUB_REF" = "refs/heads/qa/weex-pr192-shadow-reconnect-20261124"
+          test "$GITHUB_EVENT_NAME" = push
+          gh api "repos/$REPO/releases/latest" > /tmp/stable.json
+          gh api --paginate "repos/$REPO/releases?per_page=100" --slurp > /tmp/releases.json
+          for entry in "45902846558:aab858329774679b68e547dba088ebe139af93dd" "45904143636:5f33a394199779be16b3ed29a8684136c362a321" "45904628259:2316f2d1b5962e2c98eba344cdac8f1359e3d2bc"; do
+            run="${entry%%:*}"; sha="${entry#*:}"
+            gh api "repos/$REPO/actions/runs/$run" | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["head_sha"]==sys.argv[1] and r["status"]=="completed" and r["conclusion"]=="success"' "$sha"
+          done
+          python3 - <<'PY'
+          import json,os
+          stable=json.load(open("/tmp/stable.json"))
+          assert stable["tag_name"]=="v30536366" and not stable["draft"] and not stable["prerelease"]
+          assets=[a for a in stable["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(assets)==1 and assets[0].get("digest")=="sha256:321d21511bab048c36e473040691534d3bbc3e027e7b837765d0351ebee2b718"
+          rows=[r for page in json.load(open("/tmp/releases.json")) for r in page]
+          exact=[r for r in rows if r["tag_name"]=="v"+os.environ["VERSION"]]
+          assert len(exact)==1
+          r=exact[0]
+          assert r["draft"] is True and r["prerelease"] is True and r["published_at"] is None
+          assert "WEEX_OTA_PENDING_OWNER_GLOBAL_ROLLOUT_APPROVAL_V1" in r["body"]
+          assert os.environ["SHA"] in r["body"] and os.environ["SIGNER"] in r["body"]
+          assert "610287e3bc69155fa6c2ac290902879689d7e3fd" in r["body"]
+          apk=[a for a in r["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(apk)==1 and apk[0]["state"]=="uploaded"
+          assert apk[0]["size"]==int(os.environ["BYTES"]) and apk[0]["digest"]=="sha256:"+os.environ["SHA"]
+          with open("/tmp/release-id","w") as f:f.write(str(r["id"]))
+          print("PR286_OPT_IN_BETA_EXACT_DRAFT_VERIFIED")
+          PY
+      - name: Publish optional prerelease only and verify stable OTA remains unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          id="$(cat /tmp/release-id)"
+          cat > /tmp/beta-notes.md <<EOF
+          WEEX_PUBLIC_OPT_IN_TEST_BETA_V1
+          WEEX IA Trader 286 — BETA voluntaria de prueba
+          Autorizada para descarga pública por el propietario el 26 de noviembre de 2026.
+          NO es la OTA estable ni una aprobación para operación REAL.
+          Comienza en SIM. No uses dinero real para probar funciones pendientes.
+          No desinstales ni borres datos. No cambies credenciales.
+          Las pruebas técnicas de Android, firma original, auditoría y dos actualizaciones offline pasaron.
+          No se ha completado la aceptación funcional A1–A27 ni la prueba en el móvil del propietario.
+          Protección automática de ganancias y aprendizaje aplicado REAL todavía requieren validación.
+          No garantiza ganancias ni una ejecución REAL correcta.
+          VersionCode: $VERSION
+          SHA-256: $SHA
+          Bytes: $BYTES
+          Firmante: $SIGNER
+          Fuente: 610287e3bc69155fa6c2ac290902879689d7e3fd
+          Auditoría: https://github.com/$REPO/actions/runs/45902846558
+          Instalación: https://github.com/$REPO/actions/runs/45904143636
+          EOF
+          test "$(gh api "repos/$REPO/releases/latest" --jq .tag_name)" = v30536366
+          gh api --method PATCH "repos/$REPO/releases/$id" -F draft=true -F prerelease=true -f make_latest=false -f name="WEEX IA Trader BETA voluntaria v$VERSION" -f body="$(cat /tmp/beta-notes.md)" > /tmp/prepared.json
+          python3 -c 'import json; r=json.load(open("/tmp/prepared.json")); assert r["draft"] is True and r["prerelease"] is True and "WEEX_PUBLIC_OPT_IN_TEST_BETA_V1" in r["body"]'
+          gh api --method PATCH "repos/$REPO/releases/$id" -F draft=false -F prerelease=true -f make_latest=false > /tmp/public-beta.json
+          gh api "repos/$REPO/releases/latest" > /tmp/latest-after.json
+          python3 - <<'PY'
+          import json,os
+          r=json.load(open("/tmp/public-beta.json"))
+          assert r["tag_name"]=="v"+os.environ["VERSION"] and r["draft"] is False and r["prerelease"] is True
+          assert r["published_at"] and "WEEX_PUBLIC_OPT_IN_TEST_BETA_V1" in r["body"]
+          a=[a for a in r["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(a)==1 and a[0]["digest"]=="sha256:"+os.environ["SHA"] and a[0]["size"]==int(os.environ["BYTES"])
+          expected="https://github.com/"+os.environ["REPO"]+"/releases/download/v"+os.environ["VERSION"]+"/WEEX-IA-Trader-release.apk"
+          assert a[0]["browser_download_url"]==expected
+          latest=json.load(open("/tmp/latest-after.json"))
+          assert latest["tag_name"]=="v30536366" and latest["draft"] is False and latest["prerelease"] is False
+          print("PR286_OPT_IN_PUBLIC_BETA_VERIFIED="+expected)
+          print("PR286_STABLE_OTA_UNCHANGED")
+          PY
+  report-beta-start:
+    runs-on: ubuntu-24.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Report beta run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=pending -f context=weex/pr286/opt-in-beta -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+  report-beta-finish:
+    if: ${{ always() }}
+    needs: [publish-beta, report-beta-start]
+    runs-on: ubuntu-24.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Report beta result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_RESULT: ${{ needs.publish-beta.result }}
+        run: |
+          case "$QA_RESULT" in
+            success) state=success ;;
+            failure) state=failure ;;
+            *) state=error ;;
+          esac
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state="$state" -f context=weex/pr286/opt-in-beta -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

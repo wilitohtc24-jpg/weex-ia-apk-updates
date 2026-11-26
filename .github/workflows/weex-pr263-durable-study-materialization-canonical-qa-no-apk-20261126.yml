@@ -324,6 +324,15 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt)" = 837e09efa679e41b64fcc5d13f0838e162512cd2
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollectorTest.kt)" = 84a5a830c80a2df0d1212887175e622653a4aa0d
           echo PR237_EXACT_SOURCE_AND_PINNED_CHANGES
+      - name: Isolate REAL durability regression before canonical replay
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No credentials, Android assembly or network operations in this source-only test.
+          # Run the exact regression, retaining its source-only diagnostic on failure.
+          python3 ci/test_final_real_execution_durability_restoration_v1.py
+          python3 ci/test_final_real_durability_full_replay_v1.py
       - name: Prepare Java 17 and Android SDK 35
         uses: actions/setup-java@v4
         with:
@@ -385,6 +394,14 @@ jobs:
                       ("LEGACY_MATERIALIZER_ANCHOR",r"anchor missing|anchor changed|source changed|expected 1"),
                       ("PYTHON_ASSERTION",r"AssertionError|Traceback"),
                       ("STICKY_TTL_REPLAY",r"REAL_PENDING_STICKY_TTL_V2_REPLAY"),
+                      ("DURABILITY_POST_VERIFIER",r"post-verifier .* rejected exact materialized Kotlin"),
+                      ("DURABILITY_MATERIALIZER",r"materializer .* unexpected rc="),
+                      ("DURABILITY_IOC_ACK",r"IOC exact study ACK|IOC study receipt quantity lost|IOC no-fill study cleanup|unexpected/reordered IOC study action"),
+                      ("DURABILITY_MAKER_ACK",r"unexpected/reordered Maker action|unknown/reordered Maker action|refusing Maker rebuild"),
+                      ("DURABILITY_RECOVERY_ACK",r"unexpected/reordered recovered exact receipt|unknown/reordered catch recovery action|recovered study receipt quantity lost"),
+                      ("DURABILITY_TERMINAL_CLEANUP",r"terminal study cleanup|signed terminal study cleanup"),
+                      ("DURABILITY_REENTRANT",r"reentrant run|reentrant Kotlin rewrite|late Maker owner restoration"),
+                      ("DURABILITY_STUDY_MUTATION",r"study marker lost or duplicated|removed study marker accepted"),
                   ):
                       if re.search(pattern,line): print("PR258_FAILURE_CATEGORY="+label)
                   for match in re.finditer(r"\b(?:[A-Z][A-Z0-9_]{5,90}|(?:PLANNED V2 COMPAT|MAKER STRATEGY PRECOMPAT|PLANNED V2))(?=[: ])",line):

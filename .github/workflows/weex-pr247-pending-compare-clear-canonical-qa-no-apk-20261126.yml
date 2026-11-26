@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 2598e3c969ab230fd189f75305dd188337409005
+      SOURCE_SHA: 79d6fad036c7c9435f0cca7f193671acaa31de87
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 2598e3c969ab230fd189f75305dd188337409005
+          ref: 79d6fad036c7c9435f0cca7f193671acaa31de87
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -67,7 +67,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 1b2ffc07eb80d3ea4c10f49264f7c408cc56aca9
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = 902ca6a615cc77901c5170b236fb3f4b17c312e1
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLearningAdviceBackgroundTest.kt)" = a0cd728125a0519ae351dcf4d4377aa1842331e7
-          test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = 7ab721846d76191d41939d5d33dcdf0f3a820e03
+          test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = ee447b6572077aa57af19455700cc7ed2c7758dd
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedOriginalOpeningReadOnlyCollector.kt)" = 01925294ac975649160339a3bf1bab2791c7b5e7
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt)" = 7ace9d8ee51fd809e86d995ea834345c2ea7212b
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicyTest.kt)" = a3357ff4cca3fd35ca43128e5b0c3f8e8dd03a07

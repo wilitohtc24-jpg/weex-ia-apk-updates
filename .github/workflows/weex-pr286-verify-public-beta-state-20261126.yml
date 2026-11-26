@@ -1,0 +1,76 @@
+name: Read-only PR286 public beta reconciliation
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr286-verify-public-beta-state-20261126.yml
+permissions:
+  contents: read
+jobs:
+  read-state:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Inspect persisted release flags, asset and public download without editing anything
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > /tmp/latest.json
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --slurp > /tmp/releases.json
+          python3 - <<'PY'
+          import json,urllib.request
+          rows=[r for page in json.load(open("/tmp/releases.json")) for r in page]
+          latest=json.load(open("/tmp/latest.json"))
+          print("PR286_LATEST_TAG="+str(latest.get("tag_name")))
+          print("PR286_LATEST_FLAGS="+str((latest.get("draft"),latest.get("prerelease"))))
+          candidates=[r for r in rows if r.get("tag_name")=="v30704940" or ("fcf2fc880dfbb3fb2693830e285a84a1c7b9e2f77f11a286be4a8c9af1493de2" in (r.get("body") or "") and "30704940" in (r.get("name") or ""))]
+          print("PR286_CANDIDATE_COUNT="+str(len(candidates)))
+          for r in candidates:
+              print("PR286_CANDIDATE_STATE="+json.dumps({k:r.get(k) for k in ("id","tag_name","draft","prerelease","published_at","html_url")}))
+              for a in r.get("assets",[]):
+                  if a.get("name")=="WEEX-IA-Trader-release.apk":
+                      print("PR286_ASSET_STATE="+json.dumps({k:a.get(k) for k in ("id","state","size","digest","browser_download_url")}))
+          assert len(candidates)==1
+          r=candidates[0]
+          assert latest["tag_name"]=="v30536366" and not latest["draft"] and not latest["prerelease"],"Stable OTA changed"
+          assert r["tag_name"]=="v30704940" and r["draft"] is False and r["prerelease"] is True and r["published_at"],"Candidate not confirmed public prerelease"
+          a=[a for a in r["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(a)==1 and a[0]["size"]==63830545 and a[0]["digest"]=="sha256:fcf2fc880dfbb3fb2693830e285a84a1c7b9e2f77f11a286be4a8c9af1493de2"
+          url="https://github.com/wilitohtc24-jpg/weex-ia-apk-updates/releases/download/v30704940/WEEX-IA-Trader-release.apk"
+          assert a[0]["browser_download_url"]==url
+          req=urllib.request.Request(url,method="HEAD",headers={"User-Agent":"WEEX-public-beta-verification"})
+          with urllib.request.urlopen(req,timeout=25) as response:
+              assert response.status==200
+              assert int(response.headers["Content-Length"])==63830545
+          print("PR286_ANONYMOUS_PUBLIC_BETA_DOWNLOAD_VERIFIED="+url)
+          PY
+  report-state-start:
+    runs-on: ubuntu-24.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Report reconciliation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=pending -f context=weex/pr286/beta-reconciliation -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+  report-state-finish:
+    if: ${{ always() }}
+    needs: [read-state, report-state-start]
+    runs-on: ubuntu-24.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Report reconciliation result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_RESULT: ${{ needs.read-state.result }}
+        run: |
+          case "$QA_RESULT" in
+            success) state=success ;;
+            failure) state=failure ;;
+            *) state=error ;;
+          esac
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state="$state" -f context=weex/pr286/beta-reconciliation -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

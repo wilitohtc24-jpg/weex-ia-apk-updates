@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: 0b7cc5b383127770d8ebf5bc417a57495455103a
+      SOURCE_SHA: 6195559a70813e93ed534b867402f0154bda10e7
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 0b7cc5b383127770d8ebf5bc417a57495455103a
+          ref: 6195559a70813e93ed534b867402f0154bda10e7
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -159,7 +159,7 @@ jobs:
           assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt','app/src/main/java/com/wilito/weexautotrader/RealCombinedProfitPositionRotation.kt','app/src/main/java/com/wilito/weexautotrader/TraderService.kt','app/src/test/java/com/wilito/weexautotrader/RealCombinedProfitPositionRotationTest.kt'}, 'PR286 unexpected source scope'
           print('PR286_EXACT_SIGNED_DISPATCH_SCOPE_OK')
           PY
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = 68f03ec70a87f15e5d849cd74f744b5f9ea137d0
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = 4dfcd0431666f7a7d0cae139ae3823a61476183c
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPrivateCloseCapture.kt)" = 1979475e1bfc78c3f7eeb0137442cd6bb2ba2fa5
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPrivateCloseRestResearch.kt)" = 5feb1a0af1886e04f4f8957dfd3b9fb5831aba8b
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealProtectiveCloseRecovery.kt)" = 35991b0d1ef67b895acc55068dfe107e5ec2b9d7
@@ -1113,6 +1113,12 @@ jobs:
           assert coordinator.index("SecureCredentials(context).load()!=credentials")<coordinator.index("val api=WeexPrivateApi(credentials)")
           assert coordinator.count("RealCombinedProfitDispatchPolicy.fresh(")==2
           assert "nowElapsed-readElapsed<=20_000L" in rotation
+          # A stale queued worker must not advance fair rotation or the polling deadline.
+          assert coordinator.count("rotation=selected.next")==1
+          assert coordinator.count("nextCheckAtElapsedMs=now+90_000L")==1
+          assert coordinator.index("background.launch(Dispatchers.IO)")<coordinator.index("inspectOne(chosen,captured,capturedCredentials,signedReadElapsed)")<coordinator.index("rotation=selected.next")<coordinator.index("nextCheckAtElapsedMs=now+90_000L")<coordinator.index("job.invokeOnCompletion")
+          assert coordinator.index("SecureCredentials(context).load()!=credentials")<coordinator.index("RealCombinedProfitDispatchPolicy.fresh(signedReadElapsed,SystemClock.elapsedRealtime())")<coordinator.index("onAdmitted()")<coordinator.index("val api=WeexPrivateApi(credentials)")
+          print("PR286_REJECTED_DISPATCH_DOES_NOT_CONSUME_PULSE_PASS")
           print("PR286_FRESH_ACCOUNT_BOUND_DISPATCH_BEFORE_QUOTES_PASS")
           PY
       - name: Assemble disposable debug DEX after all canonical gates

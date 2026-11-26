@@ -1,19 +1,9 @@
 name: WEEX PR238 signed production APK in-place upgrade ART (NO OTA)
 on:
-  workflow_dispatch:
-    inputs:
-      candidate_sha:
-        description: Independently audited SHA256
-        required: true
-        type: string
-      candidate_bytes:
-        description: Independently audited size
-        required: true
-        type: string
-      candidate_version:
-        description: Independently audited versionCode
-        required: true
-        type: string
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr238-signed-production-inplace-upgrade-art-20261125.yml
 permissions:
   contents: read
 jobs:
@@ -26,9 +16,9 @@ jobs:
         baseline: ["30536366", "30619636"]
     env:
       BASELINE: ${{ matrix.baseline }}
-      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
-      CANDIDATE_BYTES: ${{ inputs.candidate_bytes }}
-      CANDIDATE_VERSION: ${{ inputs.candidate_version }}
+      CANDIDATE_SHA: "116eeea808bff59299d69c74bb38118e2e949e47276e06a91d13b06fdf804525"
+      CANDIDATE_BYTES: "63756817"
+      CANDIDATE_VERSION: "30629089"
       CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
     steps:
       - name: Download official prior OTA APK and exact signed CircleCI PR238 APK (no publication)
@@ -66,7 +56,7 @@ jobs:
           matches=[j for j in jobs if j.get("id")=="617e4223-7c56-437f-8e8a-e2d7ed792b1e" and j.get("name")=="pr238_circleci_private_candidate" and j.get("status")=="success" and j.get("project_slug")=="gh/wilitohtc24-jpg/weex-auto-trader-android"]
           assert len(matches)==1
           number=matches[0]["job_number"]
-          assert type(number) is int and number>0
+          assert type(number) is int and number==53104
           endpoint="https://circleci.com/api/v2/project/gh/wilitohtc24-jpg/weex-auto-trader-android/"+str(number)+"/artifacts"
           request=urllib.request.Request(endpoint,headers={"Circle-Token":token,"Accept":"application/json"})
           with urllib.request.urlopen(request,timeout=25) as response:

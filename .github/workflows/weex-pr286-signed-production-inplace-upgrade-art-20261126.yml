@@ -1,6 +1,13 @@
 name: WEEX PR286 signed production APK in-place upgrade ART (NO OTA)
 on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr286-signed-production-inplace-upgrade-art-20261126.yml
   workflow_dispatch:
+concurrency:
+  group: pr286-exact-signed-upgrade
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
@@ -13,9 +20,9 @@ jobs:
         baseline: ["30536366", "30629089"]
     env:
       BASELINE: ${{ matrix.baseline }}
-      CANDIDATE_SHA: "UNVERIFIED"
-      CANDIDATE_BYTES: "UNVERIFIED"
-      CANDIDATE_VERSION: "UNVERIFIED"
+      CANDIDATE_SHA: "fcf2fc880dfbb3fb2693830e285a84a1c7b9e2f77f11a286be4a8c9af1493de2"
+      CANDIDATE_BYTES: "63830545"
+      CANDIDATE_VERSION: "30704940"
       CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
     steps:
       - name: Download official prior OTA APK and exact signed CircleCI PR286 APK (no publication)
@@ -54,7 +61,7 @@ jobs:
           matches=[j for j in jobs if j.get("id")=="f41641b8-1da0-40ce-a8a3-8044ef27f251" and j.get("name")=="pr286_circleci_private_candidate" and j.get("status")=="success" and j.get("project_slug")=="gh/wilitohtc24-jpg/weex-auto-trader-android"]
           assert len(matches)==1
           number=matches[0]["job_number"]
-          assert type(number) is int and number>0
+          assert type(number) is int and number==53109
           endpoint="https://circleci.com/api/v2/project/gh/wilitohtc24-jpg/weex-auto-trader-android/"+str(number)+"/artifacts"
           request=urllib.request.Request(endpoint,headers={"Circle-Token":token,"Accept":"application/json"})
           with urllib.request.urlopen(request,timeout=25) as response:
@@ -201,3 +208,40 @@ jobs:
           emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           disable-animations: true
           script: bash /tmp/pr286-signed-upgrade-test.sh
+
+  report-upgrade-start:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      statuses: write
+    steps:
+      - name: Report signed upgrade run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending -f context=weex/pr286/signed-upgrade \
+            -f description="Both signed baselines pending; no OTA" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+  report-upgrade-finish:
+    if: ${{ always() }}
+    needs: [actual-signed-apk-upgrade, report-upgrade-start]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      statuses: write
+    steps:
+      - name: Report signed dual-baseline upgrade result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_RESULT: ${{ needs.actual-signed-apk-upgrade.result }}
+        run: |
+          case "$QA_RESULT" in
+            success) state=success ;;
+            failure) state=failure ;;
+            *) state=error ;;
+          esac
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context=weex/pr286/signed-upgrade \
+            -f description="Signed dual-baseline upgrade: $QA_RESULT; no OTA" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

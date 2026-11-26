@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 96138c84539b411355b03a2778232268773329f7
+      SOURCE_SHA: 04512a70617e38cfb5ba4e1e2d357db7e91604cd
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 96138c84539b411355b03a2778232268773329f7
+          ref: 04512a70617e38cfb5ba4e1e2d357db7e91604cd
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -61,6 +61,7 @@ jobs:
           test "$(git hash-object ci/verify_predictive_planned_entries_policy_epoch_v2.py)" = 1837a3ccbc987444bfee737594f3190e34581726
           test "$(git hash-object ci/verify_reachable_pending_entry_v1.py)" = 005c6cc236a8893509f4949975fd8f7844caf454
           test "$(git hash-object ci/verify_real_pending_sticky_ttl_v2.py)" = 1b2aadaaf601522789e6254bbfe8c8124aa7bbba
+          test "$(git hash-object ci/verify_real_pending_reconcile_progress_v1.py)" = 41bf478db784cb6dbb8fa3e739adb0a8ac22f661
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingTerminalPolicyTest.kt)" = dcabbf8b452b90c33f9767c6989e94b1bae50435
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 1b2ffc07eb80d3ea4c10f49264f7c408cc56aca9
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = 902ca6a615cc77901c5170b236fb3f4b17c312e1

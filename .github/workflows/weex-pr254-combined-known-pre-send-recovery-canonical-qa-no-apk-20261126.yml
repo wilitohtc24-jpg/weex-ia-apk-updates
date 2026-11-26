@@ -49,7 +49,20 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt)" = bf8d943bd9f7a347551fb83dbd71f32fac489579
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ConnectionRouteReadOnlyPolicy.kt)" = 096d1fb7ddfb8374f99ffa0f303a6041fd2cb011
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealVerifiedLearningProgressCard.kt)" = 4ab316dd4257bce250b05aca464165e6b2cec27c
-          git diff --quiet 7195401846e7f1d6df73d67dfe333cdd3f4c4992 HEAD --             app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt             app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt                          app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt             app/src/main/AndroidManifest.xml
+          git diff --quiet 7195401846e7f1d6df73d67dfe333cdd3f4c4992 HEAD --             app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt             app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt             app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt                                       app/src/main/AndroidManifest.xml
+          # PR254 changes only the explicitly pinned stop transaction, journal, COMBINED port and tests.
+          python3 - <<'PY'
+          import subprocess
+          expected={
+              'app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt',
+              'app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopJournal.kt',
+              'app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt',
+              'app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt',
+          }
+          changed=set(subprocess.check_output(['git','diff','--name-only','60cdd3086640dc2d5dae341128064dbe7584e0b2','HEAD'],text=True).splitlines())
+          assert changed==expected, 'PR254 unexpected source scope: '+repr(changed^expected)
+          print('PR254_EXACT_STOP_CHANGE_SCOPE_OK')
+          PY
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = 5dc49613ff095934eabd63d60401e15d73069c3d
           test "$(git hash-object .circleci/config.yml)" = b4413ce2990069c6d126295732cac1ab9ad9dfc2
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicy.kt)" = a5ded208fb9b2ae5b4d2fd408e02831ecf4e52bf

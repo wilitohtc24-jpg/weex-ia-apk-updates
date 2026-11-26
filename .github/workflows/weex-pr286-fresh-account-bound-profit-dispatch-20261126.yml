@@ -1107,8 +1107,28 @@ jobs:
               assert token in rotation, token
           assert not any(token in rotation for token in ("WeexPrivateApi(","transaction.execute(","observeSigned(","placeOrder(","signedPost("))
           print("PR285_FAIR_PROFIT_PRIORITY_NO_EXTRA_REQUEST_NO_AUTHORITY_PASS")
-          assert service.index("val signedRealPositionRows=api.positions()")<service.index("realCombinedNetProfit.schedule(signedRealPositionRows,credentials,signedRealPositionReadElapsed)")<service.index("val rawPositions=signedRealPositionRows.map")
-          assert service.count("realCombinedNetProfit.schedule(")==1
+          # Final family materializer retains the signed GET, then partitions
+          # allWeexPositions into cryptoWeexPositions before quote enrichment.
+          def signed_dispatch_before_quotes(src):
+              tokens=(
+                  "val signedRealPositionRows=api.positions()",
+                  "val signedRealPositionReadElapsed=android.os.SystemClock.elapsedRealtime()",
+                  "realCombinedNetProfit.schedule(signedRealPositionRows,credentials,signedRealPositionReadElapsed)",
+                  "val allWeexPositions=signedRealPositionRows",
+                  "val cryptoWeexPositions=allWeexPositions.filter { position ->",
+                  "val rawRealPositions=cryptoWeexPositions.map { position ->",
+              )
+              missing=[t for t in tokens if src.count(t)!=1]
+              if missing:
+                  return False
+              indices=[src.index(t) for t in tokens]
+              return indices==sorted(indices) and src.count("realCombinedNetProfit.schedule(")==1
+          assert signed_dispatch_before_quotes(service), "PR286_MATERIALIZED_SIGNED_DISPATCH_ORDER_OR_SCOPE_FAIL"
+          dispatch="realCombinedNetProfit.schedule(signedRealPositionRows,credentials,signedRealPositionReadElapsed)"
+          assert not signed_dispatch_before_quotes(service.replace(dispatch,"",1))
+          assert not signed_dispatch_before_quotes(service.replace(dispatch,dispatch.replace("signedRealPositionRows","cryptoWeexPositions"),1))
+          assert not signed_dispatch_before_quotes(service.replace(dispatch,"",1).replace("val rawRealPositions=cryptoWeexPositions.map { position ->","val rawRealPositions=cryptoWeexPositions.map { position ->\n"+dispatch,1))
+          print("PR286_FINAL_FAMILY_PARTITION_DISPATCH_NEGATIVE_TESTS_PASS")
           assert "inspectOne(chosen,captured,capturedCredentials,signedReadElapsed)" in coordinator
           assert coordinator.index("SecureCredentials(context).load()!=credentials")<coordinator.index("val api=WeexPrivateApi(credentials)")
           assert coordinator.count("RealCombinedProfitDispatchPolicy.fresh(")==3

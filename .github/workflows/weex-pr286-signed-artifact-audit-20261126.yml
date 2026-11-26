@@ -1,16 +1,48 @@
 name: WEEX PR286 signed CircleCI artifact hash and signer audit (NO OTA)
 on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr286-signed-artifact-audit-20261126.yml
   workflow_dispatch:
+concurrency:
+  group: pr286-exact-private-audit
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
   independent-audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 35
     env:
       CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
+      - name: Require exact CircleCI job to finish successfully before artifact read
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,time,urllib.request
+          token=os.environ.get("CIRCLECI_READ_TOKEN","")
+          assert token, "Missing CircleCI read token"
+          url="https://circleci.com/api/v2/workflow/347670a8-33af-4156-a347-9a2c1ecb960a/job"
+          deadline=time.monotonic()+20*60
+          while True:
+              request=urllib.request.Request(url,headers={"Circle-Token":token,"Accept":"application/json"})
+              with urllib.request.urlopen(request,timeout=25) as response:
+                  jobs=json.load(response)["items"]
+              matches=[j for j in jobs if j.get("id")=="f41641b8-1da0-40ce-a8a3-8044ef27f251" and j.get("name")=="pr286_circleci_private_candidate" and j.get("project_slug")=="gh/wilitohtc24-jpg/weex-auto-trader-android"]
+              assert len(matches)==1,"Exact CircleCI job not found"
+              state=matches[0].get("status")
+              if state=="success":
+                  print("PR286_EXACT_CIRCLECI_JOB_SUCCESS")
+                  break
+              assert state in {"queued","running","on_hold","blocked","not_running","not_run","scheduled","pending"}, "CircleCI not successful; audit refused"
+              print("PR286_WAITING_FOR_EXACT_CIRCLECI_JOB",state,flush=True)
+              assert time.monotonic()<deadline,"CircleCI terminal success not observed within bounded monitor"
+              time.sleep(45)
+          PY
       - name: Verify private signed APK bytes, SHA256, certificate and version without publishing
         shell: bash
         run: |
@@ -164,3 +196,40 @@ jobs:
           print("PR286_ACTUAL_APK_SIGNER_PACKAGE_VERSION_PASS")
           print("PR286_PRIVATE_ARTIFACT_INDEPENDENT_AUDIT_PASS_NO_OTA")
           PY
+
+  report-audit-start:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      statuses: write
+    steps:
+      - name: Report exact audit run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending -f context=weex/pr286/signed-artifact-audit \
+            -f description="Private audit pending; no OTA" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+  report-audit-finish:
+    if: ${{ always() }}
+    needs: [independent-audit, report-audit-start]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      statuses: write
+    steps:
+      - name: Report exact independent audit result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_RESULT: ${{ needs.independent-audit.result }}
+        run: |
+          case "$QA_RESULT" in
+            success) state=success ;;
+            failure) state=failure ;;
+            *) state=error ;;
+          esac
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context=weex/pr286/signed-artifact-audit \
+            -f description="Private audit: $QA_RESULT; no OTA" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

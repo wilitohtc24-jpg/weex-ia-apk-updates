@@ -1,0 +1,233 @@
+# Stage exact PR286 APK in PUBLIC distribution repository as a PRIVATE DRAFT.
+# Draft releases are not listed in /releases/latest and cannot trigger app OTA.
+# Promotion requires a distinct explicit approval; no automatic publish here.
+name: Stage PR286 verified signed OTA as draft only (NO PUBLIC OTA)
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr286-stage-verified-ota-draft-20261126.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weex-pr286-stage-signed-ota-draft
+  cancel-in-progress: false
+
+jobs:
+  exact-pr286-draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      CIRCLECI_READ_TOKEN: ${{ secrets.WEEX_CIRCLECI_ARTIFACT_READ_TOKEN }}
+      APK_SHA: fcf2fc880dfbb3fb2693830e285a84a1c7b9e2f77f11a286be4a8c9af1493de2
+      APK_BYTES: "63830545"
+      VERSION: "30704940"
+      SIGNER_SHA: 5d0698ff9d09d7928944d01260d30b277ca4d20bd52c6cc583147b436b6c22e6
+    steps:
+      - name: Verify distribution repository and no existing public PR286 version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "wilitohtc24-jpg/weex-ia-apk-updates"
+          test "$GITHUB_REF" = "refs/heads/qa/weex-pr192-shadow-reconnect-20261124"
+          test "$GITHUB_EVENT_NAME" = "push"
+          test -n "$CIRCLECI_READ_TOKEN"
+          tag="v$VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "::error::PR286_OTA_TAG_ALREADY_EXISTS_NO_OVERWRITE"
+              exit 1
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > /tmp/weex-existing-latest.json
+          python3 - <<'PY'
+          import json,os
+          release=json.load(open("/tmp/weex-existing-latest.json"))
+          assert release["tag_name"]=="v30536366", "Public OTA baseline changed, refuse"
+          assert release["draft"] is False and release["prerelease"] is False
+          apk=[a for a in release["assets"] if a["name"]=="WEEX-IA-Trader-release.apk"]
+          assert len(apk)==1 and apk[0].get("digest")=="sha256:321d21511bab048c36e473040691534d3bbc3e027e7b837765d0351ebee2b718"
+          assert int(os.environ["VERSION"]) > 30629089
+          print("PR286_CURRENT_PUBLIC_OTA_UNCHANGED_AND_VERSION_MONOTONIC")
+          PY
+          for entry in "45902846558:aab858329774679b68e547dba088ebe139af93dd" "45904143636:5f33a394199779be16b3ed29a8684136c362a321"; do
+            run="${entry%%:*}"; sha="${entry#*:}"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["head_sha"]==sys.argv[1] and r["status"]=="completed" and r["conclusion"]=="success"' "$sha"
+          done
+
+      - name: Retrieve exact CircleCI private release bytes and verify hash, certificate and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p pr286-ota-draft
+          python3 - <<'PY'
+          import hashlib,json,os,re,urllib.parse,urllib.request
+          token=os.environ["CIRCLECI_READ_TOKEN"]
+          endpoint="https://circleci.com/api/v2/project/gh/wilitohtc24-jpg/weex-auto-trader-android/53109/artifacts"
+          req=urllib.request.Request(endpoint,headers={"Circle-Token":token,"Accept":"application/json"})
+          with urllib.request.urlopen(req,timeout=25) as response:
+              assets=json.load(response)["items"]
+          files={a.get("path"):a for a in assets}
+          assert len(files)==len(assets), "Duplicate artifact paths"
+          prefix="private-pr286-circleci-candidate/"
+          for name in ("WEEX-IA-Trader-release.apk","apk-sha256.txt","signing-certificate.txt",
+                       "release.json","candidate-provenance.txt"):
+              assert prefix+name in files,("Missing",name)
+          class RemoveTokenOnRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,hdrs,newurl):
+                  new=super().redirect_request(req,fp,code,msg,hdrs,newurl)
+                  if new is not None:
+                      for d in (new.headers,new.unredirected_hdrs):
+                          for key in list(d):
+                              if key.lower()=="circle-token":del d[key]
+                  return new
+          opener=urllib.request.build_opener(RemoveTokenOnRedirect())
+          def download(name,limit):
+              url=files[prefix+name]["url"]
+              parsed=urllib.parse.urlparse(url)
+              assert parsed.scheme=="https" and parsed.hostname=="output.circle-artifacts.com"
+              req=urllib.request.Request(url,headers={
+                  "Circle-Token":token,"User-Agent":"weex-pr286-draft-only"})
+              with opener.open(req,timeout=120) as resp:
+                  data=resp.read(limit+1)
+              assert len(data)<=limit,("Overlarge",name)
+              return data
+          cert=download("signing-certificate.txt",10000).decode()
+          patterns=(
+             r"(?mi)^\s*Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+             r"(?mi)^\s*Signer\s+\([^\r\n)]*\)\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+             r"(?mi)^\s*V\d+(?:\.\d+)?\s+Signer:\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",
+          )
+          digests={x.replace(":","").lower() for pat in patterns for x in re.findall(pat,cert)}
+          assert digests=={os.environ["SIGNER_SHA"]}, "Canonical signer mismatch"
+          provenance={}
+          for line in download("candidate-provenance.txt",10000).decode().splitlines():
+              if "=" in line:
+                  key,val=line.split("=",1)
+                  provenance[key.strip()]=val.strip()
+          assert provenance.get("source")=="610287e3bc69155fa6c2ac290902879689d7e3fd"
+          assert provenance.get("green_source")=="b47b877476e308ba99cfa3ceb569132405c95c24"
+          assert provenance.get("private_only")=="true" and provenance.get("ota_publication")=="false"
+          assert provenance.get("versionCode")==os.environ["VERSION"]
+          assert provenance.get("previousOTA")=="30536366" and provenance.get("previousPrivate")=="30629089"
+          manifest=json.loads(download("release.json",100000))
+          assert manifest["versionCode"]==int(os.environ["VERSION"])
+          assert manifest["packageName"]=="com.wilito.weexautotrader"
+          assert manifest["sha256"]==os.environ["APK_SHA"]
+          sha_text=download("apk-sha256.txt",1000).decode().split()[0].lower()
+          assert sha_text==os.environ["APK_SHA"]
+          apk=download("WEEX-IA-Trader-release.apk",130*1024*1024)
+          assert len(apk)==int(os.environ["APK_BYTES"])
+          assert apk[:4]==b"PK\x03\x04"
+          assert hashlib.sha256(apk).hexdigest()==sha_text
+          with open("pr286-ota-draft/WEEX-IA-Trader-release.apk","wb") as f:
+              f.write(apk)
+          with open("pr286-ota-draft/apk-sha256.txt","w") as f:
+              f.write(sha_text+"  WEEX-IA-Trader-release.apk\n")
+          print("PR286_CANDIDATE_EXACT_APK_SIGNER_HASH_PACKAGE_VERSION_VERIFIED")
+          PY
+          test -s pr286-ota-draft/WEEX-IA-Trader-release.apk
+          ACTUAL_SIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
+          test -x "$ACTUAL_SIGNER" && test -x "$AAPT"
+          "$ACTUAL_SIGNER" verify --print-certs pr286-ota-draft/WEEX-IA-Trader-release.apk > /tmp/pr286-apksigner.txt
+          python3 - <<'PY'
+          import os,re
+          from pathlib import Path
+          cert=Path("/tmp/pr286-apksigner.txt").read_text()
+          values=re.findall(r"(?mi)^\s*(?:Signer\s+#\d+|Signer\s+\([^\r\n)]*\)|V\d+(?:\.\d+)?\s+Signer:)\s+certificate\s+SHA-256\s+digest:\s*([0-9a-fA-F:]+)\s*$",cert)
+          assert {v.replace(":","").lower() for v in values}=={os.environ["SIGNER_SHA"]}
+          PY
+          "$AAPT" dump badging pr286-ota-draft/WEEX-IA-Trader-release.apk > /tmp/pr286-aapt.txt
+          grep -q "package: name='com.wilito.weexautotrader' versionCode='$VERSION'" /tmp/pr286-aapt.txt
+          echo PR286_EXACT_PRODUCTION_APK_VERIFIED_BEFORE_DRAFT
+
+      - name: Create an UNPUBLISHED DRAFT, not visible to the in-app updater
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v$VERSION"
+          test -s pr286-ota-draft/WEEX-IA-Trader-release.apk
+          cat > pr286-ota-draft/notes.txt <<EOF
+          WEEX IA Trader PR286 — CANDIDATA BETA SIN PUBLICAR
+          WEEX_OTA_PENDING_OWNER_GLOBAL_ROLLOUT_APPROVAL_V1
+
+          VERSION: $VERSION
+          SHA256: $APK_SHA
+          SIGNER: $SIGNER_SHA
+          Fuente: 610287e3bc69155fa6c2ac290902879689d7e3fd
+          CircleCI: job #53109
+          Auditoría independiente: https://github.com/$GITHUB_REPOSITORY/actions/runs/45902846558
+          Actualización firmada real en Android ART: https://github.com/$GITHUB_REPOSITORY/actions/runs/45904143636
+
+          Candidata diagnóstica privada. Las dos reinstalaciones firmadas offline y el arranque ART fueron aprobados.
+          No se ha probado en el teléfono del propietario ni completado la aceptación funcional A1–A27, incluida protección autónoma de ganancias y aplicación del aprendizaje REAL.
+          No autoriza ejecución de órdenes reales de prueba. No es garantía de rentabilidad.
+          El propietario aún no ha autorizado ofrecer esta actualización a TODOS los usuarios.
+          La versión no debe figurar en releases/latest hasta esa autorización.
+          EOF
+          gh release create "$tag" \
+             "pr286-ota-draft/WEEX-IA-Trader-release.apk#WEEX-IA-Trader-release.apk" \
+             "pr286-ota-draft/apk-sha256.txt#apk-sha256.txt" \
+             --repo "$GITHUB_REPOSITORY" --target main \
+             --title "WEEX IA Trader PR286 v$VERSION — BETA PENDIENTE" \
+             --notes-file pr286-ota-draft/notes.txt \
+             --draft --prerelease --latest=false
+          id="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json databaseId --jq .databaseId)"
+          test "$id" -gt 0
+          gh api "repos/$GITHUB_REPOSITORY/releases/$id" > /tmp/pr286-public-draft.json
+          python3 - <<'PY'
+          import json,os
+          r=json.load(open("/tmp/pr286-public-draft.json"))
+          assert r["tag_name"]=="v"+os.environ["VERSION"]
+          assert r["draft"] is True and r["prerelease"] is True
+          assert "WEEX_OTA_PENDING_OWNER_GLOBAL_ROLLOUT_APPROVAL_V1" in r["body"]
+          assets={a["name"]:a for a in r["assets"]}
+          assert "WEEX-IA-Trader-release.apk" in assets
+          assert assets["WEEX-IA-Trader-release.apk"]["size"]==int(os.environ["APK_BYTES"])
+          assert assets["WEEX-IA-Trader-release.apk"]["digest"]=="sha256:"+os.environ["APK_SHA"]
+          print("PR286_OTA_DRAFT_STAGED_EXACT_APK_NO_PUBLIC_UPDATE")
+          PY
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name | grep -Fx 'v30536366'
+          echo PR286_STABLE_OTA_CATALOG_UNCHANGED
+
+  report-draft-start:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      statuses: write
+    steps:
+      - name: Report exact draft staging run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending -f context=weex/pr286/private-draft \
+            -f description="Draft only; no public OTA" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+  report-draft-finish:
+    if: ${{ always() }}
+    needs: [exact-pr286-draft, report-draft-start]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      statuses: write
+    steps:
+      - name: Report exact draft staging result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_RESULT: ${{ needs.exact-pr286-draft.result }}
+        run: |
+          case "$QA_RESULT" in
+            success) state=success ;;
+            failure) state=failure ;;
+            *) state=error ;;
+          esac
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context=weex/pr286/private-draft \
+            -f description="Private draft: $QA_RESULT; no public OTA" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

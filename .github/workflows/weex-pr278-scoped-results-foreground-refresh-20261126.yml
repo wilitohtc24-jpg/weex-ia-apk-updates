@@ -1,0 +1,1376 @@
+# Retry exact immutable source after Gradle dependency resolution failure in run 45712802561; all gates unchanged.
+# Retry exact immutable source after dependency resolution failure in run 45704051612; all gates unchanged.
+# Source QA only. Does NOT build/sign an APK, access WEEX, deploy Neon, or publish OTA.
+name: WEEX PR278 foreground scoped results canonical replay NO OTA
+on:
+  push:
+    branches: [qa/weex-pr192-shadow-reconnect-20261124]
+    paths:
+      - .github/workflows/weex-pr278-scoped-results-foreground-refresh-20261126.yml
+permissions:
+  contents: read
+jobs:
+  pr192-integrated-source-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    env:
+      SOURCE_SHA: 8d742dda6da2fd607638486b61d6d2b5a4bc6375
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+      WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+      WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr192-art-materialized
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout immutable private PR192 source with read-only token
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 8d742dda6da2fd607638486b61d6d2b5a4bc6375
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Verify pinned source and unchanged live trading authority
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealForecastInputPolicyTest.kt)" = 70e3b989f306308b9519bf716b6ecd00493085b6
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealForecastBackground.kt)" = a7a00cb6c031fae694f4e660b60474b686ae4fa7
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPublicClock.kt)" = 9f3732cafaf4f86be105b7f6518e9b674e8465bf
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisorTest.kt)" = b6d8a3272b80ef211d099d98c933272ad3afdfed
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisor.kt)" = f5f3d08b274c3edef023f944e9b890d9783aa3b5
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinator.kt)" = 48feaf7a656c3fa09b67d2f1de385faccfb55df2
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedLearningLedgerCoordinatorTest.kt)" = 9709474133eb574036f75a40806155c4da463c7d
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CloudAccess.kt)" = 10821f3a20fb4710c0a7286f11da6b33354ec2e3
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt)" = 3418d48e3680e620cd6af43ec1456109e89a783a
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/NeonTransportFailureDiagnosticTest.kt)" = 85214ba06b8d6f5e9c264f03c0c3057730038e8a
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt)" = 9c1fbd628919967b11e31ac7d40bde1717dbb7fe
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ConnectionRouteReadOnlyPolicy.kt)" = 096d1fb7ddfb8374f99ffa0f303a6041fd2cb011
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealVerifiedLearningProgressCard.kt)" = 4ab316dd4257bce250b05aca464165e6b2cec27c
+          git diff --quiet 7195401846e7f1d6df73d67dfe333cdd3f4c4992 HEAD --                          app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt             app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt                                       app/src/main/AndroidManifest.xml
+          # PR255 changes only the explicitly pinned stop transaction, journal, COMBINED port and tests.
+          python3 - <<'PY'
+          import subprocess
+          expected={
+              'app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt',
+              'app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopJournal.kt',
+              'app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt',
+              'app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt',
+          }
+          changed=set(subprocess.check_output(['git','diff','--name-only','60cdd3086640dc2d5dae341128064dbe7584e0b2','1d58e15af0c926fb7747fa9f4c36746189dbe719'],text=True).splitlines())
+          assert changed==expected, 'PR255 unexpected source scope: '+repr(changed^expected)
+          print('PR254_EXACT_STOP_CHANGE_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','1d58e15af0c926fb7747fa9f4c36746189dbe719','23cc4beb1c7b7e2e97670e64c975cd6c50863d6e'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt','ci/verify_combined_stop_final_read_budget_v1.py'}, 'PR255 unexpected source scope'
+          print('PR255_EXACT_STOP_READ_BUDGET_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','23cc4beb1c7b7e2e97670e64c975cd6c50863d6e','1d080aa21e782a311b86a58c890615e24cc1278a'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt','app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt','app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicy.kt','app/src/test/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicyTest.kt'}, 'PR256 unexpected source scope'
+          print('PR256_EXACT_RECEIPT_ARCHIVE_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','1d080aa21e782a311b86a58c890615e24cc1278a','2e6753cf3feaec355d3005b9e16a8af35690ab43'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStore.kt','app/src/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt','app/src/test/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStoreTest.kt'}, 'PR257 unexpected source scope'
+          print('PR257_EXACT_LOCAL_LINK_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','2e6753cf3feaec355d3005b9e16a8af35690ab43','4a1f9a7f4d351967c495081364e4c3d849dcc30b'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealOriginalDecisionDraftStore.kt','app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt','app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt','app/src/main/java/com/wilito/weexautotrader/TraderService.kt','app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt','app/src/test/java/com/wilito/weexautotrader/RealOriginalDecisionDraftPolicyTest.kt'}, 'PR258 unexpected source scope'
+          print('PR258_EXACT_DURABLE_DECISION_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','4a1f9a7f4d351967c495081364e4c3d849dcc30b','1c945713836e3a42e4932416b0726ca94a57dc98'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicy.kt','app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt','app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyStore.kt','app/src/test/java/com/wilito/weexautotrader/RealOriginalDecisionDraftPolicyTest.kt'}, 'PR259 unexpected source scope'
+          print('PR259_EXACT_ARCHIVED_ACK_REPLAY_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','1c945713836e3a42e4932416b0726ca94a57dc98','69e7c6db01468c7a2f2394ffb86211ec595a278a'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealOriginalDecisionDraftStore.kt','app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt','app/src/test/java/com/wilito/weexautotrader/RealOriginalDecisionDraftPolicyTest.kt'}, 'PR260 unexpected source scope'
+          print('PR260_EXACT_KNOWN_UNSENT_CLEANUP_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','69e7c6db01468c7a2f2394ffb86211ec595a278a','a5f186782507eda5faa67cf71708e52780299200'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealOriginalDecisionDraftStore.kt','app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt','app/src/test/java/com/wilito/weexautotrader/RealOriginalDecisionDraftPolicyTest.kt'}, 'PR261 unexpected source scope'
+          print('PR261_EXACT_SIGNED_TERMINAL_CLEANUP_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','a5f186782507eda5faa67cf71708e52780299200','1884ccea761c7d24bfae45bed434aaaf1469c7e2'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicy.kt','app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt','app/src/test/java/com/wilito/weexautotrader/RealOriginalDecisionDraftPolicyTest.kt'}, 'PR262 unexpected source scope'
+          print('PR262_EXACT_SIGNED_RECOVERED_QUANTITY_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','1884ccea761c7d24bfae45bed434aaaf1469c7e2','26eec7919c9d0cf4c66638ca7e24da81f87ecc42'],text=True).splitlines())
+          assert changed=={'ci/patch_final_real_execution_durability_v1.py','ci/verify_final_real_execution_durability_v1.py','ci/test_final_real_durability_full_replay_v1.py','ci/patch_predictive_planned_entries_policy_epoch_v2_compat.py','ci/real_pending_pre_submit_release_proof_v1.py','ci/test_real_pending_pre_submit_release_v1.py'}, 'PR263 unexpected source scope'
+          print('PR263_EXACT_DURABLE_STUDY_MATERIALIZER_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','26eec7919c9d0cf4c66638ca7e24da81f87ecc42','fc607b0e105e51e0385864b1ec1d2b06c3a9b0a1'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt','app/src/main/java/com/wilito/weexautotrader/RealOriginalDecisionDraftStore.kt','app/src/test/java/com/wilito/weexautotrader/RealOriginalDecisionDraftPolicyTest.kt'}, 'PR264 unexpected source scope'
+          print('PR264_EXACT_HISTORICAL_TERMINAL_STUDY_CLEANUP_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','fc607b0e105e51e0385864b1ec1d2b06c3a9b0a1','edad8c38df6801c2a98933ea44d37b479c632bd8'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt','app/src/main/java/com/wilito/weexautotrader/RealClosedResearchBackground.kt','app/src/main/java/com/wilito/weexautotrader/TraderService.kt','app/src/test/java/com/wilito/weexautotrader/RealClosedResearchRotationTest.kt'}, 'PR265 unexpected source scope'
+          print('PR265_EXACT_OFFSCANNER_RESEARCH_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','edad8c38df6801c2a98933ea44d37b479c632bd8','9c1504da6c03ff5923013457897ba893ba07ac96'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealClosedResearchBackground.kt','app/src/main/java/com/wilito/weexautotrader/RealClosedResearchCheckpointStore.kt','app/src/test/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollectorTest.kt'}, 'PR266 unexpected source scope'
+          print('PR266_EXACT_DURABLE_CLOSE_RESEARCH_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','9c1504da6c03ff5923013457897ba893ba07ac96','a445e162901c966a332693ecdde6b69e0f7b6a32'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/WeexRealFundingRequestWindowPolicy.kt','app/src/test/java/com/wilito/weexautotrader/WeexRealFundingRequestWindowPolicyTest.kt','ci/patch_weex_funding_ledger.py'}, 'PR267 unexpected source scope'
+          print('PR267_EXACT_FUNDING_TERMINAL_BUDGET_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','a445e162901c966a332693ecdde6b69e0f7b6a32','960e022a63cd8bf2039ab0696527b101e402f4b4'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealFillReplayPolicy.kt','app/src/main/java/com/wilito/weexautotrader/TradeDatabase.kt','app/src/test/java/com/wilito/weexautotrader/RealFillReplayPolicyTest.kt'}, 'PR268 unexpected source scope'
+          print('PR268_EXACT_SQLITE_REPLAY_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','960e022a63cd8bf2039ab0696527b101e402f4b4','0a1a7cb811f97bfdc0f35aad9786040a39cd36f4'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealLedgerCredentialGuard.kt','app/src/test/java/com/wilito/weexautotrader/RealLedgerCredentialGuardTest.kt','ci/patch_weex_funding_ledger.py'}, 'PR269 unexpected source scope'
+          print('PR269_EXACT_LEDGER_CREDENTIAL_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','0a1a7cb811f97bfdc0f35aad9786040a39cd36f4','a1b362d51c548ab190e277f7bfd0655ca5fbcfce'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealAccountDailyLedgerStore.kt','app/src/test/java/com/wilito/weexautotrader/RealAccountDailyLedgerPolicyTest.kt','ci/patch_final_real_preflight_step_boundaries_v1.py','ci/verify_final_real_preflight_step_boundaries_v1.py'}, 'PR270 unexpected source scope'
+          print('PR270_EXACT_ACCOUNT_LEDGER_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','a1b362d51c548ab190e277f7bfd0655ca5fbcfce','7e483c3a829bb616d2aed042dcd31615e0f0f8c2'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealAccountDailyLedgerIngestion.kt','app/src/test/java/com/wilito/weexautotrader/RealAccountDailyLedgerIngestionTest.kt','ci/patch_weex_funding_ledger.py'}, 'PR271 unexpected source scope'
+          print('PR271_EXACT_ACCOUNT_INGESTION_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','7e483c3a829bb616d2aed042dcd31615e0f0f8c2','7f14f93ef0bfa5af6235d0ce0d46ab226c7d3b6d'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealAccountDailyLedgerStore.kt','app/src/main/java/com/wilito/weexautotrader/RealAccountDailyLedgerIngestion.kt','app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt','app/src/test/java/com/wilito/weexautotrader/RealAccountDailyLedgerPolicyTest.kt','ci/patch_weex_funding_ledger.py'}, 'PR272 unexpected source scope'
+          print('PR272_EXACT_INCREMENTAL_ACCOUNT_LEDGER_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','7f14f93ef0bfa5af6235d0ce0d46ab226c7d3b6d','aef6addb2ce50d80f36445501369d4bb0be3cf68'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/RealAccountDailyLedgerStore.kt','app/src/main/java/com/wilito/weexautotrader/RealAccountLedgerRecovery.kt','app/src/main/java/com/wilito/weexautotrader/TraderService.kt','app/src/test/java/com/wilito/weexautotrader/RealAccountLedgerRecoveryPolicyTest.kt','ci/patch_final_real_daily_fill_window_v1.py'}, 'PR273 unexpected source scope'
+          print('PR273_EXACT_SOURCE_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','aef6addb2ce50d80f36445501369d4bb0be3cf68','3a243c6e57f37264f1346a019ede94cd83a3b7cc'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/MainActivity.kt','app/src/main/java/com/wilito/weexautotrader/RealAccountResultsDisplay.kt','app/src/test/java/com/wilito/weexautotrader/RealAccountResultsDisplayTest.kt','ci/verify_real_results_cashflow_not_loss_v1.py'}, 'PR274 unexpected source scope'
+          print('PR274_EXACT_SOURCE_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','3a243c6e57f37264f1346a019ede94cd83a3b7cc','68620f86b878fe7586df0fa853b75041eb9ac3e3'],text=True).splitlines())
+          assert changed=={'ci/patch_results_periods.py'}, 'PR275 unexpected source scope'
+          print('PR275_EXACT_MATERIALIZER_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','68620f86b878fe7586df0fa853b75041eb9ac3e3','0a82aff145856d5df06ae46e2d8bedb16d98e12e'],text=True).splitlines())
+          assert changed=={'ci/patch_final_ui_performance_v1.py','ci/verify_final_ui_performance_v1.py','ci/test_final_ui_performance_signed_modern_v1.py'}, 'PR276 unexpected source scope'
+          print('PR276_EXACT_UI_IO_COMPAT_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','0a82aff145856d5df06ae46e2d8bedb16d98e12e','afd6a7d38f535d88c91c1f73fb5c1f9c4ea8830d'],text=True).splitlines())
+          assert changed=={'ci/patch_final_real_sim_balance_ui_isolation_v1.py','ci/verify_real_sim_balance_ui_isolation_v1.py'}, 'PR277 unexpected source scope'
+          print('PR277_EXACT_FINANCIAL_PROVENANCE_SCOPE_OK')
+          changed=set(subprocess.check_output(['git','diff','--name-only','afd6a7d38f535d88c91c1f73fb5c1f9c4ea8830d','HEAD'],text=True).splitlines())
+          assert changed=={'app/src/main/java/com/wilito/weexautotrader/MainActivity.kt'}, 'PR278 unexpected source scope'
+          print('PR278_EXACT_FOREGROUND_RESULTS_SCOPE_OK')
+          PY
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = 73a772ba924812da319540755cac03a81070a570
+          test "$(git hash-object .circleci/config.yml)" = b4413ce2990069c6d126295732cac1ab9ad9dfc2
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicy.kt)" = a5ded208fb9b2ae5b4d2fd408e02831ecf4e52bf
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt)" = 5592a8d4ed2ecf4f0b61fe3cb74abcf9bedcb4b3
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealHistoricalMakerReadTimeoutTest.kt)" = 864f3314c09feb861c1adcb95729c93bcd314107
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerStudyPolicyTest.kt)" = 45910ed88d6f363fe0d7d205386003b647132f52
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt)" = 6fa7c9aa59ca9c525fd9e6d68d850fe6d610ff0b
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/PredictiveEntryPlanner.kt)" = a091424a22aed5ec998753374c9ed4b82ac7b9f0
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingTerminalPolicy.kt)" = a1b6e67b2f09aad915ce4b074efbf82ae12f90ce
+          test "$(git hash-object ci/verify_predictive_planned_entries_policy_epoch_v2.py)" = 1837a3ccbc987444bfee737594f3190e34581726
+          test "$(git hash-object ci/verify_reachable_pending_entry_v1.py)" = 005c6cc236a8893509f4949975fd8f7844caf454
+          test "$(git hash-object ci/verify_real_pending_sticky_ttl_v2.py)" = a73f4bb7994b4a99af6ed593b1561ce56b59ffd9
+          test "$(git hash-object ci/verify_real_pending_reconcile_progress_v1.py)" = fb979ff22fa16f0a28e4473ffc70521672ab9f2a
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt)" = 118ed81316217ab24319b676b42cb14522849619
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopJournal.kt)" = 6a96527a29645b7e5f0ed64ab471b6f9e9797590
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransactionTest.kt)" = 13070ca4885fcc3b3c4edd8b4931cdde275c72e7
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitSafeChoicePolicy.kt)" = 7d40c172be15966317c04855ac7d4244298b2dd1
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitSafeChoicePolicyTest.kt)" = 52a19f37e9129542163ea0a9d2cbefbee132e7e4
+          test "$(git hash-object ci/owner_real_selector_scope_v1.py)" = e48eb755ef8f51954eb33500c99fd570735a3911
+          test "$(git hash-object ci/patch_real_pending_entry_exclusive_hold_v2.py)" = 34ea668de7920ca96be4d54b966a2bae327d170c
+          test "$(git hash-object ci/verify_real_selector_pending_scope_antiwait_v1.py)" = ba492a63c0667b8f4984cacea8b1f22d098aacbb
+          test "$(git hash-object ci/verify_real_pending_entry_exclusive_hold_v2.py)" = 56dee67fe2fb66638caf2f25d85b4dee53fa13ec
+          test "$(git hash-object ci/verify_final_runtime_closure_v1.py)" = a1dc2bbe50f51d59a51e5c22688359d06810fabb
+          test "$(git hash-object ci/verify_final_real_order_recovery_v1.py)" = eabc9388fa09b68b2073dcf066a6c42b727ee884
+          test "$(git hash-object ci/patch_planned_entry_visibility_v1.py)" = 7022c9dde95e8c283bd27c47cfe9c1ec11ffc717
+          test "$(git hash-object ci/test_real_pending_sticky_ttl_v2.py)" = 294fe8ed65a428b6aa74911af41eb069886f9a44
+          test "$(git hash-object ci/test_planned_entry_visibility_modern_null_v1.py)" = 2dca72016e18b0c701986e850927967fb35a4c0e
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingTerminalPolicyTest.kt)" = ebab339e236e5704ffde0d51f3c1dae52cbddb69
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 4a5083e5f3ad988093f18ebf61263ff3eccde0ce
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = 902ca6a615cc77901c5170b236fb3f4b17c312e1
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLearningAdviceBackgroundTest.kt)" = a0cd728125a0519ae351dcf4d4377aa1842331e7
+          test "$(git hash-object ci/verify_pr192_historical_maker_offscanner_readonly_v1.py)" = 47881d243c2d82ede2e32225c674f09d165aa70d
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSignedOriginalOpeningReadOnlyCollector.kt)" = 01925294ac975649160339a3bf1bab2791c7b5e7
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt)" = 7ace9d8ee51fd809e86d995ea834345c2ea7212b
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicyTest.kt)" = a3357ff4cca3fd35ca43128e5b0c3f8e8dd03a07
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSignedOriginalOpeningReadOnlyCollectorTest.kt)" = a705279fe02a92287cc880f5ccae8860e12133d8
+          test -s app/src/test/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicyTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLegacyMakerSignedOpeningReadOnlyCollector.kt)" = 5307b613140ad90e9d452b1bf3e984409af89b5d
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLegacyMakerSignedOpeningReadOnlyCollectorTest.kt)" = 57c99705acd7739a067cff19504898a25f2609c0
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealDailyLedgerBackgroundSingleFlight.kt)" = 12582bc30c21c7e70abd92593c76b9c97b11c99a
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealDailyLedgerBackgroundSingleFlightTest.kt)" = da38a6c46328f4c409305ceeca1b5fa260ce2d6d
+          test "$(git hash-object ci/patch_weex_funding_ledger.py)" = a68aa42d319c985afad8843052ed43bf418ff5ea
+          test "$(git hash-object ci/verify_pr192_real_daily_ledger_offscanner_v1.py)" = 2b12b28bf3e07203fabeed875efc92ca4c311364
+          test "$(git hash-object ci/verify_real_preflight_progress_v1.py)" = 12ea54ebdc61fd95d67e802c11a459c86e2f500e
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealTradingPnl.kt)" = 34cf5e5b12cbf54bfbde86fc108773389bdc860d
+          python3 ci/verify_pr192_real_daily_ledger_offscanner_v1.py
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt)" = 060204ca54f637d4c0856abc19110918642a8804
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealHistoricalOrderFillWindowPolicy.kt)" = 7632910abd6f21399fe08af06b33b464accd4f8c
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealHistoricalOrderFillWindowPolicyTest.kt)" = 0dd6e67dc4caaa4fc733f2265921c3b8c2998393
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt)" = f83d96986e0f7af4ea5cc19857fdc212060804dc
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollectorTest.kt)" = 9e48b9de00b1e5475f21e874410a02a43171ceec
+          python3 ci/verify_pr192_historical_maker_offscanner_readonly_v1.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          p=Path("app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt")
+          original=p.read_text()
+          old="RealHistoricalOrderFillWindowPolicy.fromOriginalBotDecision("
+          assert original.count(old)==1
+          try:
+              p.write_text(original.replace(old,"RealHistoricalOrderFillWindowPolicy.fromOriginalBotAcknowledgment(",1))
+              result=subprocess.run(["python3","ci/verify_pr192_historical_maker_offscanner_readonly_v1.py"],capture_output=True,text=True)
+              assert result.returncode!=0 and "PR192_FOLKS_READONLY_MISSING worker" in result.stderr
+          finally:
+              p.write_text(original)
+          print("PR227_ACK_ONLY_WINDOW_MUTATION_REJECTED")
+          PY
+          git diff --exit-code -- app/src/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt)" = a70d6ed97f5d1af762768302602b3606ae29b7ab
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealHistoricalProtectiveCloseExecutionPolicy.kt)" = d080ea6ec744e261b0b929dd27cf669510a166f6
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealHistoricalProtectiveClosePolicy.kt)" = c9d548088258adedec9ac13f3aaa7602f83d7659
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectionOpeningAnchorTest.kt)" = 7a4c12de3668bccebb9800eee3dd7622e4cb5cfa
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectiveCloseExecutionPolicyTest.kt)" = bd549b511809367aa2c05a0aac49307fdc73675d
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectiveClosePolicyTest.kt)" = ba18624f69eba580c1c9dfe2f74a9348ae399fd4
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealResearchCoverageRotation.kt)" = 77c6ae71bcb0f081c6c7810c7b4c3041f3eb633b
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealIndependentResearchWorker.kt)" = 425261d9468f7be1c1ada847ec0b87579e4d259c
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealResearchCoverageRotationTest.kt)" = d851bb2801058492d4ec945a4afcf3b0681c1e29
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OwnerAnnouncementsComposer.kt)" = 811b9a7021c3f948937e5faf6ddc3d57f127c830
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OwnerControlCenterDialog.kt)" = 5f4de6c840cf7beb30389e2812097ed5f61f1f93
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/AnnouncementNoteOverlay.kt)" = a2721732905838a7e7a71cd87344903af3178262
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/PredictionHorizonPolicy.kt)" = 5d30243a432465a1b728835fc46f4c7b3c5c891e
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/PredictionHistoricalTargetPolicy.kt)" = 34b418255fd35966876ab8a2c5c03c85efcd444b
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/PredictionHorizonPolicyTest.kt)" = 5fca9670bee2a0c18b1fe00f4aeb2437c133d2e5
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/PredictionHistoricalTargetPolicyTest.kt)" = ba6f3015e05a1b604fc874fc5d2d8e96ce847966
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ShadowPolicyChallenger.kt)" = e16d290d5c9feef6a0f3b002cc32f36898a64449
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/PredictionLayer.kt)" = fbf178049482242b7e8ff8e2c1dc5f3a2255d607
+          test "$(git hash-object ci/patch_aux_learning_integrity.py)" = acbb904a9c272ca71b6c5dd82395511424988334
+          test "$(git hash-object ci/patch_backup_learning_artifacts.py)" = 978348b9116eaca38d776b9b5b2c2d5b35af6bc0
+          test "$(git hash-object ci/verify_aux_backup_execution_integrity.py)" = 2421a6ddf02fe1cd99c64a8ae89420c6f73f6099
+          test "$(git hash-object ci/verify_learning_e6_authority_compat_v1.py)" = 636bf68dd2f3d79e5e45f92ece03673bc79b7c32
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/AdaptiveThesisPolicy.kt)" = 1edebf07dcbda62012571e177b3ec7cecd5f6b50
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/AdaptiveThesisPolicyTest.kt)" = ce4426eac5e5969662e0eab074a9cdff32748a75
+          test "$(git hash-object backend/neon/gateway/core.mjs)" = 705866aa40964ab8601ba70e94e5ecadd7a2c598
+          node --test backend/neon/gateway/collective-e6.test.mjs
+          test "$(git hash-object ci/verify_neon_owner_failover_402_v1.py)" = accd28cc8ad6d8b828f920bdaf1b2f2ea1d16429
+          test "$(git hash-object ci/patch_collective_learning_e4_truth_v1.py)" = b5d53148e869a235558ab469b1a9aad62a8770ad
+          test "$(git hash-object ci/verify_neon_supported_gateway_routes_v1.py)" = 95beaf06c8f2ffea9ff511e8e90551bc5ab461b8
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/SwarmIntelligence.kt)" = 583587ddc8e8643aeff2b8f91ee4fe1b8d5376da
+          test -s app/src/main/java/com/wilito/weexautotrader/CollectiveOpenTrajectoryPolicy.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/CollectiveOpenTrajectoryPolicyTest.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CollectiveUsePolicy.kt)" = bdf509499e6957e84640b49e78ec81e365a771ba
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/CollectiveUsePolicyTest.kt)" = 8c5ef3e5cbc537b75914356e4d29caced0110242
+          test "$(git hash-object backend/neon/gateway/collective-e6.test.mjs)" = 683acc5ba519956e527f1f1a54aa2e17619ffd74
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/SimulationAIMarketSelector.kt)" = 307b75db98e141b8c7f41515af8a07fcad0b450c
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt)" = ed0783dc30f95319d3097b8dd3209f6377b89a71
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ReasoningBrain.kt)" = 9f29692b757784fe19ce5b866c8a6eb070061bcf
+          # Preserve the exact published raw money/position authority until a deliberate, separately tested change.
+          git diff --exit-code 47a46990f98e56934f07d3ca31d1b4a347cc8bf3 HEAD -- app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt app/src/main/java/com/wilito/weexautotrader/StrategyParityPolicy.kt app/src/main/java/com/wilito/weexautotrader/RealCryptoFeeAwareSizingPolicy.kt app/src/main/java/com/wilito/weexautotrader/RealTradingPnl.kt
+          test "$(git hash-object docs/NO_OMITIR_APK_UNICA_WEEX_IA_20261124.md)" = 3a18163941c9b33e49ae242181b50a55f31d6145
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealStandbyStudyPolicy.kt)" = e371c025758ea2fd65b9f7084848cdf5e9e20e45
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealStandbyStudyPolicyTest.kt)" = b2396c3998cfc640c4cd6a932c19b9f8ea0ca365
+          test -s app/src/main/java/com/wilito/weexautotrader/AutomaticWithdrawalPreviewPolicy.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/AutomaticWithdrawalPreviewPolicyTest.kt
+          test -s app/src/main/java/com/wilito/weexautotrader/WithdrawalNetworkCatalog.kt
+          test -s app/src/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/WithdrawalNetworkCatalogTest.kt
+          test ! -e app/weex-ia-signing.jks
+          grep -Fq 'neonLastTransportFailureCode' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          grep -Fq 'optionalProfitStopFreshOwnerAuthority' app/src/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/MainActivity.kt)" = 999017f6288d4ca1e7e0185b7ed336a4648f0306
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt)" = dbe7cf9f6c5b00125b9257ed3a8615b2da1ce6d0
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealProfitStopGateChartStatusTest.kt)" = 40e1e4dd0d296ccf1f730c43b31812122139bc98
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt)" = a74aa0d0ab074b510aafa145486dd51027981ce9
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt)" = 992f29706f24771ff3ce354c5650c662eef1403f
+          # Existing online shadow training now labels ONLY its own TF and exact
+          # verified future closed candle (never a late price after VPN gaps).
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt)" = a842b3b963f2d314eb27ff6164d65db8d7441197
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt)" = 87a63bff67f1d1746799e8c8c478af13a9a85f64
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt)" = adc0070c248940e760674996d2b2f21cc137c459
+          grep -Fq 'RealProfitStopGateChartStatus.message(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
+          # Forecast PR190 must NOT be silently lost by old materializers:
+          # its tests remain included in the exact final source JUnit.
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/CausalPricePathForecastStudy.kt)" = 05e9eef133dc3746a0acf45e8a35b1f6d9be0e95
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt)" = 07c27c1211017bae51a3cd3e7e48d7bd03b7a827
+          grep -Fq 'RealVerifiedLearningProgressCard(' app/src/main/java/com/wilito/weexautotrader/MainActivity.kt
+          python3 ci/test_real_live_contract_size_proof_v1.py
+          test "$(git hash-object ci/verify_manual_build_only.py)" = 5fac1439ffeb3167748417992b1395272c2bc986
+          python3 ci/verify_manual_build_only.py
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitFloorPolicy.kt)" = de0dc8829a97f39f5a0c7b154833a34ff3b748a5
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitVerifiedSamplePolicy.kt)" = b071de53ff1eabf6e3894a4e06a5f79ad59f2b64
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedJoinDiagnosticCode.kt)" = 01a5115eee0a6fd5e7b92d10cf2bbf098d2c09a1
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedOpeningChronologyPolicy.kt)" = 1f94a85d14445c93c6e8130e9c04b372a8a52377
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedProfitBookFreshnessPolicy.kt)" = 94598d112639e353c77e3142c1a625c5a44f5d0d
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicy.kt)" = 755b71f8f85337c5836670d4031cd54b7f4842f6
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt)" = 6749a1eb975ec805143ce242fd9ebb320ce7d569
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalDraftValidation.kt)" = 37a8837f621a063695c9406ddbdd6dcf6023afbc
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalRuleDraft.kt)" = 11cfd338642175507531394f00b9dcfb081cd9ed
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalRuleDraftStore.kt)" = 47ab5851e9a0e2e22364f10fadcbcf5c0ee3fde7
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt)" = ff0e118b0a4e45c20f2fe86fb7f651a39f8e3be8
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitBnbFieldReplayTest.kt)" = 1ebe62266c6d137a4dc963fd7c013f095ad16ba1
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitVerifiedSamplePolicyTest.kt)" = 2ee9644f30ae4b93a43655d09c5de38820a0ac3d
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedJoinDiagnosticCodeTest.kt)" = 8fad749d8cdaa65587515743c862bd3ef551f115
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedOpeningChronologyPolicyTest.kt)" = 815e800a52e01e7c3da1a7041ded7e69d9d5dc51
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedProfitBookFreshnessPolicyTest.kt)" = 81cce646a2a3b6770890f615e7179a7c2093fcc9
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicyTest.kt)" = aad6b1fe7f1a152220ac9021763cb53293558c34
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalDraftInvariantTest.kt)" = 570e2f4d8ee7ac34d3ad8d5fdea76eb703dab02b
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalDraftValidationTest.kt)" = 2ff2f466fe7c06b8d9d450aad0d6f9d4643c4ee9
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalRuleDraftTest.kt)" = 38a779bf8189623e46b6bbb7dd535396dbe211fb
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceAssemblerTest.kt)" = 7635730d911858d44448ab41ce0fa54321cc6ef8
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostStudyPolicy.kt)" = 0954ee7acd87892fbb91fbe1b72ac704aa084681
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedNetCostStudyPolicyTest.kt)" = 1aa9dc6b3898c85761acb45ae12b8a28ddc48918
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealContinuousNetProfitRuntimeDiagnostics.kt)" = 0d2ab6636aa999c230303216e5adfe9687084e23
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealContinuousNetProfitRuntimeDiagnosticsTest.kt)" = 89f221050b01a335c4738b4ad28c8af32462c3f5
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalDestinationDraft.kt)" = 979e80c43e5319011f7ad5ffbbb0fda93aba9e26
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalDestinationDraftStore.kt)" = e159f6a1ee91bf27492fb631581cbe97d5536947
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalDestinationDraftTest.kt)" = 84626ebdd37c18dbbd24d5e8a69911b2a40f8a53
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/AutomaticWithdrawalPreviewPolicy.kt)" = 0c4b048b32d043ba60492ed0ae0637bb7b661bf2
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/AutomaticWithdrawalPreviewPolicyTest.kt)" = e90b9bde99890416f1ac1ab6c4e45b23549ef36f
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt)" = 69b32491da1d4c62a8391717f975ddb2ef5f51b5
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollectorTest.kt)" = 97a40695381d2c1ebd73f95eeaf63019ef5f803c
+          test "$(git hash-object ci/verify_owner_manual_build_contract_v1.py)" = 35d55aa3c24b26bd30025c68cddb537f5192c23d
+          test "$(git hash-object .circleci/config.yml)" = b4413ce2990069c6d126295732cac1ab9ad9dfc2
+          test "$(git hash-object ci/verify_combined_stop_final_read_budget_v1.py)" = 71b57fcfc1fbc70b9e3c9d159992d3e1129bf70d
+          python3 ci/verify_combined_stop_final_read_budget_v1.py
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt)" = cbdaa2b397eac65b06a3a25dcb0fc7c48f657710
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt)" = 5f4326747f7d5f8804f130a860870ad285daab48
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicy.kt)" = a95087827e9a59315cfc267dbe9cf4a69d17b1a4
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyPolicyTest.kt)" = a96779ce7909cbfaa83a5582042a5e2bd09df62d
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStore.kt)" = 359564c14d97c5b0e01360e25553b6bc4a52f391
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedBotPreSubmitAckLinkStoreTest.kt)" = 49476fc8fafb43479c1d614c54f0583163df0176
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealOriginalDecisionDraftStore.kt)" = 917816fba4681a4ec68e5f957fc7255780c01926
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealOriginalDecisionDraftPolicyTest.kt)" = caaabb404a8c9b63c100e179bb16b5b83ffd10eb
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyStore.kt)" = 359c73fe7d2e41c691a839676f1728e55365778d
+          test "$(git hash-object ci/patch_final_real_execution_durability_v1.py)" = bbd474a1ad910685c36301e600477e31025339f6
+          test "$(git hash-object ci/verify_final_real_execution_durability_v1.py)" = fcbbb551d24fd9297f3132d7cf176ef95774752e
+          test "$(git hash-object ci/test_final_real_durability_full_replay_v1.py)" = 04147e3a0cb769c83307b76669381c06abb971d0
+          test "$(git hash-object ci/patch_predictive_planned_entries_policy_epoch_v2_compat.py)" = b40a2d01036c6334d1ca2aca1409468738cbb1d4
+          test "$(git hash-object ci/real_pending_pre_submit_release_proof_v1.py)" = c5fa7d240a722bb6e9b66656a6ff146704844d06
+          test "$(git hash-object ci/test_real_pending_pre_submit_release_v1.py)" = 0c6c28974cb503dbe040de8e7bef1b82b35bf707
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealClosedResearchBackground.kt)" = d4e5fdd9c3887ee0536fb1d4baea54a077804354
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealClosedResearchRotationTest.kt)" = e29d24cd861402840fda2a49d28b27124dab1914
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealClosedResearchCheckpointStore.kt)" = c7a82fd21ee5f9eaabe16e0677debdff61f35a69
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WeexRealFundingRequestWindowPolicy.kt)" = 4943b8230bff718f4cfabb64c507034b955690be
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WeexRealFundingRequestWindowPolicyTest.kt)" = 6be3e18f63f0d9ca84b937bf285d0c4c1fef6969
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealFillReplayPolicy.kt)" = d69fb3b61b26ad33a8c363c8844623f899d3fbd7
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TradeDatabase.kt)" = 7e0ce91c4b67804fb6923f8b6237b99c2a1af912
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealFillReplayPolicyTest.kt)" = 9ddc3ae281bcc62516110cd22fdcae8fa872de42
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLedgerCredentialGuard.kt)" = a791b5f2123b1289a03cd1bfa5a9b09b9f1a9a01
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealLedgerCredentialGuardTest.kt)" = f8201df2379b8d311832b9f0e5e03cfac3e1e272
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAccountDailyLedgerStore.kt)" = 0f5dc6ea736c191f781f6e2c96ced907bf022097
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAccountDailyLedgerPolicyTest.kt)" = c1623f95b655005f99cf1e1dc404696e66e60bc0
+          test "$(git hash-object ci/patch_final_real_preflight_step_boundaries_v1.py)" = 28914991cbded6203dcc575afbec4bd9f53296c2
+          test "$(git hash-object ci/verify_final_real_preflight_step_boundaries_v1.py)" = 46be918c8a24a48bf367dbe7b00ee12520aa015e
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAccountDailyLedgerIngestion.kt)" = 6315edbd6e90df6539c3403f7c6eb677b807f23f
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAccountDailyLedgerIngestionTest.kt)" = 8950914da9346bd68f229680418f257446afeee6
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAccountLedgerRecovery.kt)" = 1e6812e0dd2839f4e392980657917a33b5bffe95
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAccountLedgerRecoveryPolicyTest.kt)" = e483a0e4cc694e17d249820817bbba550844250f
+          test "$(git hash-object ci/patch_final_real_daily_fill_window_v1.py)" = 8e69dbddf06694894eea0fe8938a0cc114e9e831
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAccountResultsDisplay.kt)" = 56bb699b73a6f6084a729f109ac2306bc612eea1
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAccountResultsDisplayTest.kt)" = d6f40d35d4b4db8d9ea8f57f86070a879a678b35
+          test "$(git hash-object ci/verify_real_results_cashflow_not_loss_v1.py)" = 6c3e5a1d909fce6e68c89eea0db7fa1be830cd65
+          test "$(git hash-object ci/patch_results_periods.py)" = bd6e931e3b41ced9f9b9eb4d0207409d8fbad73f
+          test "$(git hash-object ci/patch_final_ui_performance_v1.py)" = 91196c5f16dc3c5e02205b0c7ef3e3b43bd99c9a
+          test "$(git hash-object ci/verify_final_ui_performance_v1.py)" = e6fb40e2cf6f586f0fdc1817f9e923252001eaf5
+          test "$(git hash-object ci/test_final_ui_performance_signed_modern_v1.py)" = 1500ac7da01874788730518c2c5f49ebd81237bb
+          test "$(git hash-object ci/patch_final_real_sim_balance_ui_isolation_v1.py)" = 50ea72e48300ff0b4aafab523823627049b9f09a
+          test "$(git hash-object ci/verify_real_sim_balance_ui_isolation_v1.py)" = 1a94a8c8c42a3bf9a6b1249968c26c6cdbac44ae
+          python3 ci/verify_owner_manual_build_contract_v1.py
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+          p=Path('.circleci/config.yml')
+          base=p.read_text()
+          marker='              only: repair/weex-integral-bnb-folks-a27-20261125'
+          job='          name: qa_integral_bnb_folks_a27_android_no_apk'
+          assert base.count(marker)==1 and base.count(job)==1
+          for old,new in [(marker,'              only: recovery/weex-apk-20260915'),(job,'          name: unauthorized_candidate'),(marker+'\n            tags:\n              ignore: /.*/',marker)]:
+              assert base.count(old)==1
+              try:
+                  p.write_text(base.replace(old,new,1))
+                  result=subprocess.run(['python3','ci/verify_owner_manual_build_contract_v1.py'],capture_output=True,text=True)
+                  assert result.returncode!=0 and 'CIRCLECI_INTEGRATED_SOURCE_QA_SCOPE_CHANGED' in result.stderr
+              finally:
+                  p.write_text(base)
+          print('PR218_OWNER_SCOPE_NEGATIVE_MUTATIONS_PASS_NO_SIGN')
+          PY
+          git diff --exit-code -- .circleci/config.yml
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt)" = 08ba70c4ac1b6cefeea230677007d95e9006169f
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitMarketSafetyPolicy.kt)" = fc8e0faa54b92566a310d6bac2050ca2891cc581
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/ContinuousNetProfitMarketSafetyPolicyTest.kt)" = f9f6497032f36caed3ab741fcdb031f8fbedf986
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollector.kt)" = e97a80fbe79cae095ba391174fb84b243dfbaa88
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollectorTest.kt)" = 648d486d8a46567a5a00ac3657db280ecade1553
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicy.kt)" = d4ef3759ccc07c9d62019d1e942fa6a4a178d463
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicyTest.kt)" = 06a3f88565f9a57fadcd3cf45021f2a577db296a
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealTerminalPositionRoundTripStudyPolicy.kt)" = 53aa7c01a23a70b029632630a106c7d416ae52bc
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedProtectionPairReadOnlyCollector.kt)" = 1d089215bfae54aa0b0f79385343bcb51ccd6f97
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedProtectionPairReadOnlyCollectorTest.kt)" = d4ba3d14fedd2f89c06840f0865092dc48378191
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedProfitPositionRotation.kt)" = 5e78f9aac2c4a05d4227e32f8d8c38bb15379fc8
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedProfitPositionRotationTest.kt)" = 88b5db8ea2c4a00894e4372a1477923bed3480ee
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalOfficialReadOnlyPreflightPolicy.kt)" = f227b4029a611f7c75c4a88e39d12356eb1599db
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalOfficialReadOnlyPreflightPolicyTest.kt)" = d1f9022ba6b7983746bce5e03292958ef1a0f7d8
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalQuotaReadOnlyCollector.kt)" = 928856e12939e6b6718fd86f1088104c942c0bc5
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalQuotaReadOnlyCollectorTest.kt)" = 33cf904c7bd38d405d4a58933129b71730bc2068
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalExactHistoryStudyPolicy.kt)" = f452e9a774907dfc6679bd1a650f39eb0294a792
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalExactHistoryStudyPolicyTest.kt)" = d66083b56a31d5a85bb26cf33e300edba7497540
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalExactHistoryReadOnlyCollector.kt)" = 469542583fd2c0c5101b04e0b321de2c62f7ff70
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalExactHistoryReadOnlyCollectorTest.kt)" = 543bcfa5fa283838ded34821043f87df978a00b6
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalPendingRecord.kt)" = bbd0f52a1dd3abe82e00f83871ffe11e23c9cded
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalPendingRecordStore.kt)" = 841e24c910467be019ade1c9c23597ed061d1ab4
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalPendingRecordTest.kt)" = 5ec12be03b34b2c1fbce89798ccd1802fee98c02
+          test "$(git hash-object docs/CONTINUIDAD_INTEGRAL_BNB_FOLKS_REAL_A27_20261125.md)" = ce2bcf484aadc4033764bd8a44bc2b760a0980ab
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollector.kt)" = 1b4c4411c93d48c73ca8290363e8a6d34b7adaa4
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt)" = 837e09efa679e41b64fcc5d13f0838e162512cd2
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollectorTest.kt)" = 84a5a830c80a2df0d1212887175e622653a4aa0d
+          echo PR237_EXACT_SOURCE_AND_PINNED_CHANGES
+      - name: Isolate REAL durability regression before canonical replay
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No credentials, Android assembly or network operations in this source-only test.
+          # Run the exact regression, retaining its source-only diagnostic on failure.
+          python3 ci/test_final_real_execution_durability_restoration_v1.py
+          python3 ci/test_final_real_durability_full_replay_v1.py
+          python3 ci/test_real_pending_pre_submit_release_v1.py
+      - name: Prepare Java 17 and Android SDK 35
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Gradle 8.10.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          test -d "$SDK"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o /tmp/weex-gradle-pr192.zip
+          printf '%s  %s\n' '31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26' /tmp/weex-gradle-pr192.zip | sha256sum -c -
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o /tmp/weex-gradle-pr192.zip -d "$HOME/.gradle-dist"
+          echo "$HOME/.gradle-dist/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+          echo 'GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false' >> "$GITHUB_ENV"
+      - name: Canonical source preflight plus full Android Kotlin JUnit; NEVER APK
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Inventory filenames only: no source contents, keys, or live network calls.
+          git grep -l -F 'store.clear()' -- 'ci/*.py' | while IFS= read -r name; do
+            printf 'PR255_LEGACY_CLEAR_REFERENCE=%s\n' "$name"
+          done || true
+          git grep -l -F 'return PlannedRealEntry(' -- 'ci/*.py' | while IFS= read -r name; do
+            printf 'PR255_LEGACY_RESTORE_REFERENCE=%s\n' "$name"
+          done || true
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr192-qa-source.log 2>&1; then
+            echo "::error::PR192_PRESIGN_OR_KOTLIN_JUNIT_FAILED_NO_APK"
+            # CI diagnostic ONLY: earlier filter hid the canonical Gradle tail
+            # when BUILD_FAILED had zero Kotlin errors and zero failing JUnit XML.
+            # Keep compiler, timeout and infrastructure errors, never HTTP bodies.
+            grep -Eo 'WEEX_PRESIGN_FIRST_FAILURE_LINE=[0-9]+|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT=[0-9]+|WEEX_AUDIT_KOTLIN_ERROR_COUNT=[0-9]+|WEEX_AUDIT_JUNIT_BUILD_FAILED [0-9]+|WEEX_PRESIGN_SOURCE_REPLAY_FAILED rc=[0-9]+|WEEX_PREFLIGHT_BLOCKED|WEEX_RELEASE_ERRTRAP' /tmp/pr192-qa-source.log | tail -30 || true
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+          # Emit only bounded source guard identifiers, not arbitrary logs or credentials.
+          log=Path("/tmp/pr192-qa-source.log").read_text(errors="replace")
+          for line in log.splitlines():
+              for match in re.finditer(r"\b[A-Z][A-Z0-9_]{5,90}(?:_FAIL|_FAILED|_MISSING|_REGRESSION|_REJECTED|_BLOCKED|_MISMATCH)\b",line):
+                  print("PR258_FAILURE_GUARD="+match.group(0))
+              for match in re.finditer(r"\b(?:ci/)?(?:verify|patch|test)_[a-z0-9_]+\.py\b",line):
+                  if "PRESIGN_FAILURE_CONTEXT" in line: print("PR258_FAILURE_SCRIPT="+match.group(0))
+              if "PRESIGN_FAILURE_CONTEXT" in line:
+                  # Static diagnostic categories only, never arbitrary source/log text.
+                  for label,pattern in (
+                      ("LEGACY_PENDING_CLEAR",r"store\.clear\(\)"),
+                      ("PLANNED_ENTRY_STORE",r"PlannedRealEntryStore|PredictiveEntryPlanner"),
+                      ("SNAPSHOT_COMPARE_CLEAR",r"clearIfUnchanged|matchesPlannedEntrySnapshot"),
+                      ("REGRESSION_FIXTURE_MISSING",r"regression fixture missing"),
+                      ("LEGACY_MATERIALIZER_ANCHOR",r"anchor missing|anchor changed|source changed|expected 1"),
+                      ("PYTHON_ASSERTION",r"AssertionError|Traceback"),
+                      ("STICKY_TTL_REPLAY",r"REAL_PENDING_STICKY_TTL_V2_REPLAY"),
+                      ("DURABILITY_POST_VERIFIER",r"post-verifier .* rejected exact materialized Kotlin"),
+                      ("DURABILITY_MATERIALIZER",r"materializer .* unexpected rc="),
+                      ("DURABILITY_IOC_ACK",r"IOC exact study ACK|IOC study receipt quantity lost|IOC no-fill study cleanup|unexpected/reordered IOC study action"),
+                      ("DURABILITY_MAKER_ACK",r"unexpected/reordered Maker action|unknown/reordered Maker action|refusing Maker rebuild"),
+                      ("DURABILITY_RECOVERY_ACK",r"unexpected/reordered recovered exact receipt|unknown/reordered catch recovery action|recovered study receipt quantity lost"),
+                      ("DURABILITY_TERMINAL_CLEANUP",r"terminal study cleanup|signed terminal study cleanup"),
+                      ("DURABILITY_REENTRANT",r"reentrant run|reentrant Kotlin rewrite|late Maker owner restoration"),
+                      ("DURABILITY_STUDY_MUTATION",r"study marker lost or duplicated|removed study marker accepted"),
+                  ):
+                      if re.search(pattern,line): print("PR258_FAILURE_CATEGORY="+label)
+                  for match in re.finditer(r"\b(?:[A-Z][A-Z0-9_]{5,90}|(?:PLANNED V2 COMPAT|MAKER STRATEGY PRECOMPAT|PLANNED V2))(?=[: ])",line):
+                      print("PR258_FAILURE_CONTEXT_MARK="+match.group(0))
+                  for match in re.finditer(r"\bWEEX_RELEASE_ERRTRAP line=[0-9]+ rc=[0-9]+",line):
+                      print("PR258_FAILURE_SHELL="+match.group(0))
+          PY
+            grep -Eo 'WEEX_AUDIT_JUNIT_FAILED com\.wilito\.weexautotrader\.[A-Za-z0-9_.$]+' /tmp/pr192-qa-source.log | head -20 || true
+            grep -Eo 'app/src/[A-Za-z0-9_./-]+\.kt:[0-9]+:[0-9]+' /tmp/pr192-qa-source.log | sort -u | head -20 || true
+            # Only allowlisted Gradle task names and known failure categories.
+            # Do not echo source, compiler excerpts, paths, URLs or remote payloads.
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+          data=Path("/tmp/pr192-qa-source.log").read_text(errors="replace")
+          categories={
+            "DAEMON_DISAPPEARED":r"daemon disappeared|daemon has disappeared|daemon was stopped",
+            "OOM":r"OutOfMemoryError|Java heap space|GC overhead limit|out of memory|Metaspace",
+            "KILLED":r"exit (?:code|value) 137|signal 9|Killed process",
+            "DEPENDENCY_RESOLUTION":r"Could not resolve|Could not download|Could not GET|Could not HEAD",
+            "NETWORK_TIMEOUT":r"Read timed out|Connect timed out|Connection timed out|SocketTimeoutException",
+            "DISK_FULL":r"No space left on device",
+            "KOTLIN_INTERNAL":r"Internal compiler error|Backend Internal error|Compilation error",
+            "GRADLE_TIMEOUT":r"TimeoutException|timed out waiting",
+            "TEST_EXECUTOR":r"Gradle Test Executor|Test process encountered|There were failing tests",
+            "BUILD_FAILED":r"BUILD FAILED",
+          }
+          for name,pattern in categories.items():
+              if re.search(pattern,data,re.I):
+                  print("QA_GRADLE_CATEGORY="+name)
+          for task in sorted(set(re.findall(r"(?:Execution failed for task ['\x22]|> Task )(:[A-Za-z0-9_:.-]+)(?:['\x22]| FAILED)",data))):
+              if re.fullmatch(r":app:[A-Za-z0-9_]+",task):
+                  print("QA_GRADLE_FAILED_TASK="+task)
+          PY
+            exit 1
+          fi
+          grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr192-qa-source.log
+          grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr192-qa-source.log
+          echo PR263_CANONICAL_PRESIGN_AND_ANDROID_JUNIT_PASS
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealAppliedLearningCertifiedClosePipeline.kt
+          grep -Fq 'RealVerifiedLearningProgressCard(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/MainActivity.kt
+          grep -Fq 'optionalProfitStopFreshOwnerAuthority' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CausalPricePathForecastStudy.kt
+          test -s "/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealForecastBackground.kt"
+          grep -Fq 'realForecastBackground.schedule(' "/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TraderService.kt"
+          grep -Fq 'realLearningAdvice.schedule(' "/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TraderService.kt"
+          grep -Fq 'cachedFreshNowMsOrNull()' "/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WeexPublicClock.kt"
+          grep -Fq 'realCausalForecastShadow' "/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/Diagnostics.kt"
+          grep -Fq 'realLearningShadowAdvice' "/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/Diagnostics.kt"
+          echo PR204_MATERIALIZED_FORECAST_AND_LEARNING_HOOKS_PRESENT
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealHistoricalProtectiveCloseExecutionPolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealHistoricalProtectiveClosePolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectionOpeningAnchorTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectiveCloseExecutionPolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealHistoricalProtectiveClosePolicyTest.kt
+          grep -Fq 'RealHistoricalProtectiveCloseExecutionPolicy.verified(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          grep -Fq 'RealHistoricalProtectiveCloseExecutionPolicy.noResidualOrders(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          grep -Fq 'RealHistoricalProtectiveCloseExecutionPolicy.RoundTripEvidence.verify(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          grep -Fq 'historical?.matchingEvidence(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          grep -Fq 'RealHistoricalProtectiveCloseExecutionPolicy.releaseLocalJournal(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          grep -Fq 'signedPortfolioStartedElapsed' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'ContinuousNetProfitSafeChoicePolicy.chooseCombined(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'currentCredentials.load()==credentials' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
+          grep -Fq '.combinedSignedWindowStillFresh(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
+          grep -Fq 'notInvokedIntent=null' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
+          grep -Fq 'KNOWN_PRE_SEND_ABORT_PREPARED_RESTORED' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt
+          grep -Fq 'receipt.orderId,submitted,acknowledgedAtMs)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealBotAcceptedEntryStudyRecorder.kt
+          grep -Fq 'submitted,entry,stop,target,leverage' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealOriginalDecisionDraftStore.kt
+          grep -Fq 'originalDecisionContext=runCatching' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'RealOriginalDecisionDraftPolicy.bind(original,' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt
+          grep -Fq 'rememberOriginalObservedAck(api,prepared,receipt,studyAckObservedAt)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt
+          grep -Fq 'RealOriginalDecisionDraftStore(context).promoteOne(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'links.readOrRestoreFromExactArchives(account,orderId,clientId)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt
+          # PR258 added a separate local study observation copy. Check all
+          # four uses explicitly, not the legacy total of three receipts.
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt").read_text()
+          assert s.count("submittedQuantity=prepared.quantity.toDoubleOrNull()")==4, "PR263 exact submitted quantity use count"
+          assert s.count("submittedQuantity=prepared.quantity.toDoubleOrNull()?.takeIf{signedStudyQtyMatches},")==2, "PR263 signed IOC/recovered receipt quantity"
+          assert s.count("submittedQuantity=prepared.quantity.toDoubleOrNull()?.takeIf{receipt.clientOrderId==prepared.clientOrderId},")==1, "PR263 maker receipt identity"
+          assert s.count("receipt.copy(submittedQuantity=prepared.quantity.toDoubleOrNull()),observedAt)")==1, "PR263 local study observation copy"
+          print("PR263_ALL_FOUR_EXACT_SUBMITTED_QUANTITY_USES_VERIFIED")
+          PY
+          grep -Fq 'trackedPendingOrderId.orEmpty(),trackedPendingClientId.orEmpty()' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'check(maySavePlannedEntry(v,load(),prefs.all.isEmpty()))' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/PredictiveEntryPlanner.kt
+          grep -Fq 'signedHistoricalProtectiveCloseCandidate(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt
+          grep -Fq 'RealHistoricalProtectiveClosePolicy.REQUEST_LIMIT' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WeexPrivateApi.kt
+          grep -Fq 'const val REQUEST_LIMIT=1000' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealHistoricalProtectiveClosePolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealLegacyMakerSignedOpeningReadOnlyCollector.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealHistoricalOrderFillWindowPolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealDailyLedgerBackgroundSingleFlight.kt
+          grep -Fq 'realDailyLedgerBackground.scheduleIfIdle {' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'REAL_LEDGER_OFFSCANNER_COMMIT_GUARD_V1' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'RealTradingPnl.markSyncInProgress(applicationContext)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'fun markSyncInProgress(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealTradingPnl.kt
+          grep -Fq 'historical?.schedule(stored,status,detail?.executedQuantity,filledIntoPosition,historicAccountScope)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          grep -Fq 'fun exactDetail():RealOrderStatus?' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          grep -Fq 'fun matchesExactOrder(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingTerminalPolicy.kt
+          grep -Fq 'OnlineShadowMaturationPolicy.classify(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          grep -Fq 'MAX_FOREIGN_CONTEXT_RECOVERY_GRACE_MS' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          grep -Fq 'vpnGapOnOtherMarketDoesNotDestroyOriginalHistoricalTrainingTarget' app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          grep -Fq 'vpnFirstOwnMarketTickWithoutCandlesCanLaterLearnOnlyOriginalClosedBar' app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          grep -Fq 'oldSameMarketHistoryExpiresAfterRecoveryCapEvenIfPriceIsPresent' app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          grep -Fq 'age>horizon+MAX_FOREIGN_CONTEXT_RECOVERY_GRACE_MS' app/src/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
+          grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/MainActivity.kt
+          test ! -e app/build/outputs/apk/release/app-release.apk
+          grep -Fq 'RealResearchCoverageRotation.select(sweep,candidates.size)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealIndependentResearchWorker.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealResearchCoverageRotation.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealResearchCoverageRotationTest.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          c=(root/"RealCombinedContinuousNetProfitCoordinator.kt").read_text()
+          archive="RealCombinedSignedStopObservationStore(context).recordSignedReadOnly(observation)"
+          assert c.count(archive)==1
+          assert c.index("RealCombinedStopObservationPolicy.inspect(")<c.index(archive)<c.index("if(signedGross<4.0")
+          assert c.count("transaction.execute(")==2
+          assert c.count("job.invokeOnCompletion { busy.set(false) }")==1
+          assert "finally {" not in c
+          assert "!background.isActive" in c
+          assert "RealCombinedJoinDiagnosticCode.assembly(assembly.reason)" in c
+          assert "ContinuousNetProfitFloorPolicy.evaluateVerified(" in c
+          assert "RealCombinedProfitBookFreshnessPolicy.valid(" in c
+          assert "companion object { private val mutex=Any() }" in (root/"RealCombinedSignedStopObservationStore.kt").read_text()
+          print("PR206_PROTECTION_ARCHIVE_BEFORE_PROFIT_FLOOR_AND_SHARED_LOCK")
+          PY
+          grep -Fq 'OWNER_NEWS_FIXED_PUBLISH_FOOTER_V3' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/OwnerAnnouncementsComposer.kt
+          grep -Fq 'if(current==OwnerPage.COMUNICADOS) Modifier' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/OwnerControlCenterDialog.kt
+          grep -Fq 'AnnouncementNoteOverlay(cloud,license,selectedTab)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/MainActivity.kt
+          grep -Fq 'synchronized(sharedModelWriteLock)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt
+          grep -Fq 'onDispose { OwnerAnnouncementDeliveryRefresh.ownerPanelClosed() }' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/OwnerControlCenterDialog.kt
+          grep -Fq 'if(target==null)OwnerAnnouncementDeliveryRefresh.published(announcementId)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/OwnerAnnouncementsComposer.kt
+          grep -Fq 'AnnouncementMegaphone(accent,note.id)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/AnnouncementNoteOverlay.kt
+          grep -Fq 'pending=notes.firstOrNull{it.id==ownBroadcast' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/AnnouncementNoteOverlay.kt
+          grep -Fq 'if (TradingModeState.mode.value == TradingMode.REAL) return predictOnly(features)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt
+          grep -Fq '"12h" -> 12L*60*60*1000' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/PredictionHorizonPolicy.kt
+          grep -Fq '"1d" -> 24L*60*60*1000' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/PredictionHorizonPolicy.kt
+          grep -Fq 'setOf("1m","5m","15m","30m","1h","4h","12h","1d")' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/PredictionHistoricalTargetPolicy.kt
+          challenger=/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/ShadowPolicyChallenger.kt
+          grep -Fq 'shadow-policy-challenger-causal-v2.json' "$challenger"
+          grep -Fq 'OnlineShadowMaturationPolicy.classify(' "$challenger"
+          grep -Fq 'stateKey(features,timeframe)' "$challenger"
+          grep -Fq 'val rawReturn=(target-sample.entryPrice)/sample.entryPrice' "$challenger"
+          grep -Fq 'PredictionHorizonPolicy.sampleIntervalMs(timeframe)' "$challenger"
+          ! grep -Fq 'currentPrice-sample.entryPrice' "$challenger"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/PredictionLayer.kt').read_text()
+          a=p.index('val rl=ShadowPolicyChallenger(database).observe(')
+          b=p.index('val prediction=',a)
+          assert 'historicalCandles=candles' in p[a:b]
+          PY
+          grep -Fq '"shadow-policy-challenger-causal-v2.json"' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq '"shadow-policy-challenger-v2-timeframe.json"' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader')
+          src=(root/'TraderService.kt').read_text()
+          a=src.index('SHARED_RUNNING_POSITION_THESIS_V1')
+          b=src.index('is RealAIExitResult.Closed',a)
+          block=src[a:b]
+          assert 'AdaptiveThesisPolicy.assess(' in block and 'if(review?.state==ThesisState.VALID)' in block
+          assert block.count('realAdaptiveProfit.maybeExtend(')==1
+          assert 'exitBlocksNewEntry=' not in block
+          assert 'assess(position.side,position.entry,price,indicators,signal)' in (root/'AdaptiveThesisPolicy.kt').read_text()
+          PY
+          grep -Fq 'action in setOf("upload","download","collective_pull","collective_contribute",' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'lastError=contributionError' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'val networkStatus=pull.takeIf{it.optInt("authorityEpoch",-1)==LearningAuthorityEpoch.VERSION}' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'val reportingDevices=networkStatus?.optInt("reportingDevices",-1)?:-1' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          ! grep -Fq 'postTo(collectiveStatusEndpoint,JSONObject().put("action","status"),token)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'return collectiveSyncMutex.withLock { syncCollectiveLocked(force) }' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'if(!consentCurrent())return@synchronized false' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'collectiveConsentRevision.incrementAndGet()' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'private fun collectiveDirection(item:CollectiveKnowledge?):String = "WAIT"' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/SwarmIntelligence.kt
+          grep -Fq 'if(!openTrajectoryConsent||!entry.signedExecutedEntry||nowMs<=0L)return null' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CollectiveOpenTrajectoryPolicy.kt
+          grep -Fq 'val reports=collectedReports.filter{CollectiveUsePolicy.uploadEligible(it,now)}' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/CloudAccess.kt
+          grep -Fq 'CollectiveUsePolicy.researchFamily(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/SimulationAIMarketSelector.kt
+          grep -Fq 'if(position==null)CollectiveUsePolicy.researchFamily(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt
+          grep -Fq 'val bestCollective=CollectiveUsePolicy.contextualAdvisory(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/ReasoningBrain.kt
+          grep -Fq 'seen.add(normalize(it.symbol))' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealStandbyStudyPolicy.kt
+          grep -Fq 'else RealStandbyStudyPolicy.invalidateContext(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealIndependentResearchWorker.kt
+          grep -Fq 'internal object AutomaticWithdrawalPreviewPolicy' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/AutomaticWithdrawalPreviewPolicy.kt
+          grep -Fq 'if(showWithdrawalSetup)WithdrawalSetupDialog' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/MainActivity.kt
+          grep -Fq 'internal object WithdrawalNetworkCatalog' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalNetworkCatalog.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/ContinuousNetProfitFloorPolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/ContinuousNetProfitVerifiedSamplePolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedJoinDiagnosticCode.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedOpeningChronologyPolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedProfitBookFreshnessPolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicy.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedWeexSignedEvidenceAssembler.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalDraftValidation.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalRuleDraft.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalRuleDraftStore.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt
+          grep -Fq 'readHistoricalOpeningResult(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          grep -Fq 'HISTORICAL_PROTECTION_ANCHOR_ARCHIVE_UNREADABLE' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedStopObservationStore.kt
+          grep -Fq 'latest=if(modeActive() && advice!=null' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt
+          grep -Fq 'costAtMs=net.signedCostReadAtMs?:0L' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'timing=RealProfitWorkerTiming(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'put("workerElapsed",JSONObject().apply' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          test -s /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalDestinationDraftStore.kt
+          grep -Fq 'a27_destination_draft_v1' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalDestinationDraftStore.kt
+          grep -Fq 'WithdrawalDestinationDraftStore.save(context,snapshot)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt
+          grep -Fq 'DESTINATION_DELETE_READBACK' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalDestinationDraftStore.kt
+          grep -Fq 'NETWORK_WITHDRAWAL_MULTIPLE_MISMATCH' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/AutomaticWithdrawalPreviewPolicy.kt
+          grep -Fq 'RealCombinedSignedNetCostStudyPolicy.repriceConservatively(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'REAL_OPEN_SIGNED_ACCOUNT_CHANGED_DURING_READS' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt
+          grep -Fq 'RealHistoricalOrderFillWindowPolicy.exactHistoricalWindow(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealBotSignedOpeningReadOnlyCollector.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          s = Path('/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt').read_text()
+          markers = ['RealCombinedSignedNetCostStudyPolicy.repriceConservatively(', 'val high=watermark.observeSigned(', 'if(!atr.valid)', 'val floor=ContinuousNetProfitFloorPolicy.evaluateVerified(', 'val rollout=ContinuousNetProfitRolloutGate.check(', 'val action=transaction.execute(']
+          indices = [s.index(m) for m in markers]
+          assert indices == sorted(indices)
+          assert s.count('if(!atr.valid)') == 1
+          assert 'return skipped("COMBINED_SIGNED_TIMEFRAME_ATR_UNVERIFIED"' in s[indices[2]:indices[3]]
+          print('PR217_ATR_INVALID_PRESERVES_VERIFIED_PEAK_BUT_PREVENTS_NEW_STOP')
+          PY
+          grep -Fq 'freshMarkAndBookStopSafe=stillFresh' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
+          grep -Fq '.recheckAfterSignedRead(finalMarket,finalNow).safe' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionPort.kt
+          grep -Fq 'signedReadAtMs=clock,ledger=x' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollector.kt
+          grep -Fq 'signedPortfolioAtMs=signed.position.signedReadAtMs' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'POSITION_STREAM_ZERO_SIZE_CLOSE_QUANTITY_INCOMPLETE' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPrivatePositionStreamEvidencePolicy.kt
+          grep -Fq 'TERMINAL_ROUND_TRIP_FEE_MISMATCH' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealTerminalPositionRoundTripStudyPolicy.kt
+          grep -Fq 'val permitsLiveTraining:Boolean get()=false' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealTerminalPositionRoundTripStudyPolicy.kt
+          grep -Fq 'RealHistoricalOrderFillWindowPolicy.fromOriginalBotDecision(' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          grep -Fq 'WeexFillTimeWindow(decidedAtMs,end)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealHistoricalOrderFillWindowPolicy.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          port=(root/"RealCombinedSignedStopTransactionPort.kt").read_text()
+          collector=(root/"RealCombinedSignedProtectionPairReadOnlyCollector.kt").read_text()
+          readback=port.split("override fun signedReadback(",1)[1].split("private fun readFreshMarketEvidence",1)[0]
+          assert readback.count("freshCombined(intent)")==2
+          assert readback.count(".verifiedReadback(intent,")==2
+          assert "readCompleteConditionalOrdersForProfitStudy" not in readback
+          assert "completeSignedPages=signed.copy(orders=signed.orders.toList())" in collector
+          assert "signedReadAtMs=pages.readStartedAtMs,nowMs=nowMs,remoteOrders=pages.orders" in collector
+          assert "ContinuousNetProfitConditionalPagingPolicy.collectSigned(" in collector
+          assert port.count("return actions.modifyTpSlOrder(intent.stopAlgoId,intent.newStop)")==1
+          assert "recheckAfterSignedRead(finalMarket,finalNow).safe" in port
+          print("PR228_MATERIALIZED_TWO_INDEPENDENT_JOINS_ACTUAL_DOUBLE_PASS_PAGES_SINGLE_POST")
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          c=(root/"RealCombinedContinuousNetProfitCoordinator.kt").read_text()
+          p=(root/"RealCombinedProfitPositionRotation.kt").read_text()
+          assert "RealCombinedProfitPositionRotation.select(" in c
+          assert "combined.map{it.id},pendingIds,ownerReady,rotation" in c
+          assert "nextCheckAtElapsedMs=now+90_000L" in c
+          assert c.count("background.launch(Dispatchers.IO)")==1
+          assert "job.invokeOnCompletion { busy.set(false) }" in c
+          assert "val ordinary=if(ownerReady)sorted.filter{it !in pendingIds} else emptyList()" in p
+          assert "if(pending!=null)" in c
+          assert "ContinuousNetProfitRolloutDecision(false,\"RECOVER_ONLY\")" in c
+          print("PR229_MATERIALIZED_SINGLE_FLIGHT_FAIR_ROTATION_OWNER_OFF_RECOVERY_ONLY")
+          PY
+          grep -Fq 'val authorizesWithdrawal:Boolean get()=false' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalOfficialReadOnlyPreflightPolicy.kt
+          grep -Fq 'val provesWithdrawalPermission:Boolean get()=false' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalOfficialReadOnlyPreflightPolicy.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          reader=(root/"WithdrawalQuotaReadOnlyCollector.kt").read_text()
+          ui=(root/"WithdrawalSetupDialog.kt").read_text()
+          assert 'private const val HOST="https://api-spot.weex.com"' in reader
+          assert 'private const val TIME="/api/v3/time"' in reader
+          assert 'private const val QUOTA="/api/v3/wallet/withdraw/limit?coin=USDT"' in reader
+          assert 'private const val TRAVEL="/api/v3/wallet/withdraw/travel-rule"' in reader
+          assert "Request.Builder().url(HOST+path).get()" in reader
+          assert ".followRedirects(false).followSslRedirects(false)" in reader
+          assert ".retryOnConnectionFailure(false)" in reader
+          assert "store.load()==credentials" in reader
+          assert "WithdrawalQuotaReadOnlyCollector.querySavedApi(context)" in ui
+          assert "CONSULTAR CUOTA CON API GUARDADA" in ui
+          assert "No es saldo disponible ni permiso de retiro." in ui
+          for forbidden in (".post(", ".put(", ".delete(", "signedPost(", "withdraw(", "transfer("):
+              assert forbidden not in reader
+          print("PR231_MATERIALIZED_MANUAL_QUOTA_FIXED_GET_ONLY_NO_WITHDRAWAL_AUTHORITY")
+          PY
+          grep -Fq 'WITHDRAW_HISTORY_NOT_FOUND_DO_NOT_RESEND' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalExactHistoryStudyPolicy.kt
+          grep -Fq 'val permitsRetry:Boolean get()=false' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalExactHistoryStudyPolicy.kt
+          grep -Fq 'val provesCompleted:Boolean get()=false' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/WithdrawalExactHistoryStudyPolicy.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          transport=(root/"WithdrawalQuotaReadOnlyCollector.kt").read_text()
+          reader=(root/"WithdrawalExactHistoryReadOnlyCollector.kt").read_text()
+          assert 'Regex("^openapi_[A-Za-z0-9]{16,32}$")' in reader
+          assert "WithdrawalApiClientIdPolicy.isAllowedHistoryPath(path)" in transport
+          assert reader.count("port.readExactHistory(key.clientWithdrawId,began)")==1
+          assert "WITHDRAW_HISTORY_READ_FAILED_DO_NOT_RESEND" in reader
+          assert "store.load()==credentials" in reader
+          for src in (transport,reader):
+              for forbidden in (".post(", ".put(", ".delete(", "signedPost(", "withdraw(", "transfer("):
+                  assert forbidden not in src
+          print("PR233_MATERIALIZED_EXACT_ID_HISTORY_GET_ONLY_NO_RETRY")
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          model=(root/"WithdrawalPendingRecord.kt").read_text()
+          store=(root/"WithdrawalPendingRecordStore.kt").read_text()
+          assert "context.noBackupFilesDir" in store
+          assert 'Cipher.getInstance("AES/GCM/NoPadding")' in store
+          assert "WITHDRAW_JOURNAL_MISSING_AFTER_INITIALIZATION" in store
+          assert "check(read(context)?.encode()==raw)" in store
+          assert "current==null && next.phase==WithdrawalPendingPhase.PREPARED" in model
+          assert "current?.encode()!=canonical" in model
+          assert "phase=WithdrawalPendingPhase.MAY_HAVE_BEEN_SUBMITTED" in model
+          for forbidden in (".post(", "signedPost(", "withdraw(", "transfer(", "deleteEntry(", ".delete(", "fun clear("):
+              assert forbidden not in store
+          assert not any("WithdrawalPendingRecordStore." in p.read_text() for p in root.glob("*.kt") if p.name!="WithdrawalPendingRecordStore.kt")
+          print("PR234_MATERIALIZED_ENCRYPTED_JOURNAL_NO_CLEAR_NO_LIVE_CALLER_NO_SEND")
+          PY
+          grep -Fq 'RealCombinedJoinDiagnosticCode.transaction(recovered)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'RealCombinedJoinDiagnosticCode.transaction(action)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'parts[1] in details' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedJoinDiagnosticCode.kt
+          grep -Fq 'signedReadAtMs=clock,ledger=x' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollector.kt
+          grep -Fq 'signedReadCompletedAtMs=after' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedPositionLedgerReadOnlyCollector.kt
+          grep -Fq 'p.ledger.updatedTimeMs>p.signedReadCompletedAtMs' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicy.kt
+          grep -Fq 'RealCombinedSignedNetCostWeexReadPort(context,credentials,signed)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'COMBINED_COST_SIGNED_ORIGIN_PROOF_EXPIRED' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollector.kt
+          grep -Fq 'copy(observedExchangeAtMs=study.currentExchangeNowMs)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedNetCostReadOnlyCollector.kt
+          grep -Fq 'oldestSignedSourceAtMs=oldestSourceAt(study)' /tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/RealCombinedSignedStopTransactionRecheckPolicy.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          s=(root/"RealExecutionEngine.kt").read_text()
+          a=s.index("if(directStatus!=null&&RealExecutionPolicy.signedTerminalNoFillMatches(")
+          b=s.index("val recovered=recoverPending(api,pendingId)",a)
+          branch=s[a:b]
+          capture=branch.index("val recoveredStudyDraft=runCatching")
+          read=branch.index("readRecoveredTerminalNoFill(",capture)
+          clear=branch.index("if(!pending.edit().clear().commit())",read)
+          discard=branch.index("discardSignedTerminalNoFill(",clear)
+          finish=branch.index("Orden REAL anterior terminó sin ejecución",discard)
+          assert capture<read<clear<discard<finish
+          assert branch.count("pending.edit().clear().commit()")==1
+          assert "pending.getLong(\"created_at\",0L)" in branch
+          assert "directStatus.originalQuantity" in branch and "directStatus.executedQuantity" in branch
+          assert "rememberOriginalObservedAck(" not in branch
+          assert "matchesRecoveredPendingContext(" in (root/"RealOriginalDecisionDraftStore.kt").read_text()
+          print("PR264_MATERIALIZED_EXACT_HISTORICAL_NO_FILL_CLEANUP_AFTER_DURABLE_CLEAR")
+          PY
+          echo PR264_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          service=(root/"TraderService.kt").read_text()
+          worker=(root/"RealClosedResearchBackground.kt").read_text()
+          diag=(root/"Diagnostics.kt").read_text()
+          assert service.count("realClosedResearch.schedule(credentials,true)")==1
+          assert "if(signedRealPositionRows.isEmpty()&&remoteOrders.isEmpty())" in service
+          assert "private val realClosedResearch by lazy" in service
+          assert "busy.compareAndSet(false,true)" in worker
+          assert "nextAt=now+600_000L" in worker
+          assert "scope.launch(Dispatchers.IO)" in worker
+          assert "stored.load()==credentials" in worker
+          assert "if(stillCurrent()) {" in worker and "RealClosedResearchDiagnostic.publish(" in worker
+          assert worker.index("if(stillCurrent()) {")<worker.index("checkpoints.record(it)")<worker.index("RealClosedResearchDiagnostic.publish(")
+          assert "filterNot{checkpoints.alreadyObserved(it)}" in worker
+          assert worker.count(".inspectReadOnly(account,chosen.closeOrderId)")==1
+          for forbidden in ("placeOrder(", "closePositions(", "amendStop(", "recordAdmitted(", "admitAndCommit(", "signedPost(", ".await(", "runBlocking"):
+              assert forbidden not in worker
+          assert 'put("realSignedCloseResearch"' in diag
+          assert 'put("certifiesFundingOrTrains",false)' in diag
+          print("PR265_MATERIALIZED_EXACT_CLOSE_RESEARCH_OFFSCANNER_NO_TRAINING_AUTHORITY")
+          PY
+          echo PR265_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          store=(root/"RealClosedResearchCheckpointStore.kt").read_text()
+          assert "val permitsTraining:Boolean get()=false" in store
+          assert "prefs.edit().putString(k,encoded).commit()" in store
+          assert "prefs.getString(k,null)==encoded" in store
+          assert "RealClosedResearchCheckpointPolicy.compatible(it,x)" in store
+          assert "if(prefs.all.size>=MAX)" in store
+          assert "realizedBeforeCosts" in store
+          assert not any(t in store for t in ("admitAndCommit(", "recordAdmitted(", "signedPost(", "placeOrder(", ".remove(", ".clear("))
+          print("PR266_MATERIALIZED_DURABLE_RESEARCH_NOT_CERTIFIED_LEARNING")
+          PY
+          echo PR266_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          api=(root/"WeexPrivateApi.kt").read_text()
+          method=api.split("fun fundingIncomeSince(startTime:Long):Double",1)[1].split("fun commissionRates(",1)[0]
+          token="WeexRealFundingRequestWindowPolicy.requireCompletedPage("
+          assert method.count(token)==2
+          before=method.index(token)
+          after=method.index(token,before+len(token))
+          assert method.index('signedPost("/capi/v3/account/income"')<before<method.index("for(index in 0 until items.length())")<after<method.index('if(!page.getBoolean("hasNextPage"))break')
+          policy=(root/"WeexRealFundingRequestWindowPolicy.kt").read_text()
+          assert "elapsedNs in 0L until 45_000_000_000L" in policy
+          assert "rows in 0..100 && (!hasNextPage || rows>0)" in policy
+          print("PR267_MATERIALIZED_FUNDING_TERMINAL_BUDGET_GUARD")
+          PY
+          echo PR267_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX
+          python3 - <<'PY'
+          from pathlib import Path
+          db=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader/TradeDatabase.kt").read_text()
+          m=db.split("fun recordRealFills(fills:List<RealTradeFill>):Int",1)[1].split("fun recentRealClosedFills(",1)[0]
+          assert m.index("db.beginTransaction()")<m.index("RealFillReplayPolicy.valid(fill)")<m.index("statement.executeInsert()")<m.index("RealFillReplayPolicy.matches(prior,fill)")<m.index("db.setTransactionSuccessful()")<m.index("db.endTransaction()")
+          assert "REAL_FILLS_CONFLICTING_REPLAY" in m
+          assert "finally { statement.close() }" in m
+          print("PR268_MATERIALIZED_FILL_REPLAY_ATOMIC_GUARD")
+          PY
+          echo PR268_CANONICAL_JUNIT_PASS
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          service=(root/"TraderService.kt").read_text()
+          start=service.index("val fills=api.userTrades(fillStart)")
+          end=service.index("RealTradingPnl.markSyncSuccess(applicationContext)",start)
+          block=service[start:end]
+          guard="RealLedgerCredentialGuard.requireCurrent("
+          assert block.count(guard)==3
+          indices=[i for i in range(len(block)) if block.startswith(guard,i)]
+          assert indices[0]<block.index("database.recordRealFills(fills)")<indices[1]<block.index("RealTradingPnl.updateFundingSnapshot(")<indices[2]
+          assert block.count("credentials,SecureCredentials(applicationContext).load()")==3
+          policy=(root/"RealLedgerCredentialGuard.kt").read_text()
+          assert "current!=null && captured==current" in policy
+          print("PR269_MATERIALIZED_CREDENTIAL_GUARDS_BEFORE_THREE_COMMITS")
+          PY
+          echo PR269_CANONICAL_JUNIT_AND_MATERIALIZED_GUARDS_PASS_NO_APK_NO_OTA
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          ledger=(root/"RealAccountDailyLedgerStore.kt").read_text()
+          assert 'real_account_daily_ledger_v1.db' in ledger
+          assert "PRIMARY KEY(account_proof,day_start,trade_id)" in ledger
+          assert "RealFillReplayPolicy.matches(prior,it)" in ledger
+          assert "db.beginTransaction()" in ledger and "db.setTransactionSuccessful()" in ledger
+          assert "saved.fills.toSet()!=next.fills.toSet()" in ledger
+          assert {x.name for x in root.glob("*.kt") if x.name!="RealAccountDailyLedgerStore.kt" and "RealAccountDailyLedgerStore(" in x.read_text()}=={"RealAccountDailyLedgerIngestion.kt","RealAccountLedgerRecovery.kt","RealAccountResultsDisplay.kt"}
+          print("PR270_MATERIALIZED_INDEPENDENT_ACCOUNT_LEDGER_NO_LIVE_AUTHORITY")
+          PY
+          echo PR270_CANONICAL_JUNIT_AND_MATERIALIZED_GUARDS_PASS_NO_APK_NO_OTA
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          service=(root/"TraderService.kt").read_text()
+          assert service.count("RealAccountDailyLedgerIngestion.archiveSignedWindow(")==1
+          start=service.index("val fills=api.userTrades(fillStart)")
+          commit=service.index("RealTradingPnl.markSyncSuccess(applicationContext)",start)
+          archive=service.index("RealAccountDailyLedgerIngestion.archiveSignedWindow(",commit)
+          assert start<commit<archive<service.index("}.onFailure { failure ->",archive)
+          assert "fundingDayStart,fillStart,syncNow,finalRiskClock,fills,fundingNet" in service[archive:service.index("}.onFailure { failure ->",archive)]
+          ingest=(root/"RealAccountDailyLedgerIngestion.kt").read_text()
+          assert "fillStart!=dayStart||finalVenueDay!=dayStart" in ingest
+          assert "RealLedgerCredentialGuard.requireCurrent(captured,SecureCredentials(app).load())" in ingest
+          assert "accountProof!=RealAppliedExperienceAdvisor.scopeHash(captured.apiKey)" in ingest
+          assert "}.getOrDefault(false)" in ingest
+          assert not any(x in ingest for x in ("signedGet(", "signedPost(", "markSyncSuccess(", "placeOrder("))
+          print("PR271_MATERIALIZED_FULL_DAY_ACCOUNT_INGESTION_NO_NEW_NETWORK_OR_AUTHORITY")
+          PY
+          echo PR271_CANONICAL_JUNIT_AND_MATERIALIZED_GUARDS_PASS_NO_APK_NO_OTA
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          ledger=(root/"RealAccountDailyLedgerStore.kt").read_text()
+          ingest=(root/"RealAccountDailyLedgerIngestion.kt").read_text()
+          diag=(root/"Diagnostics.kt").read_text()
+          assert "if(old==null)return incoming.takeIf{fillStart==incoming.dayStart}" in ledger
+          assert "fillStart>old.readStartedAt" in ledger
+          assert "if(prior.executedAt>=fillStart && replay==null)return null" in ledger
+          assert "if(replay!=null&&!RealFillReplayPolicy.matches(prior,replay))return null" in ledger
+          assert "store.recordWindow(item,fillStart)" in ingest
+          assert "SecureCredentials(app).load()==captured" in ingest
+          assert "last?.takeIf{it.account==account&&it.day==day&&now-it.observedAt in 0L..120_000L}" in ingest
+          assert 'put("realAccountDailyLedger"' in diag
+          assert 'put("usedForLiveRiskOrTraining",false)' in diag
+          print("PR272_MATERIALIZED_CONTIGUOUS_SCOPED_LEDGER_NO_NEW_AUTHORITY")
+          PY
+          echo PR272_CANONICAL_JUNIT_PASS
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/weex-pr192-art-materialized/main/java/com/wilito/weexautotrader")
+          service=(root/"TraderService.kt").read_text()
+          ledger=(root/"RealAccountDailyLedgerStore.kt").read_text()
+          recovery=(root/"RealAccountLedgerRecovery.kt").read_text()
+          display=(root/"RealAccountResultsDisplay.kt").read_text()
+          ui=(root/"MainActivity.kt").read_text()
+          assert service.count("RealAccountLedgerRecovery.widenIfNeeded(")==1
+          start=service.index("RealAccountLedgerRecovery.widenIfNeeded(")
+          assert start<service.index("val fills=api.userTrades(fillStart)",start)
+          assert "db.beginTransactionNonExclusive()" in ledger
+          assert "coverage?.readStartedAt" in recovery
+          assert "attempts.size>=64" in recovery
+          assert "RETRY_MS=10L*60_000L" in recovery
+          assert "SecureCredentials(app).load()!=captured" in recovery
+          assert "RealAccountResultsDisplay.readToday(context.applicationContext)" in ui
+          assert "RealTradingPnl.realizedNetSince(" not in ui
+          assert "RealTradingPnl.fundingToday(" not in ui
+          for token in ("x.accountProof!=proof","x.dayStart!=day","now-x.readStartedAt !in 0L..120_000L","SecureCredentials(app).load()!=captured","x.observedAccountNet.takeIf{it.isFinite()}"):
+              assert token in display, token
+          assert not any(x in recovery+display for x in ("signedGet(", "signedPost(", "placeOrder(", "markSyncSuccess("))
+          print("PR274_SCOPED_RESULTS_AND_RECOVERY_MATERIALIZED_PASS")
+          start=ui.index("val realTodayClosedNet by androidx.compose.runtime.key(")
+          end=ui.index("val simulationWindows by produceState",start)
+          block=ui[start:end]
+          for token in ("apiState.validated,resultsForeground","apiState.validated&&resultsForeground","value=null","while(true)","withContext(Dispatchers.IO)","kotlinx.coroutines.delay(10_000L)"):
+              assert token in block, token
+          assert block.index("while(true)")<block.index("RealAccountResultsDisplay.readToday(")<block.index("kotlinx.coroutines.delay(10_000L)")
+          assert "resultsForeground=source.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)" in ui
+          assert "activity?.lifecycle?.removeObserver(observer)" in ui
+          print("PR278_FOREGROUND_ONLY_LOCAL_RESULTS_REVALIDATION_PASS")
+          PY
+      - name: Assemble disposable debug DEX after all canonical gates
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Only an ephemeral exported source tree is modified; original
+          # canonical signed source in Git remains untouched and pinned.
+          rsync -a --delete /tmp/weex-pr192-art-materialized/main/ app/src/main/
+          cp /tmp/weex-pr192-art-materialized/build.gradle.kts app/build.gradle.kts
+          # Original RELEASE keystore must NEVER be sourced by an offline test.
+          test ! -e app/weex-ia-signing.jks
+          keytool -genkeypair -keystore app/weex-ia-signing.jks -storepass android -keypass android -alias weexia -keyalg RSA -keysize 2048 -validity 1 -dname 'CN=PR192-OFFLINE-TEST-ONLY,OU=DISPOSABLE,O=NEVER-RELEASE' >/dev/null 2>&1
+          test -s app/weex-ia-signing.jks
+          # Emulator-specific x86_64 and AndroidX test-only dependencies.
+          # This is a disposable CI checkout; do NOT commit to production.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("app/build.gradle.kts")
+          s=p.read_text(encoding="utf-8")
+          abi='abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))'
+          assert s.count(abi)==1, "PR192_ART_ABI_BASE_CHANGED"
+          s=s.replace(abi,'abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))',1)
+          default='    defaultConfig {'
+          assert s.count(default)==1, "PR192_ART_DEFAULTCONFIG_BASE_CHANGED"
+          s=s.replace(default,default+'\n        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"',1)
+          dep='    testImplementation("junit:junit:4.13.2")'
+          assert s.count(dep)==1, "PR192_ART_JUNIT_BASE_CHANGED"
+          s=s.replace(dep,dep+
+              '\n    androidTestImplementation("androidx.test:runner:1.6.2")'+
+              '\n    androidTestImplementation("androidx.test.ext:junit:1.2.1")',1)
+          p.write_text(s,encoding="utf-8")
+          print("PR192_DISPOSABLE_EMULATOR_ONLY_ABI_AND_JUNIT_DEPENDENCIES")
+          PY
+          mkdir -p app/src/androidTest/java/com/wilito/weexautotrader
+          cat > app/src/androidTest/java/com/wilito/weexautotrader/Pr192OfflineArtTest.kt <<'KOTLIN'
+          package com.wilito.weexautotrader
+
+          import android.content.Context
+          import androidx.test.ext.junit.runners.AndroidJUnit4
+          import androidx.test.platform.app.InstrumentationRegistry
+          import org.junit.Assert.assertEquals
+          import org.junit.Assert.assertTrue
+          import org.junit.Assert.assertFalse
+          import org.junit.Assert.assertNull
+          import java.io.File
+          import kotlinx.coroutines.runBlocking
+          import org.junit.Test
+          import org.junit.runner.RunWith
+
+          @RunWith(AndroidJUnit4::class)
+          class Pr192OfflineArtTest {
+              private val context:Context
+                  get()=InstrumentationRegistry.getInstrumentation().targetContext
+
+              @Test fun criticalClassesLoadWithoutStartingLiveTrading() {
+                  val classes=listOf(
+                      "com.wilito.weexautotrader.TraderService",
+                      "com.wilito.weexautotrader.RealCombinedContinuousNetProfitCoordinator",
+                      "com.wilito.weexautotrader.NeonTransportFailureDiagnostic",
+                      "com.wilito.weexautotrader.ConnectionRouteReadOnlyPolicy",
+                      "com.wilito.weexautotrader.RealAppliedLearningCertifiedClosePipeline",
+                      "com.wilito.weexautotrader.RealAppliedLearningLedgerCoordinator",
+                      "com.wilito.weexautotrader.RealVerifiedLearningProgressPolicy",
+                      "com.wilito.weexautotrader.RealProfitStopGateChartStatus",
+                      "com.wilito.weexautotrader.CausalPricePathForecastStudy",
+                      "com.wilito.weexautotrader.RealForecastBackground",
+                      "com.wilito.weexautotrader.RealForecastInputPolicy",
+                      "com.wilito.weexautotrader.RealLearningAdviceBackground",
+                      "com.wilito.weexautotrader.RealLearningAdviceDiagnostic",
+                      "com.wilito.weexautotrader.RealContinuousImprovementContinuityPolicy",
+                      "com.wilito.weexautotrader.OnlineShadowMaturationPolicy",
+                      "com.wilito.weexautotrader.RealPendingHistoricalMakerReadOnlyWorker",
+                      "com.wilito.weexautotrader.RealPendingHistoricalMakerRoundTripQuantityPolicy",
+                      "com.wilito.weexautotrader.RealLegacyMakerSignedOpeningReadOnlyCollector",
+                      "com.wilito.weexautotrader.RealHistoricalOrderFillWindowPolicy",
+                      "com.wilito.weexautotrader.RealBotSignedCloseReadOnlyCollector",
+                      "com.wilito.weexautotrader.RealBotSignedOpeningReadOnlyCollector",
+                      "com.wilito.weexautotrader.RealCombinedSignedNetCostStudyPolicy",
+                      "com.wilito.weexautotrader.RealDailyLedgerBackgroundSingleFlight",
+                      "com.wilito.weexautotrader.RealCombinedSignedEvidenceAssembler",
+                      "com.wilito.weexautotrader.RealCombinedWeexSignedAssemblyPort",
+                      "com.wilito.weexautotrader.RealCombinedSignedStopObservationStore",
+                      "com.wilito.weexautotrader.RealHistoricalProtectionAnchorResult",
+                      "com.wilito.weexautotrader.RealCombinedOpeningChronologyPolicy",
+                      "com.wilito.weexautotrader.RealCombinedProfitBookFreshnessPolicy",
+                      "com.wilito.weexautotrader.ContinuousNetProfitFloorPolicy",
+                      "com.wilito.weexautotrader.ContinuousNetProfitVerifiedSamplePolicy",
+                      "com.wilito.weexautotrader.RealHistoricalProtectiveCloseExecutionPolicy",
+                      "com.wilito.weexautotrader.RealProfitWorkerTiming",
+                      "com.wilito.weexautotrader.WithdrawalDestinationDraft",
+                      "com.wilito.weexautotrader.WithdrawalDestinationDraftStore",
+                      "com.wilito.weexautotrader.WithdrawalRuleDraftStore",
+                      "com.wilito.weexautotrader.WithdrawalRuleDraft",
+                      "com.wilito.weexautotrader.WithdrawalDraftValidation",
+                      "com.wilito.weexautotrader.WithdrawalNetworkCatalog",
+                      "com.wilito.weexautotrader.AutomaticWithdrawalPreviewPolicy",
+                      "com.wilito.weexautotrader.WithdrawalPendingRecord",
+                      "com.wilito.weexautotrader.WithdrawalPendingRecordStore",
+                      "com.wilito.weexautotrader.WithdrawalExactHistoryReadOnlyCollector",
+                      "com.wilito.weexautotrader.WithdrawalQuotaReadOnlyCollector",
+                      "com.wilito.weexautotrader.RealCombinedProfitPositionRotation",
+                      "com.wilito.weexautotrader.RealCombinedSamePulseCostProofPolicy",
+                      "com.wilito.weexautotrader.RealCombinedSignedPositionLedgerReadOnlyCollector",
+                      "com.wilito.weexautotrader.RealCombinedJoinDiagnosticCode",
+                      "com.wilito.weexautotrader.RealExecutionEngine",
+                      "com.wilito.weexautotrader.RealOriginalDecisionDraftStore",
+                      "com.wilito.weexautotrader.RealOriginalDecisionDraftPolicy",
+                      "com.wilito.weexautotrader.RealBotAcceptedEntryStudyRecorder",
+                      "com.wilito.weexautotrader.RealBotAcceptedEntryStudyStore",
+                      "com.wilito.weexautotrader.RealCombinedBotPreSubmitAckLinkStore",
+                      "com.wilito.weexautotrader.RealClosedResearchBackground",
+                      "com.wilito.weexautotrader.RealClosedResearchCheckpointStore",
+                      "com.wilito.weexautotrader.RealFillReplayPolicy",
+                      "com.wilito.weexautotrader.TradeDatabase",
+                      "com.wilito.weexautotrader.RealAccountDailyLedgerStore",
+                      "com.wilito.weexautotrader.RealAccountDailyLedgerIngestion",
+                      "com.wilito.weexautotrader.RealAccountDailyLedgerDiagnostic",
+                      "com.wilito.weexautotrader.RealLedgerCredentialGuard"
+                  )
+                  for(name in classes) assertTrue(name,Class.forName(name)!=null)
+              }
+
+              // All rows are synthetic in a disposable offline emulator.
+              @Test fun signedFillReplayRollsBackConflictingBatch() {
+                  val original=RealTradeFill(
+                      tradeId="987654321000001",orderId="987654321000011",
+                      executedAt=1_800_000_000_000L,symbol="BNBUSDT",
+                      side="BUY",positionSide="SHORT",price=600.0,
+                      quantity=0.25,commission=0.1,realizedPnl=2.5)
+                  val newRow=original.copy(tradeId="987654321000002")
+                  val db=TradeDatabase(context)
+                  try {
+                      assertEquals(1,db.recordRealFills(listOf(original)))
+                      assertEquals(0,db.recordRealFills(listOf(original.copy())))
+                      val failure=runCatching {
+                          db.recordRealFills(listOf(newRow,original.copy(commission=0.11)))
+                      }.exceptionOrNull()
+                      assertEquals("REAL_FILLS_CONFLICTING_REPLAY",failure?.message)
+                      db.readableDatabase.rawQuery(
+                          "SELECT trade_id,commission,realized_pnl FROM real_fills WHERE trade_id IN (?,?)",
+                          arrayOf(original.tradeId,newRow.tradeId)
+                      ).use { c ->
+                          assertTrue(c.moveToFirst())
+                          assertEquals(original.tradeId,c.getString(0))
+                          assertEquals(0.1,c.getDouble(1),1e-9)
+                          assertEquals(2.5,c.getDouble(2),1e-9)
+                          assertFalse(c.moveToNext())
+                      }
+                      assertEquals(1,db.recordRealFills(listOf(newRow)))
+                      assertEquals(0,db.recordRealFills(listOf(newRow)))
+                  } finally { db.close() }
+              }
+
+              private val ledgerDay=1_800_000_000_000L
+              private val ledgerA="a".repeat(64)
+              private val ledgerB="b".repeat(64)
+              private fun ledgerFill()=RealTradeFill(
+                  tradeId="987654321900001",orderId="987654321900011",
+                  executedAt=ledgerDay+1_000L,symbol="BNBUSDT",
+                  side="BUY",positionSide="SHORT",price=600.0,
+                  quantity=0.25,commission=0.1,realizedPnl=2.5)
+              private fun ledgerSeed(account:String,fill:RealTradeFill)=
+                  RealAccountDailyLedgerObservation(account,ledgerDay,
+                      ledgerDay+10_000L,ledgerDay+20_000L,listOf(fill),-0.2)
+              @Test fun scopedLedgerRejectsGapsAndPreservesTwoAccounts() {
+                  val first=ledgerFill()
+                  val seed=ledgerSeed(ledgerA,first)
+                  val foreign=ledgerSeed(ledgerB,first.copy(realizedPnl=-7.0))
+                  val later=seed.copy(readStartedAt=ledgerDay+30_000L,
+                      readCompletedAt=ledgerDay+40_000L,
+                      fills=listOf(first.copy(tradeId="987654321900002",executedAt=ledgerDay+25_000L)))
+                  RealAccountDailyLedgerStore(context).use { store ->
+                      assertNull(store.recordWindow(later,ledgerDay+2_000L))
+                      assertTrue(store.recordCompleteDay(seed))
+                      assertTrue(store.recordCompleteDay(foreign))
+                      assertNull(store.recordWindow(later,ledgerDay+10_001L))
+                      val saved=store.recordWindow(later,ledgerDay+2_000L)!!
+                      assertEquals(2,saved.fills.size)
+                      assertEquals(4.6,saved.observedAccountNet,1e-9)
+                      val bad=later.copy(readStartedAt=ledgerDay+50_000L,
+                          readCompletedAt=ledgerDay+60_000L,
+                          fills=listOf(first.copy(commission=0.2))+later.fills)
+                      assertNull(store.recordWindow(bad,ledgerDay))
+                  }
+              }
+              @Test fun scopedLedgerSurvivesReinstallWithoutCrossAccountAttribution() {
+                  RealAccountDailyLedgerStore(context).use { store ->
+                      store.readableDatabase.rawQuery(
+                          "SELECT account_proof,COUNT(*),SUM(realized_pnl) FROM account_fills WHERE day_start=? GROUP BY account_proof ORDER BY account_proof",
+                          arrayOf(ledgerDay.toString())
+                      ).use { c ->
+                          assertTrue(c.moveToFirst())
+                          assertEquals(ledgerA,c.getString(0))
+                          assertEquals(2,c.getInt(1))
+                          assertEquals(5.0,c.getDouble(2),1e-9)
+                          assertTrue(c.moveToNext())
+                          assertEquals(ledgerB,c.getString(0))
+                          assertEquals(1,c.getInt(1))
+                          assertEquals(-7.0,c.getDouble(2),1e-9)
+                          assertFalse(c.moveToNext())
+                      }
+                  }
+              }
+
+              private fun fakeDestination()=WithdrawalDestinationDraft(
+                  "TRON","DISPOSABLE-QA-NOT-A-REAL-WALLET",""
+              )
+
+              @Test fun writeEncryptedWithdrawalDraft()=runBlocking {
+                  val draft=fakeDestination()
+                  WithdrawalDestinationDraftStore.save(context,draft)
+                  assertEquals(draft,WithdrawalDestinationDraftStore.load(context))
+                  val file=File(context.noBackupFilesDir,"a27_destination_draft_v1")
+                  assertTrue(file.isFile)
+                  val encrypted=file.readBytes()
+                  assertTrue(encrypted.size>=29)
+                  assertFalse(String(encrypted,Charsets.ISO_8859_1).contains(draft.address))
+                  assertFalse(String(encrypted,Charsets.ISO_8859_1).contains("A27_DESTINATION_DRAFT_1"))
+                  // Fresh GCM nonce on repeated explicit save.
+                  WithdrawalDestinationDraftStore.save(context,draft)
+                  assertFalse(encrypted.contentEquals(file.readBytes()))
+              }
+
+              @Test fun verifyEncryptedWithdrawalDraftAfterReinstall()=runBlocking {
+                  assertEquals(fakeDestination(),WithdrawalDestinationDraftStore.load(context))
+                  WithdrawalDestinationDraftStore.clear(context)
+                  assertNull(WithdrawalDestinationDraftStore.load(context))
+              }
+
+              private fun fakePending()=WithdrawalPendingRecord(
+                  WithdrawalExactHistoryKey("a".repeat(64),"openapi_Disposable00000001",
+                      fakeDestination(),1_800_000_000_000L),
+                  java.math.BigDecimal("20"),WithdrawalPendingPhase.PREPARED
+              )
+
+              @Test fun writeAndMarkEncryptedPendingWithdrawal()=runBlocking {
+                  val record=fakePending()
+                  assertNull(WithdrawalPendingRecordStore.load(context))
+                  assertTrue(WithdrawalPendingRecordStore.prepare(context,record))
+                  assertEquals(record.encode(),WithdrawalPendingRecordStore.load(context)?.encode())
+                  assertFalse(WithdrawalPendingRecordStore.prepare(context,record))
+                  val file=File(context.noBackupFilesDir,"a27_pending_withdrawal_v1")
+                  val prepared=file.readBytes()
+                  assertFalse(String(prepared,Charsets.ISO_8859_1).contains(record.key.destination.address))
+                  assertFalse(String(prepared,Charsets.ISO_8859_1).contains(record.key.clientWithdrawId))
+                  assertTrue(WithdrawalPendingRecordStore.markMayHaveBeenSubmitted(context,record))
+                  assertFalse(prepared.contentEquals(file.readBytes()))
+                  assertFalse(WithdrawalPendingRecordStore.markMayHaveBeenSubmitted(context,record))
+              }
+
+              @Test fun verifyPendingWithdrawalAfterReinstall()=runBlocking {
+                  val expected=fakePending().copy(phase=WithdrawalPendingPhase.MAY_HAVE_BEEN_SUBMITTED)
+                  assertEquals(expected.encode(),WithdrawalPendingRecordStore.load(context)?.encode())
+                  assertFalse(WithdrawalPendingRecordStore.prepare(context,fakePending()))
+                  assertFalse(WithdrawalPendingRecordStore.markMayHaveBeenSubmitted(context,fakePending()))
+                  val file=File(context.noBackupFilesDir,"a27_pending_withdrawal_v1")
+                  // Disposable emulator only: damage authenticated ciphertext.
+                  val bytes=file.readBytes()
+                  bytes[bytes.lastIndex]=(bytes.last().toInt() xor 1).toByte()
+                  file.writeBytes(bytes)
+                  assertTrue(runCatching{WithdrawalPendingRecordStore.load(context)}.isFailure)
+                  assertTrue(runCatching{WithdrawalPendingRecordStore.prepare(context,fakePending())}.isFailure)
+                  assertTrue(file.delete())
+                  assertTrue(runCatching{WithdrawalPendingRecordStore.load(context)}.isFailure)
+                  assertTrue(runCatching{WithdrawalPendingRecordStore.prepare(context,fakePending())}.isFailure)
+              }
+
+              @Test fun writeUpgradeSentinel() {
+                  assertTrue(context.getSharedPreferences(
+                      "pr192_disposable_art",Context.MODE_PRIVATE
+                  ).edit().putString("check","PR192_KEEP_DATA").commit())
+              }
+
+              @Test fun verifyUpgradeSentinel() {
+                  assertEquals("PR192_KEEP_DATA",context.getSharedPreferences(
+                      "pr192_disposable_art",Context.MODE_PRIVATE
+                  ).getString("check",null))
+              }
+          }
+          KOTLIN
+          if ! gradle --no-daemon --console=plain :app:assembleDebug :app:assembleDebugAndroidTest > /tmp/pr192-art-gradle.log 2>&1; then
+            echo "::error::PR192_OFFLINE_DEX_BUILD_FAILED"
+            grep -Eo 'app/src/[A-Za-z0-9_./-]+\.kt:[0-9]+:[0-9]+|Execution failed for task .:app:[A-Za-z0-9_]+|BUILD FAILED|Could not resolve|Could not download|OutOfMemoryError|daemon disappeared' /tmp/pr192-art-gradle.log | sort -u | tail -50 || true
+            exit 1
+          fi
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          test -s app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          test ! -e app/build/outputs/apk/release/app-release.apk
+          echo PR192_DISPOSABLE_DEBUG_DEX_BUILD_PASS_NO_RELEASE_NO_OTA
+      - name: Enable KVM for isolated Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Build offline emulator test script
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >/tmp/pr192-art-offline-runner.sh <<'RUNNER'
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          fail() {
+            local rc="$?" line="$1"
+            trap - ERR
+            echo "::error::PR192_OFFLINE_ART_FAILED_LINE=$line rc=$rc"
+            for file in /tmp/pr192-first-launch.log /tmp/pr192-relaunch.log /tmp/pr192-dex.log /tmp/pr192-data-write.log /tmp/pr192-data-read.log; do
+              if [ -f "$file" ]; then echo "ART_DIAG_FILE=$file"; tail -28 "$file" || true; fi
+            done
+            adb logcat -d -b crash | tail -100 || true
+            exit "$rc"
+          }
+          trap 'fail "$LINENO"' ERR
+          cd "$GITHUB_WORKSPACE/source"
+          adb shell svc wifi disable
+          adb shell svc data disable
+          adb shell settings put global airplane_mode_on 1
+          test "$(adb shell settings get global airplane_mode_on | tr -d '\r')" = "1"
+          APP=app/build/outputs/apk/debug/app-debug.apk
+          TEST=app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb install -r "$APP"
+          adb install -r "$TEST"
+          adb logcat -c
+          adb shell am start -W -n com.wilito.weexautotrader/.LauncherActivity >/tmp/pr192-first-launch.log
+          grep -Fq 'Status: ok' /tmp/pr192-first-launch.log
+          sleep 9
+          test -n "$(adb shell pidof com.wilito.weexautotrader | tr -d '\r')"
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|VerifyError' >/tmp/pr192-crashes; then
+            echo "::error::PR192_VERIFYERROR_OR_STARTUP_CRASH"; exit 1
+          fi
+          for spec in criticalClassesLoadWithoutStartingLiveTrading signedFillReplayRollsBackConflictingBatch scopedLedgerRejectsGapsAndPreservesTwoAccounts writeUpgradeSentinel writeEncryptedWithdrawalDraft writeAndMarkEncryptedPendingWithdrawal; do
+            timeout --signal=TERM --kill-after=10s 90s adb shell am instrument -w -e class "com.wilito.weexautotrader.Pr192OfflineArtTest#$spec" com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > "/tmp/pr192-$spec.log"
+            grep -Fq 'OK (1 test)' "/tmp/pr192-$spec.log" || { tail -55 "/tmp/pr192-$spec.log"; exit 1; }
+          done
+          adb install -r "$APP"
+          timeout --signal=TERM --kill-after=10s 90s adb shell am instrument -w -e class com.wilito.weexautotrader.Pr192OfflineArtTest#verifyUpgradeSentinel com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner >/tmp/pr192-data-read.log
+          grep -Fq 'OK (1 test)' /tmp/pr192-data-read.log
+          timeout --signal=TERM --kill-after=10s 90s adb shell am instrument -w -e class com.wilito.weexautotrader.Pr192OfflineArtTest#scopedLedgerSurvivesReinstallWithoutCrossAccountAttribution com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner >/tmp/pr272-account-ledger-read.log
+          grep -Fq 'OK (1 test)' /tmp/pr272-account-ledger-read.log || { tail -55 /tmp/pr272-account-ledger-read.log; exit 1; }
+          echo PR272_ACCOUNT_LEDGER_TWO_SCOPES_REINSTALL_PASS
+          timeout --signal=TERM --kill-after=10s 90s adb shell am instrument -w -e class com.wilito.weexautotrader.Pr192OfflineArtTest#verifyEncryptedWithdrawalDraftAfterReinstall com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner >/tmp/pr212-withdrawal-read.log
+          grep -Fq 'OK (1 test)' /tmp/pr212-withdrawal-read.log || { tail -55 /tmp/pr212-withdrawal-read.log; exit 1; }
+          timeout --signal=TERM --kill-after=10s 90s adb shell am instrument -w -e class com.wilito.weexautotrader.Pr192OfflineArtTest#verifyPendingWithdrawalAfterReinstall com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner >/tmp/pr234-pending-read.log
+          grep -Fq 'OK (1 test)' /tmp/pr234-pending-read.log || { tail -55 /tmp/pr234-pending-read.log; exit 1; }
+          echo PR234_PENDING_JOURNAL_KEYSTORE_REINSTALL_CORRUPTION_AND_MISSING_FAIL_CLOSED
+          echo PR234_DESTINATION_KEYSTORE_ENCRYPTED_REINSTALL_DELETE_PASS
+          adb logcat -c
+          adb shell am start -W -n com.wilito.weexautotrader/.LauncherActivity >/tmp/pr192-relaunch.log
+          grep -Fq 'Status: ok' /tmp/pr192-relaunch.log
+          sleep 9
+          test -n "$(adb shell pidof com.wilito.weexautotrader | tr -d '\r')"
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|VerifyError' >/tmp/pr192-crashes; then
+            echo "::error::PR192_POST_REINSTALL_VERIFYERROR"; exit 1
+          fi
+          echo PR272_ANDROID35_SQLITE_ART_DEX_OFFLINE_REINSTALL_DATA_PASS_NO_ORDERS_NO_OTA
+          RUNNER
+          bash -n /tmp/pr192-art-offline-runner.sh
+          chmod 700 /tmp/pr192-art-offline-runner.sh
+      - name: Verify ART startup, class-load and in-place upgrade with data retained
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 4096M
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          script: bash /tmp/pr192-art-offline-runner.sh

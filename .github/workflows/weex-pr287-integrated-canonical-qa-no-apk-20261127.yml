@@ -8,6 +8,20 @@ on:
 permissions:
   contents: read
 jobs:
+  report-qa-start:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - name: Expose QA run link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending -f context=weex/pr287-integrated-qa \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            -f description="Exact source QA started; no APK"
   pr192-integrated-source-qa:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
@@ -120,3 +134,23 @@ jobs:
           grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
           test ! -e app/build/outputs/apk/release/app-release.apk
           echo PR287_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX
+
+  report-qa-finish:
+    if: ${{ always() }}
+    needs: [pr192-integrated-source-qa, report-qa-start]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - name: Expose terminal QA result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_RESULT: ${{ needs.pr192-integrated-source-qa.result }}
+        run: |
+          state=failure
+          if [ "$QA_RESULT" = success ]; then state=success; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context=weex/pr287-integrated-qa \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            -f description="Exact source QA $QA_RESULT; no APK"

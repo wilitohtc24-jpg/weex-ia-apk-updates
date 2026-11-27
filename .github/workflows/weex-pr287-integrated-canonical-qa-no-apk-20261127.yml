@@ -1,0 +1,122 @@
+# Source QA only. Does NOT build/sign an APK, access WEEX, deploy Neon, or publish OTA.
+name: WEEX PR287 integrated canonical QA NO APK
+on:
+  push:
+    branches: [qa/weex-pr287-integrated-20261127]
+    paths:
+      - .github/workflows/weex-pr287-integrated-canonical-qa-no-apk-20261127.yml
+permissions:
+  contents: read
+jobs:
+  pr192-integrated-source-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      SOURCE_SHA: 2705c98ca5f02b4e0669d8d1ac1a42d888fc1ec4
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+      WEEX_QA_OWNER_INTEGRATION: "1"
+      WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+      WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr192-materialized-no-apk
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout immutable private PR192 source with read-only token
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 2705c98ca5f02b4e0669d8d1ac1a42d888fc1ec4
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+          path: source
+      - name: Verify exact cumulative source and release isolation
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIDecisionEngine.kt)" = cdb0c7437c0a09932e758e004fce28ff73775e6c
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt)" = 76bbbc3213f0c3df3e2873a487ee961e920383b0
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = bedf5caee6a4a97b01f8e82bc68fc82eabce5487
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt)" = 1036d0792a5f82c9ae7d94ef9a9a1e08b78d91c9
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/BootstrapExecutionPolicy.kt)" = 3fea509c529083d2bfd3f7d89e8c904a7ab6954c
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = 8054a0bada22003cb230aa8f7f260b1cc9dcc1f2
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt)" = cbdaa2b397eac65b06a3a25dcb0fc7c48f657710
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt)" = 9c7bca40c227a2eeac499a995aeddf37d9297b92
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = 8089a23eb23d3f85b28d982709c5d120101c148f
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt)" = 118ed81316217ab24319b676b42cb14522849619
+          test ! -e app/weex-ia-signing.jks
+          python3 ci/verify_manual_build_only.py
+          python3 ci/test_real_live_contract_size_proof_v1.py
+          echo PR287_EXACT_SOURCE_NO_RELEASE_SIGNER
+      - name: Prepare Java 17 and Android SDK 35
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Gradle 8.10.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          test -d "$SDK"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o /tmp/weex-gradle-pr192.zip
+          printf '%s  %s\n' '31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26' /tmp/weex-gradle-pr192.zip | sha256sum -c -
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o /tmp/weex-gradle-pr192.zip -d "$HOME/.gradle-dist"
+          echo "$HOME/.gradle-dist/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+          echo 'GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false' >> "$GITHUB_ENV"
+      - name: Canonical source preflight plus full Android Kotlin JUnit; NEVER APK
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! python3 ci/preflight_full_presigning_source_v1.py > /tmp/pr192-qa-source.log 2>&1; then
+            echo "::error::PR192_PRESIGN_OR_KOTLIN_JUNIT_FAILED_NO_APK"
+            # CI diagnostic ONLY: earlier filter hid the canonical Gradle tail
+            # when BUILD_FAILED had zero Kotlin errors and zero failing JUnit XML.
+            # Keep compiler, timeout and infrastructure errors, never HTTP bodies.
+            grep -E 'OWNER_INTEGRATION_MATERIALIZED_MISSING|WEEX_PRESIGN_FIRST_FAILURE_LINE|PRESIGN_FAILURE_CONTEXT|WEEX_PREFLIGHT_BLOCKED|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT|AUDIT_JUNIT_FAILED|AUDIT_JUNIT_STACK|WEEX_AUDIT_KOTLIN_FIRST_ERROR|WEEX_AUDIT_KOTLIN_ERROR_COUNT|WEEX_AUDIT_JUNIT_BUILD_FAILED|WEEX_AUDIT_JUNIT_SOURCE_CHANGED_AFTER_TEST|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP|AUDIT_ANDROID ' /tmp/pr192-qa-source.log | tail -115 | cut -c1-420 || true
+            exit 1
+          fi
+          grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr192-qa-source.log
+          grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr192-qa-source.log
+          grep -Fq 'OWNER_INTEGRATION_MATERIALIZED_CONNECTIONS_PRESENT' /tmp/pr192-qa-source.log
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealAppliedLearningCertifiedClosePipeline.kt
+          grep -Fq 'RealVerifiedLearningProgressCard(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          grep -Fq 'optionalProfitStopFreshOwnerAuthority' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CausalPricePathForecastStudy.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealLegacyMakerSignedOpeningReadOnlyCollector.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealHistoricalOrderFillWindowPolicy.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt
+          test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealDailyLedgerBackgroundSingleFlight.kt
+          grep -Fq 'realDailyLedgerBackground.scheduleIfIdle {' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'REAL_LEDGER_OFFSCANNER_COMMIT_GUARD_V1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'RealTradingPnl.markSyncInProgress(applicationContext)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
+          grep -Fq 'fun markSyncInProgress(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealTradingPnl.kt
+          grep -Fq 'historical?.schedule(stored,status,detail?.executedQuantity,filledIntoPosition)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          grep -Fq 'OnlineShadowMaturationPolicy.classify(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          grep -Fq 'MAX_FOREIGN_CONTEXT_RECOVERY_GRACE_MS' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          grep -Fq 'vpnGapOnOtherMarketDoesNotDestroyOriginalHistoricalTrainingTarget' app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          grep -Fq 'vpnFirstOwnMarketTickWithoutCandlesCanLaterLearnOnlyOriginalClosedBar' app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          grep -Fq 'oldSameMarketHistoryExpiresAfterRecoveryCapEvenIfPriceIsPresent' app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          grep -Fq 'age>horizon+MAX_FOREIGN_CONTEXT_RECOVERY_GRACE_MS' app/src/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt
+          test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
+          grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          test ! -e app/build/outputs/apk/release/app-release.apk
+          echo PR287_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX

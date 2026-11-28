@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 27af79fde94433ad38243639c5c923932b70f09c
+      SOURCE_SHA: 5fd175c56aabcb7530c09471c6df6e951c103b78
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 27af79fde94433ad38243639c5c923932b70f09c
+          ref: 5fd175c56aabcb7530c09471c6df6e951c103b78
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -77,6 +77,8 @@ jobs:
           test "$(git hash-object ci/verify_shared_open_stop_risk_mark_to_stop_parity_v2.py)" = 6e3b4afed9fdd0d4c1082adced46f254d6a1fc8a
           test "$(git hash-object ci/patch_pending_entry_rr_repair_impl_v4.py)" = 0bcf07a6d522d315fe57762f8b6d8ea9f840c404
           test "$(git hash-object ci/verify_final_ai_strategic_authority_v2.py)" = 9cae7359f89930c5b5f1dc439993837ec34bc10e
+          test "$(git hash-object ci/patch_knowledge_execution_v1.py)" = 698af2231849c2965126725380cb02dcd35c449a
+          test "$(git hash-object ci/verify_knowledge_execution_v1.py)" = f14ce390524d3cfc640bc7bc0da617493fafa42c
           test ! -e app/weex-ia-signing.jks
           python3 ci/verify_manual_build_only.py
           python3 ci/test_real_live_contract_size_proof_v1.py

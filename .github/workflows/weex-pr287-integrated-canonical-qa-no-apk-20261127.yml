@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 970472322cb4193dee47b6a6f4e0fcf622cafb23
+      SOURCE_SHA: 306ffb25e8c9d0556fd11e81d8bfb2172fd4313a
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 970472322cb4193dee47b6a6f4e0fcf622cafb23
+          ref: 306ffb25e8c9d0556fd11e81d8bfb2172fd4313a
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -49,6 +49,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object ci/verify_real_portfolio_explicit_close_v1.py)" = 5aaf778edce0f426c4e928b6ad03681155f6f36b
+          test "$(git hash-object ci/smoke/real_order_scope/RealOrderScopeSmoke.kt)" = 8a24a8f1195114251469205be025a6d27cb20436
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPortfolioOrderScopeTest.kt)" = 74c421e322dafea1dc0f285492fedf421849abf1
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPortfolioOrderScope.kt)" = d55b57966e892bfebd40b59854cc20b2082e57f7
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalExactHistoryReadOnlyCollector.kt)" = 84649bb1e7375e4c0e093f5eb3b10a39d7da8704

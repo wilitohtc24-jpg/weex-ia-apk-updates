@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: e3162e200a952f5e5909d7362106e6d36fbba89f
+      SOURCE_SHA: fffc289fde656d564d5a51dd14afd867c10810a9
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: e3162e200a952f5e5909d7362106e6d36fbba89f
+          ref: fffc289fde656d564d5a51dd14afd867c10810a9
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -171,6 +171,10 @@ jobs:
           test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
           echo PR287_POSTFLIGHT_CHECK_30
           grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          echo PR287_POSTFLIGHT_A16_OPTIONAL_THERMAL_PACING
+          grep -Fq 'if(DeviceResourcePolicy.optionalResearchThermallyDeferred())' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealIndependentResearchWorker.kt
+          grep -Fq 'status in PowerManager.THERMAL_STATUS_SEVERE..PowerManager.THERMAL_STATUS_SHUTDOWN' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/DeviceResourcePolicy.kt
+          grep -Fq 'onlySevereKnownAndroidHeatDefersOptionalResearch' app/src/test/java/com/wilito/weexautotrader/DeviceResourcePolicyTest.kt
           echo PR287_POSTFLIGHT_A27_AUTOMATIC_PUBLIC_CATALOG
           grep -Fq 'LaunchedEffect(destinationLoaded)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt
           grep -Fq 'if(destinationLoaded)refreshPublicNetworks()' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt

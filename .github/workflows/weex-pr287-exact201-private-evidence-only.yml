@@ -6,6 +6,7 @@ on:
       - .github/workflows/weex-pr287-exact201-private-evidence-only.yml
 permissions:
   contents: read
+  actions: read
 jobs:
   evidence-only:
     runs-on: ubuntu-24.04
@@ -14,19 +15,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 7d19177c39952052b86ca8108ddd0c9e4a67b7a6
+          ref: 61ffd85155c8f0c1600f91fc69c97c396fee6f92
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
       - name: Verify exact green source and preparation-only diff
+        env:
+          WEEX_QA_READ_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "7d19177c39952052b86ca8108ddd0c9e4a67b7a6"
-          test "$(git rev-parse HEAD^)" = "c6adfefd462727625ff1db894dd8749925d0b2f4"
+          test "$(git rev-parse HEAD)" = "61ffd85155c8f0c1600f91fc69c97c396fee6f92"
+          git merge-base --is-ancestor c6adfefd462727625ff1db894dd8749925d0b2f4 HEAD
           test "$(git hash-object ci/private_candidate_pr287_exact201_qa_evidence.json)" = 0356db03adae862c34c8a6d66e6cef267a7b17a6
-          test "$(git hash-object ci/verify_private_candidate_pr287_exact201_qa_evidence.py)" = 3929196efd4faf9fa2d8b968af4f12b399857b54
+          test "$(git hash-object ci/verify_private_candidate_pr287_exact201_qa_evidence.py)" = 83872dd4f0a945f24953daae690059925c666978
           test "$(git hash-object ci/test_private_candidate_pr287_exact201_qa_evidence.py)" = e1eede0604b147a0a633ddfce35879dc52bd6a80
-          test "$(git diff --name-only HEAD^ HEAD | wc -l)" = 3
+          test "$(git diff --name-only c6adfefd462727625ff1db894dd8749925d0b2f4 HEAD | wc -l)" = 3
           test ! -e app/weex-ia-signing.jks
           export PYTHONDONTWRITEBYTECODE=1
           python3 ci/test_private_candidate_pr287_exact201_qa_evidence.py

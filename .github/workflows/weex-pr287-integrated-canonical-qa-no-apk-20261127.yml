@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: dfb088ff150385b0692d3464169bca74ff2f3eba
+      SOURCE_SHA: 70d112b92737682f0feabcf4ba5c4a2d84f653be
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: dfb088ff150385b0692d3464169bca74ff2f3eba
+          ref: 70d112b92737682f0feabcf4ba5c4a2d84f653be
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -64,6 +64,9 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealEntrySearchNextPolicy.kt)" = 81051443e1480d21bc6949d4e019308408837287
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealEntrySearchNextPolicyTest.kt)" = dfe8b1490eda3e367e5df5d5614523cfc363c096
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt)" = 65662cedc7f22454a33a785461ffaa1da31e2c4e
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPositionOriginPolicyTest.kt)" = 4a482f6b6fab7628268fc8ae82615d141749c6b1
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPositionOriginResolver.kt)" = 122a469d3caf6f059c6e7a8bc3affc540c9e5633
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPositionOriginPolicy.kt)" = 6ff2f65bb80ab68db68a16aaf5e4e44d20ab6859
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicyTest.kt)" = e15b21622c7b475ab0d06c133f32aff0192408c4
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicyTest.kt)" = 227574133a13965b7304e774313025cb9334e45a
           test "$(git hash-object ci/patch_risk_capped_substantial_sizing_v1.py)" = a085113588198fbfcfcbfe84ce01e0fedff40428
@@ -203,6 +206,8 @@ jobs:
           test "$(grep -Fc 'currentOpenRiskUsd=currentOpenRiskUsd' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt)" = 2
           grep -Fq 'currentOpenRiskUsd=currentOpenRiskUsd' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt
           echo PR287_POSTFLIGHT_A26_COMBINED_OPEN_RISK_STUDY
+          grep -Fq 'fun uniqueSeparatedOpeningIds(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPositionOriginPolicy.kt
+          grep -Fq 'if(position.separatedOpenOrderId !in uniqueOpeningIds)continue' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPositionOriginResolver.kt
           grep -Fq 'val pages=protection.completeSignedPages?:return null' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt
           grep -Fq 'pages.readStartedAtMs !in portfolioReadAtMs..protection.signedReadAtMs' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt
           grep -Fq 'if(!readback.confirmed)return null' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt

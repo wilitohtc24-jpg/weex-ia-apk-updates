@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 5f14ef222ecb9bd90fcf33e4366f625228234eb7
+      SOURCE_SHA: 3836e371264ac7d2b14f32e63b9ff88b207c4234
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 5f14ef222ecb9bd90fcf33e4366f625228234eb7
+          ref: 3836e371264ac7d2b14f32e63b9ff88b207c4234
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -49,8 +49,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalAccountComparisonPolicyTest.kt)" = 57db5cf606abcf7ff8651941d5c713e67238b4e6
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalAccountComparisonPolicy.kt)" = 246cd481d6bc71c06391b29b9baf2dc6b42dca2d
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalAccountComparisonPolicyTest.kt)" = d3fa37e840c50837229a06d7fbb4e9b80e004f30
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalAccountComparisonPolicy.kt)" = 344abe60fa755dcaf935fe2d13b54bb736e60900
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalQuotaReadOnlyCollectorTest.kt)" = c023b373c146ff6fe623c59759645a883024bf9a
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalQuotaReadOnlyCollector.kt)" = 1ca5bce7d49087991491e7cd7a1ec4ea9a208ea8
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalCredentialDraftTest.kt)" = b82adf5682720ccc27566109d5b3f0e832651823
@@ -92,7 +92,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt)" = 9c7bca40c227a2eeac499a995aeddf37d9297b92
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = f0d18c8a94730704687de6f856dd6d863b1bbcd0
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt)" = 118ed81316217ab24319b676b42cb14522849619
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt)" = b043974dbb921cc98dcd132577a13a92cb3e71a8
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt)" = 9ff157dd10caf44d9a50953e4e57060dd84828a1
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/CryptoFullAvailableOrRejectTest.kt)" = 10f293728ffa0c366c2fc7a384d0cc136a24c572
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealEntrySearchNextPolicy.kt)" = 81051443e1480d21bc6949d4e019308408837287
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealEntrySearchNextPolicyTest.kt)" = dfe8b1490eda3e367e5df5d5614523cfc363c096
@@ -338,6 +338,8 @@ jobs:
           grep -Fq 'exactNumericUidComparisonReturnsOnlyObservation' app/src/test/java/com/wilito/weexautotrader/WithdrawalAccountComparisonPolicyTest.kt
           grep -Fq 'A27_ACCOUNT_WITHDRAWAL_FLAG_OBSERVATION_V1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/WithdrawalAccountComparisonPolicy.kt
           grep -Fq 'accountFlagRequiresTwoConsistentSignedIdentityObservations' app/src/test/java/com/wilito/weexautotrader/WithdrawalAccountComparisonPolicyTest.kt
+          grep -Fq 'A27_SAME_UID_SPOT_FREE_OBSERVATION_V1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/WithdrawalAccountComparisonPolicy.kt
+          grep -Fq 'spotFreeRequiresTwoCompleteExactUsdtRowsForSameUid' app/src/test/java/com/wilito/weexautotrader/WithdrawalAccountComparisonPolicyTest.kt
           echo PR287_POSTFLIGHT_A26_SHARED_STOP_RISK
           grep -Fq 'fun estimatedOpenStopRiskCash(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SimulationExecutionCostModel.kt
           test "$(grep -Fc 'SimulationExecutionCostModel.estimatedOpenStopRiskCash(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt)" = 3

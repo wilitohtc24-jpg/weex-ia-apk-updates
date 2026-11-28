@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: d4d65e3b14c3e774a2f63f02e620a30d706bc8bd
+      SOURCE_SHA: 1313ba510dab39af6463181316c14397ad586694
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: d4d65e3b14c3e774a2f63f02e620a30d706bc8bd
+          ref: 1313ba510dab39af6463181316c14397ad586694
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -64,7 +64,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealEntrySearchNextPolicy.kt)" = 81051443e1480d21bc6949d4e019308408837287
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealEntrySearchNextPolicyTest.kt)" = dfe8b1490eda3e367e5df5d5614523cfc363c096
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt)" = 323025ba8b4ab86cc2a9d4e6565a0286170cb23b
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicyTest.kt)" = 598d5911a7c0f079edcee9358dd6e609e25f40e4
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicyTest.kt)" = 6bce071250e592dd78fc6570ce7c51d56d88ac26
           test ! -e app/weex-ia-signing.jks
           python3 ci/verify_manual_build_only.py
           python3 ci/test_real_live_contract_size_proof_v1.py

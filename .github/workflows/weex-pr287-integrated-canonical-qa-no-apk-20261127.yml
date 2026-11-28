@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 2d2cce42e1af92e6fa5310e4d5325e02931e74cd
+      SOURCE_SHA: 36e0e36441ec90e5fb939d9e23868766becc69ee
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 2d2cce42e1af92e6fa5310e4d5325e02931e74cd
+          ref: 36e0e36441ec90e5fb939d9e23868766becc69ee
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -61,6 +61,8 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt)" = 118ed81316217ab24319b676b42cb14522849619
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt)" = 3fba862069ba9e34abcd04e14556463a4fce95c0
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/CryptoFullAvailableOrRejectTest.kt)" = f191e503d1fce2251f485853dba6e8993bbbde50
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealEntrySearchNextPolicy.kt)" = 81051443e1480d21bc6949d4e019308408837287
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealEntrySearchNextPolicyTest.kt)" = dfe8b1490eda3e367e5df5d5614523cfc363c096
           test ! -e app/weex-ia-signing.jks
           python3 ci/verify_manual_build_only.py
           python3 ci/test_real_live_contract_size_proof_v1.py
@@ -172,6 +174,9 @@ jobs:
           test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
           echo PR287_POSTFLIGHT_CHECK_30
           grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          echo PR287_POSTFLIGHT_A26_CAPITAL_ROTATION
+          grep -Fq 'A26_CAPITAL_GEOMETRY_SEARCH_NEXT_V1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealEntrySearchNextPolicy.kt
+          grep -Fq 'realMarketSelector.deferNonAdmission(aiMarketChoice,plan.reason)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
           echo PR287_POSTFLIGHT_A26_PENDING_COUNT
           grep -Fq 'orderScope.pendingEntryOrders+" entradas pendientes' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
           if grep -Fq 'pendingSlotKeys.size' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt; then

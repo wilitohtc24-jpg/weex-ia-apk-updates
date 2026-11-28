@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 8efe252e3fe1509fb2a179378558cf09e55cc96b
+      SOURCE_SHA: afa11f366f30e994dcdddc35d87c696a900f937a
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 8efe252e3fe1509fb2a179378558cf09e55cc96b
+          ref: afa11f366f30e994dcdddc35d87c696a900f937a
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -85,8 +85,8 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealStandbyStudyPolicyTest.kt)" = 7a96f6bf7e6899b2998266a7ae069d4ecf624177
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealIndependentResearchWorker.kt)" = b272d90228f02a6f33b9ec4e2c5133ec719254f5
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealStandbyStudyPolicy.kt)" = 310d921b27490af24d091d25e198408af7edced8
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskBackground.kt)" = 6d7a3e4c0cbe3a0d5075581c77a9ef66563f0f28
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskCollectorTest.kt)" = 4db655277a5e7a824424c1d5b93b12bceb4f7409
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskBackground.kt)" = b85c9c5ba8e55ec1c624c0ee693cc20ec6d1e52f
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskCollectorTest.kt)" = 3916a4aa61423a47ed9a8edf50f91139e871f5b2
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskCollector.kt)" = 2431df25506d3237e52dbdef0bdd668ba2a9c6f4
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPositionOriginPolicyTest.kt)" = 4a482f6b6fab7628268fc8ae82615d141749c6b1
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPositionOriginResolver.kt)" = 122a469d3caf6f059c6e7a8bc3affc540c9e5633
@@ -287,6 +287,8 @@ jobs:
           grep -Fq 'A26_ADDITIONAL_DIRECTIONAL_DIVERSIFICATION_V1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
           grep -Fq 'PortfolioDiversification.assessAdditional(realSelected.symbol,' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
           grep -Fq 'additionalExposureRequiresAllSynchronizedPositionContexts' app/src/test/java/com/wilito/weexautotrader/PortfolioDiversificationTimeAlignmentTest.kt
+          grep -Fq 'A26_ONE_TO_ONE_RISK_EVIDENCE_V1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskBackground.kt
+          grep -Fq 'riskEvidenceMustCoverEveryDistinctLivePositionExactlyOnce' app/src/test/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskCollectorTest.kt
           echo PR287_POSTFLIGHT_A26_SHARED_STOP_RISK
           grep -Fq 'fun estimatedOpenStopRiskCash(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SimulationExecutionCostModel.kt
           test "$(grep -Fc 'SimulationExecutionCostModel.estimatedOpenStopRiskCash(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt)" = 3

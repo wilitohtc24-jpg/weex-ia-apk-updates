@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     env:
-      SOURCE_SHA: 9d0d5affb0ad2e41c63a46c156d8d7e6f08c7f62
+      SOURCE_SHA: e3162e200a952f5e5909d7362106e6d36fbba89f
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       PYTHONDONTWRITEBYTECODE: "1"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 9d0d5affb0ad2e41c63a46c156d8d7e6f08c7f62
+          ref: e3162e200a952f5e5909d7362106e6d36fbba89f
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           fetch-depth: 0
           persist-credentials: false
@@ -51,6 +51,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAppliedExperienceArchivePolicy.kt)" = 0cb7d97f493fdcf0d0fdcbbb5326f9744c298cbf
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealOriginalDecisionDraftPolicyTest.kt)" = 69b58635d2e8b0bd66e5ce5dc998208a4aa47ab1
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealAppliedExperienceAdvisorTest.kt)" = 63ce5ac283ceed5afe3e46eaae731a698212f05d
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt)" = 3fba862069ba9e34abcd04e14556463a4fce95c0
           test ! -e app/weex-ia-signing.jks
           python3 ci/verify_manual_build_only.py
           echo PR287_ART_SOURCE_PINNED_NO_RELEASE_SIGNER
@@ -96,6 +97,9 @@ jobs:
           test -s "$FINAL/RealAppliedLearningCertifiedClosePipeline.kt"
           test -s "$FINAL/CausalPricePathForecastStudy.kt"
           test -s "$FINAL/RealContinuousImprovementContinuityPolicy.kt"
+          grep -Fq 'LaunchedEffect(destinationLoaded)' "$FINAL/WithdrawalSetupDialog.kt"
+          grep -Fq 'if(destinationLoaded)refreshPublicNetworks()' "$FINAL/WithdrawalSetupDialog.kt"
+          grep -Fq 'if(!destinationLoaded||savingDestination||loading)return' "$FINAL/WithdrawalSetupDialog.kt"
           test -s app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt
           test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
           grep -Fq 'RealVerifiedLearningProgressCard(' "$FINAL/MainActivity.kt"

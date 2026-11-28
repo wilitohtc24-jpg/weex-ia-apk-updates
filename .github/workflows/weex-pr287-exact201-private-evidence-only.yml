@@ -1,0 +1,34 @@
+name: WEEX PR287 exact201 private evidence only NO APK
+on:
+  push:
+    branches: [qa/weex-pr287-integrated-20261127]
+    paths:
+      - .github/workflows/weex-pr287-exact201-private-evidence-only.yml
+permissions:
+  contents: read
+jobs:
+  evidence-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 7d19177c39952052b86ca8108ddd0c9e4a67b7a6
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify exact green source and preparation-only diff
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "7d19177c39952052b86ca8108ddd0c9e4a67b7a6"
+          test "$(git rev-parse HEAD^)" = "c6adfefd462727625ff1db894dd8749925d0b2f4"
+          test "$(git hash-object ci/private_candidate_pr287_exact201_qa_evidence.json)" = 0356db03adae862c34c8a6d66e6cef267a7b17a6
+          test "$(git hash-object ci/verify_private_candidate_pr287_exact201_qa_evidence.py)" = 3929196efd4faf9fa2d8b968af4f12b399857b54
+          test "$(git hash-object ci/test_private_candidate_pr287_exact201_qa_evidence.py)" = e1eede0604b147a0a633ddfce35879dc52bd6a80
+          test "$(git diff --name-only HEAD^ HEAD | wc -l)" = 3
+          test ! -e app/weex-ia-signing.jks
+          export PYTHONDONTWRITEBYTECODE=1
+          python3 ci/test_private_candidate_pr287_exact201_qa_evidence.py
+          python3 ci/verify_private_candidate_pr287_exact201_qa_evidence.py
+          test ! -e app/build/outputs/apk/release/app-release.apk

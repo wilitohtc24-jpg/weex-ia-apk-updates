@@ -1,0 +1,266 @@
+# Immutable PR287 Android ART/DEX smoke, ephemeral debug key; NO signing release, WEEX, Neon calls, or OTA.
+name: WEEX PR287 exact 208 isolated Android ART DEX NO OTA
+on:
+  push:
+    branches: [qa/weex-pr287-integrated-20261127]
+    paths:
+      - .github/workflows/weex-pr287-exact208-isolated-art-no-ota.yml
+permissions:
+  contents: read
+jobs:
+  art-dex-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    env:
+      SOURCE_SHA: 3c4aa0e62b6dbd4862e42f5e687a00eba2e1f123
+      WEEX_ALLOW_DIRECT_PUBLISH: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+      WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
+      WEEX_QA_OWNER_INTEGRATION: "1"
+      WEEX_ART_QA_EXPORT_MATERIALIZED: "1"
+      WEEX_ART_QA_EXPORT_DIR: /tmp/weex-pr287-art-materialized
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false"
+    steps:
+      - name: Checkout immutable private source, no write credentials
+        uses: actions/checkout@v4
+        with:
+          repository: wilitohtc24-jpg/weex-auto-trader-android
+          ref: 3c4aa0e62b6dbd4862e42f5e687a00eba2e1f123
+          token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: source
+      - name: Confirm source and preserve owner release separation
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object ci/test_real_portfolio_timeframe_telemetry_wrapper_v1.py)" = 21316cb4936de019ffde12219b43158eb56309ad
+          test "$(git hash-object ci/test_real_live_margin_authority_v1.py)" = 78278978eee88e787476e3e7f0e1b0037e88c0de
+          test "$(git hash-object ci/real_live_margin_authority_proof_v1.py)" = 51e1f232a4e547c7ab20424c34dc6edf77362ae2
+          test "$(git hash-object ci/patch_real_portfolio_timeframe_context.py)" = 5fa2a975a16e8e5f58108c0e8609b010fb9bfabf
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/WithdrawalPendingRecordTest.kt)" = 3130f016d3aec4f7eee205a22a71ae6ec33c6491
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskCollectorTest.kt)" = d3eaaf3fa9baee6401300881499b8a84d33e2406
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/PortfolioDiversificationTimeAlignmentTest.kt)" = cbf346fcc6af6109dce052718b8f536618d957ca
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt)" = 1f303904866e1e8bb97f27f61a618548b67dc837
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalPendingRecord.kt)" = 990cbbc4edc78b71c4a05ada1b3bf57b5435414d
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalExactHistoryReadOnlyCollector.kt)" = 84649bb1e7375e4c0e093f5eb3b10a39d7da8704
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 2512ce5563f36c7d005ee375237dc54e4f224b64
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/PortfolioDiversification.kt)" = 480d33a75b74c6795cb046c42ceacb11c9fa5b28
+          test "$(git hash-object ci/patch_final_real_entry_throughput_v1.py)" = ba76d57d7104a66e83e07b8f1ac5d5931ea24316
+          test "$(git hash-object ci/verify_real_pending_reconcile_progress_v1.py)" = dda8e8016b21c506aec3c6591598bbeda7392176
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskBackground.kt)" = 53241566a9f1d1e0a63d274fa2e7d880179e2b2e
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealStandbyStudyPolicy.kt)" = 310d921b27490af24d091d25e198408af7edced8
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt)" = e30d75e9a7eeefc930626149878a169a908d5eab
+          test "$(git hash-object .circleci/config.yml)" = 526ef068749a56867cda550ee22f25adaa9c3ed5
+          test "$(git hash-object ci/patch_owner_experience_score_final_v1.py)" = e2895467e65aabb40eb3cd091ec31f1aac67c018
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingTerminalPolicy.kt)" = f3779b56dff6fa98914d5a5c8baf43a3f38c487e
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealHistoricalProtectiveCloseExecutionPolicy.kt)" = 744282dbe287ff2f38a7a98987fcfab5697f1a2c
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = f60650ca0993e0df93f2d6354ed5e898a321c8d7
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt)" = 7ce954e39948d6d281d41fbcff404fc1d534c32e
+          test ! -e app/weex-ia-signing.jks
+          python3 ci/verify_manual_build_only.py
+          echo PR287_ART_SOURCE_PINNED_NO_RELEASE_SIGNER
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android 35 and pinned Gradle 8.10.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          test -d "$SDK"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ]; then
+            MANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -n "$MANAGER"
+            "$MANAGER" 'platforms;android-35' >/dev/null
+          fi
+          curl -fsSL --retry 3 --retry-delay 3 https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o /tmp/pr287-gradle.zip
+          printf '%s  %s\n' '31c55713e40233a8303827ceb42ca48a47267a0ad4bab9177123121e71524c26' /tmp/pr287-gradle.zip | sha256sum -c -
+          mkdir -p "$HOME/.gradle-dist"
+          unzip -q -o /tmp/pr287-gradle.zip -d "$HOME/.gradle-dist"
+          echo "$HOME/.gradle-dist/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+      - name: Canonical materialization, Android JUnit and disposable debug DEX
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          # Full source + JUnit proof is mandatory BEFORE debug APK creation.
+          if ! python3 ci/preflight_full_presigning_source_v1.py >/tmp/pr287-art-presign.log 2>&1; then
+            grep -E 'PRESIGN_FAILURE_CONTEXT|DRY_RUN_EXACT_FAILURE|AUDIT_KOTLIN_FIRST_ERROR|AUDIT_JUNIT_FAILED|WEEX_RELEASE_ERRTRAP' /tmp/pr287-art-presign.log | tail -40 | cut -c1-420 || true
+            echo "::error::PR287_ART_CANONICAL_PRESIGN_FAILED_NO_OTA"
+            exit 1
+          fi
+          grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr287-art-presign.log
+          grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr287-art-presign.log
+          FINAL=/tmp/weex-pr287-art-materialized/main/java/com/wilito/weexautotrader
+          grep -Fq 'OWNER_INTEGRATION_MATERIALIZED_CONNECTIONS_PRESENT' /tmp/pr287-art-presign.log
+          for name in TraderService RealAIMarketSelector RealLearningAdviceBackground RealPendingHistoricalMakerReadOnlyWorker RealHistoricalProtectiveCloseExecutionPolicy RealPendingTerminalPolicy; do
+            test -s "$FINAL/$name.kt"
+          done
+          grep -Fq '(understanding.rankedScore+economicPreview.rankingAdjustment)+experienceBonus' "$FINAL/RealAIMarketSelector.kt"
+          grep -Fq 'verifiedHistoricalOpeningQuantity(' "$FINAL/RealPendingTerminalPolicy.kt"
+          grep -Fq 'A26_EXPIRED_MAKER_DETAIL_RECOVERY_V1' "$FINAL/RealPendingEntryCoordinator.kt"
+          grep -Fq 'A26_STANDBY_EXACT_TF_RECHECK_V1' "$FINAL/RealStandbyStudyPolicy.kt"
+          grep -Fq 'A26_CONSERVATIVE_CYCLE_WALLET_STUDY_V1' "$FINAL/RealSeparatedPortfolioRiskBackground.kt"
+          grep -Fq 'A26_FINAL_ADDITIONAL_ORDER_ENVELOPE_V1' "$FINAL/RealSeparatedPortfolioRiskBackground.kt"
+          grep -Fq 'A27_EXACT_PENDING_HISTORY_UI_V1' "$FINAL/WithdrawalExactHistoryReadOnlyCollector.kt"
+          # Only an ephemeral exported source tree is modified; original
+          # canonical signed source in Git remains untouched and pinned.
+          rsync -a --delete /tmp/weex-pr287-art-materialized/main/ app/src/main/
+          cp /tmp/weex-pr287-art-materialized/build.gradle.kts app/build.gradle.kts
+          # Original RELEASE keystore must NEVER be sourced by an offline test.
+          test ! -e app/weex-ia-signing.jks
+          keytool -genkeypair -keystore app/weex-ia-signing.jks -storepass android -keypass android -alias weexia -keyalg RSA -keysize 2048 -validity 1 -dname 'CN=PR287-OFFLINE-TEST-ONLY,OU=DISPOSABLE,O=NEVER-RELEASE' >/dev/null 2>&1
+          test -s app/weex-ia-signing.jks
+          # Emulator-specific x86_64 and AndroidX test-only dependencies.
+          # This is a disposable CI checkout; do NOT commit to production.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("app/build.gradle.kts")
+          s=p.read_text(encoding="utf-8")
+          abi='abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))'
+          assert s.count(abi)==1, "PR287_ART_ABI_BASE_CHANGED"
+          s=s.replace(abi,'abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))',1)
+          default='    defaultConfig {'
+          assert s.count(default)==1, "PR287_ART_DEFAULTCONFIG_BASE_CHANGED"
+          s=s.replace(default,default+'\n        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"',1)
+          dep='    testImplementation("junit:junit:4.13.2")'
+          assert s.count(dep)==1, "PR287_ART_JUNIT_BASE_CHANGED"
+          s=s.replace(dep,dep+
+              '\n    androidTestImplementation("androidx.test:runner:1.6.2")'+
+              '\n    androidTestImplementation("androidx.test.ext:junit:1.2.1")',1)
+          p.write_text(s,encoding="utf-8")
+          print("PR287_DISPOSABLE_EMULATOR_ONLY_ABI_AND_JUNIT_DEPENDENCIES")
+          PY
+          mkdir -p app/src/androidTest/java/com/wilito/weexautotrader
+          cat > app/src/androidTest/java/com/wilito/weexautotrader/Pr287OfflineArtTest.kt <<'KOTLIN'
+          package com.wilito.weexautotrader
+
+          import android.content.Context
+          import androidx.test.ext.junit.runners.AndroidJUnit4
+          import androidx.test.platform.app.InstrumentationRegistry
+          import org.junit.Assert.assertEquals
+          import org.junit.Assert.assertTrue
+          import org.junit.Test
+          import org.junit.runner.RunWith
+
+          @RunWith(AndroidJUnit4::class)
+          class Pr287OfflineArtTest {
+              private val context:Context
+                  get()=InstrumentationRegistry.getInstrumentation().targetContext
+
+              @Test fun criticalClassesLoadWithoutStartingLiveTrading() {
+                  val classes=listOf(
+                      "com.wilito.weexautotrader.TraderService",
+                      "com.wilito.weexautotrader.RealAIMarketSelector",
+                      "com.wilito.weexautotrader.RealLearningAdviceBackground",
+                      "com.wilito.weexautotrader.RealPendingTerminalPolicy",
+                      "com.wilito.weexautotrader.RealPendingEntryCoordinator",
+                      "com.wilito.weexautotrader.RealStandbyStudyPolicy",
+                      "com.wilito.weexautotrader.RealSeparatedPortfolioRiskBackground",
+                      "com.wilito.weexautotrader.RealPendingHistoricalMakerReadOnlyWorker",
+                      "com.wilito.weexautotrader.RealHistoricalProtectiveCloseExecutionPolicy",
+                      "com.wilito.weexautotrader.RealCombinedContinuousNetProfitCoordinator",
+                      "com.wilito.weexautotrader.WithdrawalPendingHistoryReview",
+                      "com.wilito.weexautotrader.WithdrawalPendingRecordStore",
+                      "com.wilito.weexautotrader.NeonTransportFailureDiagnostic"
+                  )
+                  for(name in classes) assertTrue(name,Class.forName(name)!=null)
+              }
+
+              @Test fun writeUpgradeSentinel() {
+                  assertTrue(context.getSharedPreferences(
+                      "pr287_disposable_art",Context.MODE_PRIVATE
+                  ).edit().putString("check","PR287_KEEP_DATA").commit())
+              }
+
+              @Test fun verifyUpgradeSentinel() {
+                  assertEquals("PR287_KEEP_DATA",context.getSharedPreferences(
+                      "pr287_disposable_art",Context.MODE_PRIVATE
+                  ).getString("check",null))
+              }
+          }
+          KOTLIN
+          if ! gradle --no-daemon --console=plain :app:assembleDebug :app:assembleDebugAndroidTest > /tmp/pr287-art-gradle.log 2>&1; then
+            echo "::error::PR287_OFFLINE_DEX_BUILD_FAILED"
+            exit 1
+          fi
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          test -s app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          test ! -e app/build/outputs/apk/release/app-release.apk
+          echo PR287_DISPOSABLE_DEBUG_DEX_BUILD_PASS_NO_RELEASE_NO_OTA
+      - name: Enable KVM for isolated Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Build offline emulator test script
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >/tmp/pr287-art-offline-runner.sh <<'RUNNER'
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          fail() {
+            local rc="$?" line="$1"
+            trap - ERR
+            echo "::error::PR287_OFFLINE_ART_FAILED_LINE=$line rc=$rc"
+            for file in /tmp/pr287-first-launch.log /tmp/pr287-relaunch.log /tmp/pr287-dex.log /tmp/pr287-data-write.log /tmp/pr287-data-read.log; do
+              if [ -f "$file" ]; then echo "ART_DIAG_FILE=$file"; tail -28 "$file" || true; fi
+            done
+            adb logcat -d -b crash | tail -100 || true
+            exit "$rc"
+          }
+          trap 'fail "$LINENO"' ERR
+          cd "$GITHUB_WORKSPACE/source"
+          adb shell svc wifi disable
+          adb shell svc data disable
+          adb shell settings put global airplane_mode_on 1
+          test "$(adb shell settings get global airplane_mode_on | tr -d '\r')" = "1"
+          APP=app/build/outputs/apk/debug/app-debug.apk
+          TEST=app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb install -r "$APP"
+          adb install -r "$TEST"
+          adb logcat -c
+          adb shell am start -W -n com.wilito.weexautotrader/.LauncherActivity >/tmp/pr287-first-launch.log
+          grep -Fq 'Status: ok' /tmp/pr287-first-launch.log
+          sleep 9
+          test -n "$(adb shell pidof com.wilito.weexautotrader | tr -d '\r')"
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|VerifyError' >/tmp/pr287-crashes; then
+            echo "::error::PR287_VERIFYERROR_OR_STARTUP_CRASH"; exit 1
+          fi
+          for spec in criticalClassesLoadWithoutStartingLiveTrading writeUpgradeSentinel; do
+            timeout --signal=TERM --kill-after=10s 90s adb shell am instrument -w -e class "com.wilito.weexautotrader.Pr287OfflineArtTest#$spec" com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner > "/tmp/pr287-$spec.log"
+            grep -Fq 'OK (1 test)' "/tmp/pr287-$spec.log" || { tail -55 "/tmp/pr287-$spec.log"; exit 1; }
+          done
+          adb install -r "$APP"
+          timeout --signal=TERM --kill-after=10s 90s adb shell am instrument -w -e class com.wilito.weexautotrader.Pr287OfflineArtTest#verifyUpgradeSentinel com.wilito.weexautotrader.test/androidx.test.runner.AndroidJUnitRunner >/tmp/pr287-data-read.log
+          grep -Fq 'OK (1 test)' /tmp/pr287-data-read.log
+          adb logcat -c
+          adb shell am start -W -n com.wilito.weexautotrader/.LauncherActivity >/tmp/pr287-relaunch.log
+          grep -Fq 'Status: ok' /tmp/pr287-relaunch.log
+          sleep 9
+          test -n "$(adb shell pidof com.wilito.weexautotrader | tr -d '\r')"
+          if adb logcat -d -b crash | grep -E 'FATAL EXCEPTION|VerifyError' >/tmp/pr287-crashes; then
+            echo "::error::PR287_POST_REINSTALL_VERIFYERROR"; exit 1
+          fi
+          echo PR287_ANDROID35_ART_DEX_OFFLINE_REINSTALL_DATA_PASS_NO_ORDERS_NO_OTA
+          RUNNER
+          bash -n /tmp/pr287-art-offline-runner.sh
+          chmod 700 /tmp/pr287-art-offline-runner.sh
+      - name: Verify ART startup, class-load and in-place upgrade with data retained
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 4096M
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          script: bash /tmp/pr287-art-offline-runner.sh

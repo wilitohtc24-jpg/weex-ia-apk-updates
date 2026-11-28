@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 1313ba510dab39af6463181316c14397ad586694
+      SOURCE_SHA: 21b9ed46ef51ede931170f5274247b01904c5e40
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 1313ba510dab39af6463181316c14397ad586694
+          ref: 21b9ed46ef51ede931170f5274247b01904c5e40
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -52,7 +52,7 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIDecisionEngine.kt)" = 68b0deeab0cf3c9a01ffac90acd9d2242fff94c9
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt)" = 74d980cc1f839a3066cac3b7323dc24e43a68a92
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 408625d89e0259ff13827bf6ab8f0a447ddc0ab9
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt)" = 1036d0792a5f82c9ae7d94ef9a9a1e08b78d91c9
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt)" = b38078b9821b98623d37975fdbef04d392393e83
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/BootstrapExecutionPolicy.kt)" = 3fea509c529083d2bfd3f7d89e8c904a7ab6954c
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = f60650ca0993e0df93f2d6354ed5e898a321c8d7
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt)" = 8da7973ac09f5ccebdf8656af3b8d20b26781bec
@@ -176,6 +176,8 @@ jobs:
           test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
           echo PR287_POSTFLIGHT_CHECK_30
           grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          echo PR287_POSTFLIGHT_A26_REAL_RISK_HANDOFF
+          grep -Fq 'currentOpenRiskUsd=currentOpenRiskUsd' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt
           echo PR287_POSTFLIGHT_A26_SEQUENTIAL_STUDY
           grep -Fq 'internal object SequentialCapitalStudyPolicy' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt
           grep -Fq 'val margin=minOf(collateralCap,lossCap/lossPerMargin)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt

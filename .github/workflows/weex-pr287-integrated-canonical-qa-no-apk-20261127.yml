@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 756f3cf1f1640fcd7223471193e5bfc8749d7aac
+      SOURCE_SHA: b6d56c8f3cbd25ab62f729f3a4ec29daefa84b19
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 756f3cf1f1640fcd7223471193e5bfc8749d7aac
+          ref: b6d56c8f3cbd25ab62f729f3a4ec29daefa84b19
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -49,12 +49,15 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPendingTerminalPolicyTest.kt)" = 8ad3f4d6bf9ea5d9e78734b43136cc1c8907dd24
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingTerminalPolicy.kt)" = f3779b56dff6fa98914d5a5c8baf43a3f38c487e
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt)" = e30d75e9a7eeefc930626149878a169a908d5eab
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealStandbyRefillCadencePolicyTest.kt)" = b1c724fd73c08058dfc958156b52a41e4e4e9d0a
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealStandbyRefillCadencePolicy.kt)" = 73ca91124c57c194f0e8e4cabf8ce0dce00eb37e
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealEntryExecutionPolicyTest.kt)" = 359dcd9514a95be27e9b6cf21a0544abccf52952
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealEntryExecutionPolicy.kt)" = 76e04cfa99cdb39deb320e3e04fc4676dfd4478a
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIDecisionEngine.kt)" = 68b0deeab0cf3c9a01ffac90acd9d2242fff94c9
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt)" = 1ec5574ea293a0272d10318363f4cadc7ffdcb43
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt)" = 7ce954e39948d6d281d41fbcff404fc1d534c32e
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/TraderService.kt)" = 50a9f0682e65f7213335fc26e8c7c6deb1921a83
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt)" = b38078b9821b98623d37975fdbef04d392393e83
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/BootstrapExecutionPolicy.kt)" = 3fea509c529083d2bfd3f7d89e8c904a7ab6954c
@@ -268,6 +271,9 @@ jobs:
           grep -Fq 'researchFastTimeframes[normalize(ticker.symbol)]' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealAIMarketSelector.kt
           grep -Fq 'A26_CONSERVATIVE_CYCLE_WALLET_STUDY_V1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealSeparatedPortfolioRiskBackground.kt
           grep -Fq 'exactStandbyTimeframeOnlyPrioritizesFreshAllowedNonOccupiedMarkets' app/src/test/java/com/wilito/weexautotrader/RealStandbyStudyPolicyTest.kt
+          grep -Fq 'A26_EXPIRED_MAKER_DETAIL_RECOVERY_V1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          grep -Fq 'mayCancelExpiredFromDetail(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingTerminalPolicy.kt
+          grep -Fq 'expiredExactActiveDetailCanCancelButNeverReleaseWithoutTerminalProof' app/src/test/java/com/wilito/weexautotrader/RealPendingTerminalPolicyTest.kt
           echo PR287_POSTFLIGHT_A26_SHARED_STOP_RISK
           grep -Fq 'fun estimatedOpenStopRiskCash(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SimulationExecutionCostModel.kt
           test "$(grep -Fc 'SimulationExecutionCostModel.estimatedOpenStopRiskCash(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/PaperTradingEngine.kt)" = 3

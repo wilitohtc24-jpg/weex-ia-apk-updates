@@ -99,39 +99,74 @@ jobs:
             grep -E 'OWNER_INTEGRATION_MATERIALIZED_MISSING|WEEX_PRESIGN_FIRST_FAILURE_LINE|PRESIGN_FAILURE_CONTEXT|WEEX_PREFLIGHT_BLOCKED|WEEX_AUDIT_JUNIT_FAILED_TESTS_COUNT|AUDIT_JUNIT_FAILED|AUDIT_JUNIT_STACK|WEEX_AUDIT_KOTLIN_FIRST_ERROR|WEEX_AUDIT_KOTLIN_ERROR_COUNT|WEEX_AUDIT_JUNIT_BUILD_FAILED|WEEX_AUDIT_JUNIT_SOURCE_CHANGED_AFTER_TEST|WEEX_PRESIGN_SOURCE_REPLAY_FAILED|WEEX_RELEASE_ERRTRAP|AUDIT_ANDROID ' /tmp/pr192-qa-source.log | tail -115 | cut -c1-420 || true
             exit 1
           fi
+          # Report the exact failing postflight guard (line only; do not dump private source).
+          trap 'rc=$?; echo "::error::PR287_POSTFLIGHT_GUARD_FAILED line=$LINENO rc=$rc"; exit "$rc"' ERR
+          echo PR287_PREFLIGHT_RETURNED_ZERO
           grep -Fq 'WEEX_PRESIGN_SOURCE_REPLAY_PASS' /tmp/pr192-qa-source.log
           grep -Fq 'WEEX_AUDIT_JUNIT_PASS' /tmp/pr192-qa-source.log
           grep -Fq 'OWNER_INTEGRATION_MATERIALIZED_CONNECTIONS_PRESENT' /tmp/pr192-qa-source.log
+          echo PR287_PREFLIGHT_REPLAY_JUNIT_OWNER_MARKERS_PRESENT
+          echo PR287_POSTFLIGHT_CHECK_01
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
+          echo PR287_POSTFLIGHT_CHECK_02
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/NeonTransportFailureDiagnostic.kt
+          echo PR287_POSTFLIGHT_CHECK_03
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealAppliedLearningCertifiedClosePipeline.kt
+          echo PR287_POSTFLIGHT_CHECK_04
           grep -Fq 'RealVerifiedLearningProgressCard(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          echo PR287_POSTFLIGHT_CHECK_05
           grep -Fq 'optionalProfitStopFreshOwnerAuthority' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/Diagnostics.kt
+          echo PR287_POSTFLIGHT_CHECK_06
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealProfitStopGateChartStatus.kt
+          echo PR287_POSTFLIGHT_CHECK_07
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/CausalPricePathForecastStudy.kt
+          echo PR287_POSTFLIGHT_CHECK_08
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicy.kt
+          echo PR287_POSTFLIGHT_CHECK_09
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          echo PR287_POSTFLIGHT_CHECK_10
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          echo PR287_POSTFLIGHT_CHECK_11
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerRoundTripQuantityPolicy.kt
+          echo PR287_POSTFLIGHT_CHECK_12
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealLegacyMakerSignedOpeningReadOnlyCollector.kt
+          echo PR287_POSTFLIGHT_CHECK_13
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealHistoricalOrderFillWindowPolicy.kt
+          echo PR287_POSTFLIGHT_CHECK_14
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealBotSignedCloseReadOnlyCollector.kt
+          echo PR287_POSTFLIGHT_CHECK_15
           test -s /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealDailyLedgerBackgroundSingleFlight.kt
+          echo PR287_POSTFLIGHT_CHECK_16
           grep -Fq 'realDailyLedgerBackground.scheduleIfIdle {' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
+          echo PR287_POSTFLIGHT_CHECK_17
           grep -Fq 'REAL_LEDGER_OFFSCANNER_COMMIT_GUARD_V1' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
+          echo PR287_POSTFLIGHT_CHECK_18
           grep -Fq 'RealTradingPnl.markSyncInProgress(applicationContext)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/TraderService.kt
+          echo PR287_POSTFLIGHT_CHECK_19
           grep -Fq 'fun markSyncInProgress(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealTradingPnl.kt
+          echo PR287_POSTFLIGHT_CHECK_20
           grep -Fq 'historical?.schedule(stored,status,detail?.executedQuantity,filledIntoPosition)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          echo PR287_POSTFLIGHT_CHECK_21
           grep -Fq 'OnlineShadowMaturationPolicy.classify(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt
+          echo PR287_POSTFLIGHT_CHECK_22
           test -s app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          echo PR287_POSTFLIGHT_CHECK_23
           grep -Fq 'MAX_FOREIGN_CONTEXT_RECOVERY_GRACE_MS' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          echo PR287_POSTFLIGHT_CHECK_24
           grep -Fq 'vpnGapOnOtherMarketDoesNotDestroyOriginalHistoricalTrainingTarget' app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          echo PR287_POSTFLIGHT_CHECK_25
           grep -Fq 'vpnFirstOwnMarketTickWithoutCandlesCanLaterLearnOnlyOriginalClosedBar' app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          echo PR287_POSTFLIGHT_CHECK_26
           grep -Fq 'oldSameMarketHistoryExpiresAfterRecoveryCapEvenIfPriceIsPresent' app/src/test/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicyTest.kt
+          echo PR287_POSTFLIGHT_CHECK_27
           grep -Fq 'age>horizon+MAX_FOREIGN_CONTEXT_RECOVERY_GRACE_MS' app/src/main/java/com/wilito/weexautotrader/OnlineShadowMaturationPolicy.kt
+          echo PR287_POSTFLIGHT_CHECK_28
           test -s app/src/test/java/com/wilito/weexautotrader/RealContinuousImprovementContinuityPolicyTest.kt
+          echo PR287_POSTFLIGHT_CHECK_29
           test -s app/src/test/java/com/wilito/weexautotrader/CausalPricePathForecastStudyTest.kt
+          echo PR287_POSTFLIGHT_CHECK_30
           grep -Fq 'RealProfitStopGateChartStatus.message(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/MainActivity.kt
+          echo PR287_POSTFLIGHT_CHECK_31
           test ! -e app/build/outputs/apk/release/app-release.apk
           echo PR287_ANDROID_KOTLIN_JUNIT_AND_MATERIALIZED_FEATURES_PASS_NO_APK_NO_OTA_NO_WEEX
 

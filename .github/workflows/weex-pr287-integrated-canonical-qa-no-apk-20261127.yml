@@ -145,7 +145,11 @@ jobs:
           echo PR287_POSTFLIGHT_CHECK_19
           grep -Fq 'fun markSyncInProgress(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealTradingPnl.kt
           echo PR287_POSTFLIGHT_CHECK_20
-          grep -Fq 'historical?.schedule(stored,status,detail?.executedQuantity,filledIntoPosition)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          grep -Fq 'val historicAccountScope=api.authenticatedAccountProofSha256()' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          grep -Fq 'historical?.schedule(stored,status,detail?.executedQuantity,filledIntoPosition,historicAccountScope)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingEntryCoordinator.kt
+          grep -Fq 'historicalMakerObservationKey(accountScope,entry.orderId,entry.clientOrderId)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          grep -Fq 'if(currentScopeMatches(accountScope))' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
+          grep -Fq 'read={inspect(entry,opaque,accountScope)}' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPendingHistoricalMakerReadOnlyWorker.kt
           echo PR287_POSTFLIGHT_CHECK_21
           grep -Fq 'OnlineShadowMaturationPolicy.classify(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/OnlineShadowLearning.kt
           echo PR287_POSTFLIGHT_CHECK_22

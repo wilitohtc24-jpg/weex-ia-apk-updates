@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 70d112b92737682f0feabcf4ba5c4a2d84f653be
+      SOURCE_SHA: 09630a4b05c40c0b983051bfbbac19c32e2dbb1b
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 70d112b92737682f0feabcf4ba5c4a2d84f653be
+          ref: 09630a4b05c40c0b983051bfbbac19c32e2dbb1b
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -63,14 +63,14 @@ jobs:
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/CryptoFullAvailableOrRejectTest.kt)" = 10f293728ffa0c366c2fc7a384d0cc136a24c572
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealEntrySearchNextPolicy.kt)" = 81051443e1480d21bc6949d4e019308408837287
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealEntrySearchNextPolicyTest.kt)" = dfe8b1490eda3e367e5df5d5614523cfc363c096
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt)" = 65662cedc7f22454a33a785461ffaa1da31e2c4e
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt)" = c31cc0f9272588ebb939c510aaa245f257163682
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealPositionOriginPolicyTest.kt)" = 4a482f6b6fab7628268fc8ae82615d141749c6b1
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPositionOriginResolver.kt)" = 122a469d3caf6f059c6e7a8bc3affc540c9e5633
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealPositionOriginPolicy.kt)" = 6ff2f65bb80ab68db68a16aaf5e4e44d20ab6859
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicyTest.kt)" = e15b21622c7b475ab0d06c133f32aff0192408c4
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicyTest.kt)" = 227574133a13965b7304e774313025cb9334e45a
           test "$(git hash-object ci/patch_risk_capped_substantial_sizing_v1.py)" = a085113588198fbfcfcbfe84ce01e0fedff40428
-          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicyTest.kt)" = 4f28508bd51f554f60fd845b990184da0bf97d44
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicyTest.kt)" = b14e90d32da431f019327c45b6a1d1143af0de8f
           test "$(git hash-object ci/verify_real_selected_timeframe_handoff_v1.py)" = dcad7733e6d349b9b15463746df360813e79d0fa
           test "$(git hash-object ci/test_real_selected_timeframe_semantic_v1.py)" = 8de24f2e2a38c05588fc9e07649baf2c0c15c40e
           test "$(git hash-object ci/patch_owner_single_slot_standby_v1.py)" = 5ba802a52672010b48a71c07e378afe332e471dc
@@ -206,6 +206,9 @@ jobs:
           test "$(grep -Fc 'currentOpenRiskUsd=currentOpenRiskUsd' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt)" = 2
           grep -Fq 'currentOpenRiskUsd=currentOpenRiskUsd' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt
           echo PR287_POSTFLIGHT_A26_COMBINED_OPEN_RISK_STUDY
+          grep -Fq 'fun studySeparatedOpenRisk(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt
+          grep -Fq 'observations.groupBy{it.symbol}.values.any{rows->' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt
+          grep -Fq 'order.openTpslParentOrderId!=x.signedOpeningOrderId' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt
           grep -Fq 'fun uniqueSeparatedOpeningIds(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPositionOriginPolicy.kt
           grep -Fq 'if(position.separatedOpenOrderId !in uniqueOpeningIds)continue' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealPositionOriginResolver.kt
           grep -Fq 'val pages=protection.completeSignedPages?:return null' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt

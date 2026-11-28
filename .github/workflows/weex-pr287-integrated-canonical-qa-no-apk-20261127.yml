@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
-      SOURCE_SHA: 51b5624c98f9ded6e957f9eff70ad9b8e0d9b5a8
+      SOURCE_SHA: 037991223eb734b31c8c7dd6a121a84cb79c9740
       WEEX_ALLOW_DIRECT_PUBLISH: "false"
       WEEX_AUDIT_RUN_ANDROID_JUNIT: "1"
       WEEX_QA_OWNER_INTEGRATION: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: wilitohtc24-jpg/weex-auto-trader-android
-          ref: 51b5624c98f9ded6e957f9eff70ad9b8e0d9b5a8
+          ref: 037991223eb734b31c8c7dd6a121a84cb79c9740
           token: ${{ secrets.WEEX_SOURCE_RELEASE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -57,13 +57,14 @@ jobs:
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealLearningAdviceBackground.kt)" = f60650ca0993e0df93f2d6354ed5e898a321c8d7
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealExecutionEngine.kt)" = 8da7973ac09f5ccebdf8656af3b8d20b26781bec
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RiskEngine.kt)" = 9c7bca40c227a2eeac499a995aeddf37d9297b92
-          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = 8089a23eb23d3f85b28d982709c5d120101c148f
+          test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt)" = f0d18c8a94730704687de6f856dd6d863b1bbcd0
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/ContinuousNetProfitStopTransaction.kt)" = 118ed81316217ab24319b676b42cb14522849619
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/WithdrawalSetupDialog.kt)" = 3fba862069ba9e34abcd04e14556463a4fce95c0
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/CryptoFullAvailableOrRejectTest.kt)" = 10f293728ffa0c366c2fc7a384d0cc136a24c572
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/RealEntrySearchNextPolicy.kt)" = 81051443e1480d21bc6949d4e019308408837287
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealEntrySearchNextPolicyTest.kt)" = dfe8b1490eda3e367e5df5d5614523cfc363c096
           test "$(git hash-object app/src/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt)" = a83effb850ab1a311598753cedf7efc9a31ff59c
+          test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedUniqueBotPositionCandidatePolicyTest.kt)" = e15b21622c7b475ab0d06c133f32aff0192408c4
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicyTest.kt)" = 227574133a13965b7304e774313025cb9334e45a
           test "$(git hash-object ci/patch_risk_capped_substantial_sizing_v1.py)" = a085113588198fbfcfcbfe84ce01e0fedff40428
           test "$(git hash-object app/src/test/java/com/wilito/weexautotrader/RealCombinedSignedEvidenceStudyPolicyTest.kt)" = 9b451e641c67ecab102337de44df12b0237b4927
@@ -202,6 +203,8 @@ jobs:
           test "$(grep -Fc 'currentOpenRiskUsd=currentOpenRiskUsd' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt)" = 2
           grep -Fq 'currentOpenRiskUsd=currentOpenRiskUsd' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealDecisionPlanner.kt
           echo PR287_POSTFLIGHT_A26_COMBINED_OPEN_RISK_STUDY
+          grep -Fq 'val capturedPortfolio=signedPositions.toList()' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
+          grep -Fq 'inspectOne(chosen,capturedPortfolio,capturedCredentials,signedReadElapsed)' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/RealCombinedContinuousNetProfitCoordinator.kt
           grep -Fq 'fun studyCoherentCombinedPortfolioRisk(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt
           grep -Fq 'p.quantity.compareTo(row.position.ledger.size)!=0' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt
           grep -Fq 'fun studyCombinedOpenRisk(' /tmp/weex-pr192-materialized-no-apk/main/java/com/wilito/weexautotrader/SequentialCapitalStudyPolicy.kt
